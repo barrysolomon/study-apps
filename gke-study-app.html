@@ -284,6 +284,7 @@ const FLASHCARDS=[
 const APP_VERSION='v2.1';
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
 let SYNC_SHEET_URL=''; // Set via Settings page or paste URL here
+let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
 const CATEGORIES=["All","GKE Basics","Dash0+GKE","Competition","GCP Vocab","Event Prep"];
 const ROLE_CONFIG={
 sales:{label:'Sales & Marketing',icon:'💼',desc:'Competitive positioning, elevator pitches, objection handling. Focuses on what matters at the booth.',
@@ -600,6 +601,7 @@ saveState();render();return true;
 // ─── CLOUD SYNC ENGINE (offline-resilient) ───
 let syncStatus='idle',lastSyncAt=null,syncPending=false;
 function syncEnabled(){return typeof SYNC_SHEET_URL==='string'&&SYNC_SHEET_URL.length>10}
+function getSyncKey(){return SYNC_USER_ID?(SYNC_USER_ID+'/'+STORAGE_KEY):STORAGE_KEY}
 function isOnline(){return typeof navigator!=='undefined'?navigator.onLine:true}
 async function cloudSave(){
 if(!syncEnabled()){syncPending=false;return}
@@ -607,7 +609,7 @@ if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
 syncStatus='syncing';updateSyncUI();
 try{
 const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,savedAt:new Date().toISOString(),version:6};
-await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(STORAGE_KEY),{
+await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
 method:'POST',headers:{'Content-Type':'text/plain'},
 body:JSON.stringify({data,savedAt:data.savedAt})
 });
@@ -623,7 +625,7 @@ if(!syncEnabled())return null;
 if(!isOnline()){syncStatus='offline';updateSyncUI();return null}
 syncStatus='syncing';updateSyncUI();
 try{
-const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(STORAGE_KEY));
+const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(getSyncKey()));
 const json=await resp.json();
 syncStatus='synced';lastSyncAt=new Date().toISOString();updateSyncUI();
 if(json.ok&&json.data)return json;
@@ -644,11 +646,14 @@ if(!syncEnabled())return;
 if(syncTimer)clearTimeout(syncTimer);
 syncTimer=setTimeout(()=>cloudSave(),2000);
 }
-function saveSyncUrl(url){
+function saveSyncSettings(url,userId){
 SYNC_SHEET_URL=url.trim();
+SYNC_USER_ID=(userId||'').trim();
 try{
 if(SYNC_SHEET_URL)localStorage.setItem(STORAGE_KEY+'-sync-url',SYNC_SHEET_URL);
 else localStorage.removeItem(STORAGE_KEY+'-sync-url');
+if(SYNC_USER_ID)localStorage.setItem(STORAGE_KEY+'-sync-user',SYNC_USER_ID);
+else localStorage.removeItem(STORAGE_KEY+'-sync-user');
 }catch(e){}
 updateSyncUI();
 if(syncEnabled())cloudLoad().then(cloud=>{
@@ -728,7 +733,7 @@ if(saved.userRole)userRole=saved.userRole;
 }
 if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
 if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
-try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl}catch(e){}
+try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
 })();
 // ─── CLOUD SYNC ON LOAD ───
 (async function(){
@@ -1130,12 +1135,16 @@ return`<div class="history-item"><span>${icon} ${h.detail}</span><span style="co
 <div style="display:flex;gap:8px;margin-bottom:8px">
 <input id="syncUrlInput" type="text" value="${SYNC_SHEET_URL||''}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;font-family:monospace;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
 </div>
+<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+<input id="syncUserInput" type="text" value="${SYNC_USER_ID||''}" placeholder="Your name (e.g. barry)" style="flex:1;max-width:220px;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+<span style="font-size:11px;color:#6b7280">Optional — keeps your data separate when sharing a sync sheet</span>
+</div>
 <div style="display:flex;gap:8px;align-items:center">
-<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncUrl(document.getElementById('syncUrlInput').value);render()">Save</button>
-<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncUrl('');document.getElementById('syncUrlInput').value='';render()">Disconnect</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncSettings(document.getElementById('syncUrlInput').value,document.getElementById('syncUserInput').value);render()">Save</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncSettings('','');document.getElementById('syncUrlInput').value='';document.getElementById('syncUserInput').value='';render()">Disconnect</button>
 <span style="font-size:12px;color:${syncEnabled()?'#10b981':'#6b7280'}">${syncEnabled()?'✓ Connected'+(lastSyncAt?' — last sync '+new Date(lastSyncAt).toLocaleTimeString():''):'Not connected'}</span>
 </div>
-${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+STORAGE_KEY+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
+${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+getSyncKey()+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
 </div>
 <div class="mgmt-section">
 <h3>Export / Import Data</h3>
