@@ -12,9 +12,9 @@ Standalone HTML study apps for rapid-learning any topic. No frameworks, no build
 
 ## How to use
 
-**Online (GitHub Pages):** Visit the hosted URL — pick an app and start studying.
+**Online:** [https://barrysolomon.github.io/study-apps/](https://barrysolomon.github.io/study-apps/)
 
-**Offline:** Download any `.html` file, double-click to open in your browser. Everything works — quiz, flashcards, localStorage persistence. No internet needed.
+**Offline:** Download any `.html` file and double-click to open in your browser. Everything works — quiz, flashcards, localStorage persistence. No internet needed.
 
 ## Study modes
 
