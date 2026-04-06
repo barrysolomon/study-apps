@@ -299,6 +299,7 @@ const FLASHCARDS=[
 // ║  Search for "TODO" to find all customization points          ║
 // ╚══════════════════════════════════════════════════════════════╝
 const APP_VERSION='v1.0';
+const PLATFORM_VERSION='v3.0';
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
 let SYNC_SHEET_URL='';
 let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
@@ -852,9 +853,9 @@ el.innerHTML=`
 <div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
 <div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
 ${q.o.map((o,i)=>{
-let cls="quiz-option";
-if(qzShow){if(i===q.a)cls+=" correct";else if(i===qzSel)cls+=" wrong";else cls+=" dimmed"}
-return`<button class="${cls}" onclick="qzSelect(${i})">${String.fromCharCode(65+i)}. ${o}</button>`}).join("")}
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
 ${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
 ${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
 ${qzShow?askClaudeBox('Quiz question: '+q.q):''}

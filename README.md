@@ -8,7 +8,7 @@ Standalone HTML study apps for rapid-learning any topic. No frameworks, no build
 |---|---|
 | [gke-study-app.html](gke-study-app.html) | Google Kubernetes Engine — cloud-native K8s on GCP |
 | [otca-study-app.html](otca-study-app.html) | OpenTelemetry Certified Associate — observability & tracing |
-| [index.html](index.html) | Landing page linking to both apps |
+| [index.html](index.html) | Landing page linking to all apps |
 
 ## How to use
 

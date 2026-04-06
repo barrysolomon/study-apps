@@ -242,13 +242,20 @@ const FLASHCARDS=[
 {f:"Why can't any o11y tool run on Autopilot?",b:"Autopilot restricts privileged workloads for security. Most agents need DaemonSets, host network. Blocked unless you're an approved partner.",c:"Dash0+GKE",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security#privileged-workloads"},
 {f:"Dash0's Autopilot partnership",b:"Since operator 0.86.0, Dash0 runs as a privileged workload in Autopilot. Auto-instruments all workloads, OTel collector out of the box.",c:"Dash0+GKE",u:"https://www.dash0.com/changelog/dash0-operator-gke-autopilot-support"},
 {f:"Dash0 GKE install story",b:"helm install dash0-operator → auto-instruments workloads → OTel collector deployed → telemetry flows to Dash0. 5 minutes.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"Who else is on the Autopilot partners list?",b:"Datadog and Dynatrace. Dash0's edge: OTel-native, no proprietary agents, unified platform.",c:"Dash0+GKE",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security#partners"},
+{f:"Who else is on the Autopilot partners list?",b:"27 verified partners including Datadog, Dynatrace, Elastic, CrowdStrike, Sysdig, Splunk, Wiz, and others. Dash0 is one of 19 with allowlist support (privileged workloads). Dash0's edge: OTel-native, no proprietary agents, transparent pricing.",c:"Dash0+GKE",u:"https://cloud.google.com/kubernetes-engine/docs/resources/autopilot-partners"},
 {f:"Dash0 key numbers",b:"600+ customers (Zalando, Taco Bell, The Telegraph). Autopilot saves up to 57% with CUDs. GKE free, EKS $73/mo.",c:"Dash0+GKE",u:"https://www.dash0.com/pricing"},
 {f:"Who drove the Autopilot partnership?",b:"Bastian Krol. Marcel Birkner = GCP infra/access. Michele Mancioppi = product.",c:"Dash0+GKE",u:"https://www.dash0.com/kubernetes-monitoring"},
 {f:"Dash0 operator vs manual OTel setup",b:"Dash0 operator auto-instruments all workloads in enabled namespaces — no code changes. Manual OTel requires SDK integration + K8s attribute config per app.",c:"Dash0+GKE",u:"https://www.dash0.com/guides/kubernetes-observability-opentelemetry-operator"},
 {f:"What is OTLP?",b:"OpenTelemetry Protocol — vendor-neutral protocol for transmitting traces, metrics, logs. Uses gRPC or HTTP with Protocol Buffers. Supports backpressure signaling.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/specs/otlp/"},
 {f:"What is the OTel Collector?",b:"Vendor-agnostic pipeline that receives, processes, and exports telemetry. Decouples apps from backends, filters sensitive data, batches for throughput, supports multiple backends.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/collector/"},
 {f:"OTel auto-instrumentation in K8s",b:"OTel Operator uses K8s admission webhooks to inject instrumentation at pod creation. Adds init-container with SDK config. No app code changes needed.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/platforms/kubernetes/operator/automatic/"},
+{f:"Why OTel-native matters on GKE",b:"Google is a core OTel contributor. GKE workloads increasingly emit OTel signals natively. Dash0 consumes them directly — no translation layer, no lock-in on collection. Datadog puts its own agent in front of OTel, adding cost + complexity.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
+{f:"Dash0 Operator = zero-touch observability",b:"Deploy once via Helm. Automatically instruments all workloads in the GKE cluster — no code changes, no sidecar sprawl. For platform/SRE teams: 'you instrument once at the cluster level, everything inside gets observed.'",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
+{f:"Dash0 cost model on GKE",b:"Datadog charges per host/node. On GKE with autoscaling, node count spikes = surprise bills. Dash0's usage-based pricing follows actual signal volume, not node count. You're not penalized for scaling out.",c:"Dash0+GKE",u:"https://www.dash0.com/transparent-cost"},
+{f:"No lock-in on the way in or out",b:"Because everything is OTel-native, if a customer has existing OTel Collectors in GKE, Dash0 just becomes the backend. Low adoption friction. If they leave, instrumentation goes with them. Trust message for platform engineers who've been burned.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
+{f:"SA talking track (30 sec)",b:"'Running workloads on GKE? Deploy our operator, and within minutes you've got traces, metrics, and logs — without touching a single service. We're built entirely on OpenTelemetry, so there's no proprietary agent, your instrumentation is portable, and you're not paying Datadog's per-node tax every time GKE autoscales. It's observability that fits how GKE actually works.'",c:"Event Prep",u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
+{f:"Objection: 'We're OTel-first already'",b:"Then Dash0 is the natural backend. No friction, no re-instrumentation. Your existing OTel Collectors just point to Dash0 — one config change. We store data as native OTLP, so nothing gets lost in translation.",c:"Event Prep",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
+{f:"Objection: 'We're evaluating Datadog'",b:"Datadog works. The question is cost at scale and OTel compatibility. On GKE with autoscaling, per-host pricing gets unpredictable fast. Dash0 is usage-based — you pay for signal volume, not node count.",c:"Event Prep",u:"https://www.dash0.com/datadog-alternative"},
 {f:"What was Stackdriver?",b:"Google's original observability brand → now 'Google Cloud Observability' / 'Cloud Operations Suite'. Cloud Monitoring, Logging, Trace, Profiler, Error Reporting.",c:"Competition",u:"https://cloud.google.com/products/operations"},
 {f:"Gemini Cloud Assist",b:"Google's AI on top of observability. Summarizes logs, explains errors, 'AI-powered Investigations' for root cause. Their answer to Agent0.",c:"Competition",u:"https://cloud.google.com/gemini/docs/cloud-assist/overview"},
 {f:"Managed OpenTelemetry for GKE",b:"Google's managed OTLP endpoint in GKE clusters. Routes to Cloud Operations. It's plumbing — sends to separate stores, not unified observability.",c:"Competition",u:"https://cloud.google.com/products/observability"},
@@ -266,7 +273,7 @@ const FLASHCARDS=[
 {f:"Artifact Registry",b:"Container image registry. The ECR equivalent.",c:"GCP Vocab",u:"https://cloud.google.com/artifact-registry/docs/overview"},
 {f:"Cloud Armor",b:"WAF/DDoS protection. AWS Shield + WAF combined.",c:"GCP Vocab",u:"https://cloud.google.com/armor/docs/cloud-armor-overview"},
 {f:"Vertex AI",b:"Google's ML platform. Big push at Next. SageMaker equivalent.",c:"GCP Vocab",u:"https://cloud.google.com/vertex-ai/docs/start/introduction-unified-platform"},
-{f:"Anthos",b:"Google's hybrid/multi-cloud K8s platform. Being repositioned — ask carefully.",c:"GCP Vocab",u:"https://cloud.google.com/kubernetes-engine/enterprise"},
+{f:"Anthos",b:"Google's hybrid/multi-cloud K8s platform. Being repositioned — ask carefully.",c:"GCP Vocab",u:"https://cloud.google.com/kubernetes-engine/enterprise/docs"},
 {f:"BigQuery",b:"Serverless data warehouse. Auto-scales for ad-hoc queries. Redshift equivalent but no cluster management. Supports 10K columns vs Redshift's 1,600.",c:"GCP Vocab",u:"https://cloud.google.com/bigquery/docs/introduction"},
 {f:"Cloud Pub/Sub",b:"Messaging service combining SNS + SQS in one. Topics + subscriptions. At-least-once delivery, dead-letter queues, 7-day message retention.",c:"GCP Vocab",u:"https://cloud.google.com/pubsub/docs/overview"},
 {f:"AlloyDB",b:"PostgreSQL-compatible managed DB. 4x faster for transactions, 100x faster for analytics via built-in columnar engine. HTAP workloads.",c:"GCP Vocab",u:"https://cloud.google.com/alloydb/docs/overview"},
@@ -277,11 +284,12 @@ const FLASHCARDS=[
 {f:"Google Next 2026 likely themes",b:"Gemini everywhere, Managed OTel expansion, Autopilot as default, Cloud Run+GKE convergence, multi-cloud, supply chain security.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
 {f:"Booth networking strategy",b:"Lead with questions, not pitches. 'What's your observability stack?' → listen → connect to pain. Collect context not just badges. Follow up within 48 hrs.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
 {f:"Session picking strategy",b:"Prioritize hands-on labs and deep dives over keynotes (watch keynotes later). Target GKE, observability, and platform engineering tracks. Leave gaps for hallway conversations.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
-{f:"Dash0 elevator pitch (30 sec)",b:"Dash0 is OTel-native observability — unified metrics, logs, traces in one platform. No proprietary agents, transparent pricing, 5-min install on GKE Autopilot. Agent0 for autonomous investigation.",c:"Event Prep",u:"https://www.dash0.com/docs/dash0/ai/agent0"},
+{f:"Dash0 elevator pitch (30 sec)",b:"Dash0 is the only observability platform built OTel-native from the ground up — on GKE, you get full-stack visibility (metrics, logs, traces) with zero proprietary agents, auto-instrumentation via the Dash0 operator, and no per-host pricing surprises.",c:"Event Prep",u:"https://www.dash0.com/docs/dash0/ai/agent0"},
 {f:"Objection: 'We already use Datadog'",b:"Totally valid. Ask: are you happy with pricing predictability? Vendor lock-in concerns? We're OTel-native — your telemetry stays portable. We can even migrate your DD dashboards.",c:"Event Prep",u:"https://www.dash0.com/datadog-alternative"},
 {f:"Objection: 'Google Cloud Monitoring is free'",b:"It's included, not free (you pay via resource costs). It's siloed — separate tools for metrics, logs, traces. No correlation, no AI investigation. Works for basic, breaks at scale.",c:"Event Prep",u:"https://cloud.google.com/products/operations"},
 ];
 const APP_VERSION='v2.1';
+const PLATFORM_VERSION='v3.0';
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
 let SYNC_SHEET_URL=''; // Set via Settings page or paste URL here
 let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
@@ -359,7 +367,7 @@ e:"Cloud Run is Google's serverless container platform (Fargate equivalent but s
 e:"Binary Authorization enforces deploy-time security by only allowing signed, verified container images to run. It's supply chain security. Encryption is CMEK, API keys is IAM, network is VPC/firewall. 🟢 Dash0 angle: Dash0 doesn't replace Binary Auth (that's supply chain security), but complements it — Binary Auth ensures only trusted images deploy, Dash0 ensures they run correctly."},
 {q:"Cloud Armor is?",o:["Container scanning","WAF/DDoS protection","Identity mgmt","Encryption"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/armor/docs/cloud-armor-overview",
 e:"Cloud Armor is Google's WAF and DDoS protection (AWS Shield + WAF combined). Protects HTTP(S) load balancers with rate limiting, geo-blocking, and WAF rules. 🟢 Dash0 angle: Dash0 monitors behind the WAF — Cloud Armor blocks threats at the edge, Dash0 shows you what's happening inside your services after traffic gets through."},
-{q:"GCP's equivalent of AWS CloudFormation?",o:["Deployment Manager","Terraform","Cloud Build","Config Connector"],a:0,cat:"GCP Vocab",u:"https://cloud.google.com/deployment-manager/docs",
+{q:"GCP's equivalent of AWS CloudFormation?",o:["Deployment Manager","Terraform","Cloud Build","Config Connector"],a:0,cat:"GCP Vocab",u:"https://cloud.google.com/deployment-manager",
 e:"Deployment Manager is GCP's native IaC tool (CloudFormation equivalent). Terraform is multi-cloud and widely used on GCP but it's not a GCP product. Cloud Build is CI/CD. Config Connector manages GCP resources via K8s custom resources — powerful but different from IaC templates. 🟢 Dash0 angle: Dash0 deploys via Helm, not IaC templates. This is simpler — one `helm install` vs managing Deployment Manager YAML or Terraform modules."},
 
 // ── Event Prep (6 questions) ──
@@ -384,9 +392,12 @@ const SCENARIOS=[
 {q:"We need to stay in the Google ecosystem.",a:"Dash0 complements Google — we're OTel-native, the standard Google is investing in. We sit on top of GKE and give you the unified observability layer Cloud Operations doesn't natively provide. You're not leaving Google, you're getting more from it.",u:["https://cloud.google.com/products/operations","https://www.dash0.com/transparent-cost"]},
 {q:"Dynatrace handles our GKE monitoring already.",a:"Dynatrace relies on proprietary OneAgent — vendor lock-in on instrumentation. If you ever switch backends or go multi-cloud, you re-instrument everything. Dash0 is OTel — portable, standards-based. Same easy Autopilot install.",u:["https://www.dash0.com/dynatrace-alternative","https://www.dynatrace.com/technologies/kubernetes-monitoring/"]},
 {q:"OpenTelemetry is too complex.",a:"That's exactly why we built the operator. You don't touch OTel directly — install our Helm chart and the operator handles all configuration, collector deployment, auto-instrumentation. OTel portability without the complexity. 5-minute install.",u:["https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes","https://opentelemetry.io/docs/kubernetes/operator/"]},
-{q:"Does Dash0 support GKE Enterprise (multi-cluster)?",a:"Great question — I want to give you the right answer. Our operator deploys per-cluster today. Let me connect you with Bastian Krol who drove our GKE partnership to discuss your multi-cluster architecture.",u:["https://cloud.google.com/kubernetes-engine/enterprise","https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
+{q:"Does Dash0 support GKE Enterprise (multi-cluster)?",a:"Great question — I want to give you the right answer. Our operator deploys per-cluster today. Let me connect you with Bastian Krol who drove our GKE partnership to discuss your multi-cluster architecture.",u:["https://cloud.google.com/kubernetes-engine/enterprise/docs","https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
 {q:"What about eBPF observability?",a:"eBPF is powerful for kernel-level visibility, but it gives raw data — you still need a platform to correlate and act on it. Dash0's OTel instrumentation gives application-level context eBPF can't. They're complementary, not competing.",u:["https://ebpf.io/what-is-ebpf/","https://opentelemetry.io/docs/concepts/instrumentation/"]},
 {q:"Can I send Dash0 data to BigQuery?",a:"Let me get you a specific answer on that integration. Because we're OTel-native, your data pipeline is standards-based OTLP that could be routed anywhere. Let me connect you with the right person on our team.",u:["https://cloud.google.com/bigquery/docs","https://opentelemetry.io/docs/specs/otlp/"]},
+{q:"We're already OTel-first. Why do we need Dash0?",a:"Great — then Dash0 is the natural backend. Your existing OTel Collectors just point to us, one config change. We store as native OTLP, so nothing gets lost in translation. The question is what happens after ingestion — Dash0 gives you unified correlation across signals and Agent0 for autonomous investigation.",u:["https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
+{q:"We're evaluating Datadog for our GKE clusters.",a:"Datadog works. The question is cost at scale and OTel compatibility. On GKE with autoscaling, per-host pricing gets unpredictable fast — every time node count spikes, your bill spikes. Dash0 is usage-based, tied to signal volume not node count. And because we're OTel-native, your instrumentation stays portable if you ever want to switch.",u:["https://www.dash0.com/datadog-alternative"]},
+{q:"We already use Cloud Logging and Cloud Monitoring for everything.",a:"Great for GCP-native signals — Cloud Logging and Monitoring are solid there. Dash0 gives you the application layer: distributed traces, custom metrics, structured logs with correlation across all three in one place. Think of it as complementary — Google handles the infrastructure signals, Dash0 gives you the app-level picture with AI-powered investigation via Agent0.",u:["https://cloud.google.com/monitoring/docs","https://www.dash0.com/docs/dash0/ai/agent0"]},
 ];
 const RAPID=[
 {q:"What is GKE?",a:"Google's managed K8s — the OG, K8s born at Google.",t:10,u:"https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview"},
@@ -398,7 +409,10 @@ const RAPID=[
 {q:"What is Gemini Cloud Assist?",a:"Google's AI o11y. Summarizes logs, investigates root causes. Their Agent0.",t:12,u:"https://cloud.google.com/gemini/docs/cloud-assist/overview"},
 {q:"GCP VPC vs AWS VPC?",a:"GCP = global. AWS = regional.",t:8,u:"https://cloud.google.com/vpc/docs/overview"},
 {q:"GKE control plane cost?",a:"Free for one zonal cluster. EKS = $73/mo.",t:8,u:"https://cloud.google.com/kubernetes-engine/pricing"},
-{q:"Dash0 elevator pitch — go.",a:"Official GKE Autopilot partner. OTel-native, auto-instruments in 5 min. No lock-in.",t:20,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
+{q:"Dash0 elevator pitch — go.",a:"Only o11y platform built OTel-native from the ground up. Full-stack visibility on GKE — metrics, logs, traces. Zero proprietary agents, auto-instrumentation via operator, no per-host pricing surprises.",t:20,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
+{q:"Why does Dash0's cost model hit different on GKE?",a:"DD charges per host/node. GKE autoscaling = node spikes = surprise bills. Dash0 = usage-based on signal volume, not node count.",t:15,u:"https://www.dash0.com/transparent-cost"},
+{q:"Customer says 'We're OTel-first already' — respond.",a:"Then Dash0 is the natural backend. No friction, no re-instrumentation. One config change.",t:12,u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
+{q:"SA talking track — key beats?",a:"Deploy operator → traces+metrics+logs in minutes → no proprietary agent → portable instrumentation → no per-node tax on autoscale.",t:20,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
 ];
 // ─── LESSONS ───
 const LESSONS=[
@@ -422,14 +436,14 @@ body:`<p>Autopilot is Google's fully managed GKE experience, and it's the future
 <p>In Autopilot, Google manages the entire node infrastructure. You submit pod specs, Google figures out where to run them. The billing model is revolutionary — you pay per pod resource request (CPU, memory, ephemeral storage), not per node. No more paying for idle capacity.</p>
 <p>But here's the catch that matters for observability: <strong>Autopilot restricts privileged workloads for security.</strong> Most observability agents need DaemonSets with host network access, privileged containers, or hostPath mounts. Autopilot blocks all of these by default.</p>`,
 highlights:[
-"Only approved partners can run privileged workloads on Autopilot. The partners list is small: Dash0, Datadog, and Dynatrace.",
+"Only approved partners can run privileged workloads on Autopilot. There are 19 partners with allowlist support including Dash0, Datadog, Dynatrace, CrowdStrike, and Sysdig. Dash0's differentiator: OTel-native with no proprietary agents.",
 "Autopilot can save up to 57% compared to Standard when combined with Committed Use Discounts (CUDs).",
 "Autopilot is Google's recommended mode for new clusters — it's becoming the default."
 ],
 compare:null,
 exercises:[
 {task:"Find the official Autopilot security constraints doc. List which pod security restrictions exist (privileged containers, hostNetwork, hostPath, etc.).",hint:"Search for 'GKE Autopilot security capabilities'",url:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security"},
-{task:"Find the Autopilot partners page on Google's docs. Verify Dash0 is listed alongside Datadog and Dynatrace.",hint:"Look for 'autopilot partner workloads' in GKE docs",url:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security#partners"},
+{task:"Find the Autopilot partners page on Google's docs. Verify Dash0 is listed alongside Datadog and Dynatrace.",hint:"Look for 'autopilot partner workloads' in GKE docs",url:"https://cloud.google.com/kubernetes-engine/docs/resources/autopilot-partners"},
 {task:"Practice explaining in 30 seconds why Autopilot's restrictions are actually a selling point for Dash0. Record yourself or write it out.",hint:"Key angle: restrictions = security. Being a partner = trust + differentiation."}
 ],
 sources:["https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview","https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security"]
@@ -529,7 +543,7 @@ body:`<p>Google Cloud Next 2026 runs April 22-24 at Mandalay Bay, Las Vegas. Thi
 highlights:[
 "Opener: 'What does your K8s setup look like today?' — gets them talking, reveals if they're GKE/EKS/self-managed.",
 "Pain detector: 'How's your observability keeping up?' — opens the door without being salesy.",
-"Bridge: 'We're actually an Autopilot partner...' — drops credibility. Most people don't know the partners list is tiny."
+"Bridge: 'We're actually an Autopilot partner...' — drops credibility. Most people don't know how the partner program works or that Dash0 is OTel-native unlike the other partners."
 ],
 compare:null,
 exercises:[
@@ -935,9 +949,9 @@ el.innerHTML=`
 <div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
 <div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
 ${q.o.map((o,i)=>{
-let cls="quiz-option";
-if(qzShow){if(i===q.a)cls+=" correct";else if(i===qzSel)cls+=" wrong";else cls+=" dimmed"}
-return`<button class="${cls}" onclick="qzSelect(${i})">${String.fromCharCode(65+i)}. ${o}</button>`}).join("")}
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
 ${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
 ${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
 ${qzShow?askClaudeBox('Quiz question: '+q.q):''}
