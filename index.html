@@ -13,33 +13,139 @@
   }
   .container { max-width: 480px; width: 100%; padding: 2rem; }
   h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #f8fafc; }
-  p { color: #94a3b8; margin-bottom: 2rem; }
+  .subtitle { color: #94a3b8; margin-bottom: 2rem; }
   .cards { display: flex; flex-direction: column; gap: 1rem; }
-  a.card {
+  .card {
     display: block; padding: 1.5rem; border-radius: 12px;
     background: #1e293b; border: 1px solid #334155;
-    text-decoration: none; color: #e2e8f0;
+    color: #e2e8f0;
     transition: border-color 0.2s, transform 0.15s;
   }
-  a.card:hover { border-color: #60a5fa; transform: translateY(-2px); }
+  .card:hover { border-color: #60a5fa; transform: translateY(-2px); }
   .card h2 { font-size: 1.1rem; margin-bottom: 0.3rem; }
-  .card span { font-size: 0.85rem; color: #94a3b8; }
+  .card span { font-size: 0.85rem; color: #94a3b8; display: block; }
+  .card-links { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+  .card-links a {
+    font-size: 0.75rem; font-weight: 500; color: #60a5fa;
+    text-decoration: none; padding: 3px 10px; border-radius: 6px;
+    background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.2);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .card-links a:hover { background: rgba(96,165,250,.2); border-color: rgba(96,165,250,.4); }
+  .loading { color: #64748b; font-size: 0.9rem; padding: 1rem 0; }
+  .error { color: #f87171; font-size: 0.85rem; padding: 0.5rem 0; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Crash Courses</h1>
-  <p>Pick a course to study</p>
-  <div class="cards">
-    <a class="card" href="https://barrysolomon.github.io/study-apps/gke-study-app.html">
-      <h2>Google Kubernetes Engine (GKE)</h2>
-      <span>Cloud-native Kubernetes on Google Cloud</span>
-    </a>
-    <a class="card" href="https://barrysolomon.github.io/study-apps/otca-study-app.html">
-      <h2>OpenTelemetry Certified Associate (OTCA)</h2>
-      <span>Observability &amp; distributed tracing certification</span>
-    </a>
+  <p class="subtitle">Pick a course to study</p>
+  <div class="cards" id="cards">
+    <div class="loading">Loading courses...</div>
   </div>
 </div>
+<script>
+const REPO = 'barrysolomon/study-apps';
+const DIR = 'public-courses';
+const BASE = `${DIR}/`;
+const API = `https://api.github.com/repos/${REPO}/contents/${DIR}`;
+
+function titleFromFilename(name) {
+  return name
+    .replace(/\.html$/, '')
+    .replace(/-/g, ' ')
+    .replace(/\b(study app|crash course)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function findStudyGuide(htmlName, allFiles) {
+  // Match patterns: "X-crash-course.html" -> "X-study-guide.md"
+  //                 "X-study-app.html"    -> "X-study-guide.md"
+  const stem = htmlName.replace(/-(crash-course|study-app)\.html$/, '');
+  if (stem === htmlName) return null; // no recognized suffix
+  const guideName = stem + '-study-guide.md';
+  return allFiles.find(f => f.name === guideName) || null;
+}
+
+function guideUrl(guideName) {
+  return `${DIR}/${guideName}`;
+}
+
+function buildCard(href, title, subtitle, guideMd) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const a = document.createElement('a');
+  a.href = href;
+  a.style.cssText = 'text-decoration:none;color:inherit';
+  const h2 = document.createElement('h2');
+  h2.textContent = title;
+  const span = document.createElement('span');
+  span.textContent = subtitle;
+  a.appendChild(h2);
+  a.appendChild(span);
+  card.appendChild(a);
+
+  const links = document.createElement('div');
+  links.className = 'card-links';
+  const launchLink = document.createElement('a');
+  launchLink.href = href;
+  launchLink.textContent = 'Launch Course';
+  links.appendChild(launchLink);
+  if (guideMd) {
+    const guideLink = document.createElement('a');
+    guideLink.href = guideUrl(guideMd);
+    guideLink.target = '_blank';
+    guideLink.rel = 'noopener';
+    guideLink.textContent = 'Study Guide';
+    links.appendChild(guideLink);
+  }
+  card.appendChild(links);
+  return card;
+}
+
+async function loadCourses() {
+  const el = document.getElementById('cards');
+  try {
+    const resp = await fetch(API);
+    if (!resp.ok) throw new Error(`GitHub API: ${resp.status}`);
+    const files = await resp.json();
+    const htmlFiles = files
+      .filter(f => f.name.endsWith('.html'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (!htmlFiles.length) {
+      el.textContent = 'No courses found.';
+      return;
+    }
+
+    el.textContent = '';
+    for (const file of htmlFiles) {
+      const guide = findStudyGuide(file.name, files);
+      el.appendChild(buildCard(
+        BASE + file.name,
+        titleFromFilename(file.name),
+        file.name,
+        guide ? guide.name : null
+      ));
+    }
+  } catch (err) {
+    console.warn('Dynamic load failed, using fallback:', err);
+    el.textContent = '';
+    const fallback = [
+      { name: 'dash0-terraform-crash-course.html', title: 'Dash0 Terraform', desc: 'Terraform provider for observability-as-code', guide: 'dash0-terraform-study-guide.md' },
+      { name: 'gke-study-app.html', title: 'Google Kubernetes Engine (GKE)', desc: 'Cloud-native Kubernetes on Google Cloud', guide: null },
+      { name: 'otca-study-app.html', title: 'OpenTelemetry Certified Associate (OTCA)', desc: 'Observability & distributed tracing certification', guide: null },
+    ];
+    for (const c of fallback) {
+      el.appendChild(buildCard(BASE + c.name, c.title, c.desc, c.guide));
+    }
+  }
+}
+
+loadCourses();
+</script>
 </body>
 </html>
