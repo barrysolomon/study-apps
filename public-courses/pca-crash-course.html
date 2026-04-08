@@ -1,0 +1,1399 @@
+<!--
+  CRASH COURSE TEMPLATE — Search for "TODO" (~16 places to customize)
+
+  Built from the full-featured crash course engine. All code is working.
+  Just replace the placeholder content with your topic-specific material.
+
+  FEATURES: Dashboard (drilldown stats), Learn (lessons+exercises), Cards (flashcards),
+  Quiz (per-section + Final Exam), Drills (scenarios), Rapid Fire (timed),
+  More (settings/schedule/checkpoints/resources/ICS export),
+  Google Sheets cloud sync (optional — set SYNC_SHEET_URL to enable)
+
+  Role selector, session history, persistent progress, cross-device sync, responsive dark theme.
+  
+  DATA STRUCTURES:
+  FLASHCARDS: {f, b, c, u}
+  QUIZ: {q, o:[], a, cat, u, e}  — e: field can include "🟢 Dash0 angle: ..." for product positioning
+  SCENARIOS: {q, a, u:[]}
+  RAPID: {q, a, t, u}
+  LESSONS: {id, title, time, week, icon, body, sources:[], exercises:[{task,hint,url}]}
+  SCHEDULE: {id, date, time, dur, title, desc, phase}
+  CHECKPOINTS: {id, target, by, metric, threshold}
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Prometheus Certified Associate (PCA) Crash Course</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:700}.header small{font-size:12px;color:#6b7280}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500}
+.content{padding:16px;padding-bottom:100px;min-height:calc(100vh - 130px)}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:960px;margin:0 auto;background:rgba(10,10,15,.95);border-top:1px solid #1f2937;padding:8px;display:flex;justify-content:space-around;gap:4px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav button{display:flex;flex-direction:column;align-items:center;padding:6px 6px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;min-width:46px;flex:1}
+.nav button.active{background:#10b981;color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.nav button span{font-size:18px;margin-bottom:2px}
+.card{border-radius:16px;padding:20px;min-height:200px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:all .3s;user-select:none;-webkit-user-select:none}
+.card.question{background:#1f2937;border:2px solid #374151}
+.card.answer{background:rgba(16,185,129,.1);border:2px solid rgba(16,185,129,.3)}
+.card-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.card-text{font-size:17px;line-height:1.5}
+.card-hint{font-size:12px;color:#4b5563;text-align:center;margin-top:16px}
+.fav-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.4;transition:all .2s;padding:4px;line-height:1}
+.fav-btn:hover{opacity:.7;transform:scale(1.2)}
+.fav-btn.active{opacity:1;filter:none}
+.btn-row{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.btn{padding:12px 20px;border-radius:12px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:#10b981;color:#fff}.btn-primary:hover{background:#059669}
+.btn-secondary{background:#1f2937;color:#d1d5db}.btn-secondary:hover{background:#374151}
+.btn-danger{background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.3);color:#fca5a5}
+.btn-success{background:rgba(16,185,129,.2);border:2px solid rgba(16,185,129,.3);color:#6ee7b7}
+.btn-full{width:100%;padding:14px;font-size:15px}
+.progress-bar{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.progress-track{width:100%;background:#1f2937;border-radius:999px;height:8px}
+.progress-fill{background:#10b981;height:8px;border-radius:999px;transition:width .5s}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{white-space:nowrap;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;border:none;cursor:pointer;transition:all .2s}
+.pill.active{background:#10b981;color:#fff}.pill:not(.active){background:#1f2937;color:#9ca3af}
+.quiz-option{text-align:left;padding:14px 16px;border-radius:12px;border:2px solid #374151;background:#1f2937;color:#d1d5db;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-bottom:10px;transition:all .2s}
+.quiz-option.correct{background:rgba(16,185,129,.15);border-color:#10b981;color:#6ee7b7}
+.quiz-option.wrong{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5}
+.quiz-option.dimmed{background:rgba(31,41,55,.5);border-color:#1f2937;color:#4b5563}
+.scenario-box{border-radius:16px;padding:20px;margin-bottom:16px}
+.scenario-q{background:rgba(239,68,68,.08);border:2px solid rgba(153,27,27,.4)}
+.scenario-a{background:rgba(16,185,129,.08);border:2px solid rgba(16,185,129,.3)}
+.scenario-reveal{background:#1f2937;border:2px solid #374151;text-align:center;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.timer{font-size:28px;font-family:monospace;font-weight:700}
+.timer.green{color:#10b981}.timer.yellow{color:#f59e0b}.timer.red{color:#ef4444}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:#1f2937;border-radius:12px;padding:12px;text-align:center;transition:all .2s;border:2px solid transparent}
+.stat-card:hover{border-color:#374151;background:#263040}
+.stat-icon{font-size:24px;margin-bottom:4px}.stat-val{font-size:20px;font-weight:700}.stat-label{font-size:11px;color:#6b7280}
+.focus-box{background:#1f2937;border-radius:16px;padding:16px}
+.focus-title{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.focus-text{font-size:14px;color:#d1d5db;line-height:1.6}
+.results-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0}
+.grade{font-size:56px;font-weight:700;text-align:center;margin-bottom:8px}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:50vh}
+.mgmt-section{background:#1f2937;border-radius:16px;padding:16px;margin-bottom:16px}
+.mgmt-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#d1d5db}
+.mgmt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151}
+.mgmt-row:last-child{border-bottom:none}
+.mgmt-row .label{font-size:13px;color:#9ca3af}
+.mgmt-row .value{font-size:13px;font-weight:600;color:#fff}
+.btn-outline{background:transparent;border:2px solid #374151;color:#9ca3af;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:#6b7280;color:#d1d5db}
+.btn-danger-solid{background:#dc2626;color:#fff;border:none;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger-solid:hover{background:#b91c1c}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.confirm-box{background:#1f2937;border:2px solid #374151;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151;font-size:12px}
+.history-item:last-child{border-bottom:none}
+.export-box{background:#0d1117;border:1px solid #374151;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#6ee7b7;word-break:break-all;max-height:120px;overflow-y:auto;margin-top:8px}
+.source-link{display:inline-flex;align-items:center;gap:4px;margin-top:12px;padding:6px 12px;border-radius:8px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#93c5fd;font-size:12px;font-weight:500;text-decoration:none;transition:all .2s}
+.source-link:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.source-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.res-group{margin-bottom:20px}
+.res-group h4{font-size:13px;font-weight:600;color:#6ee7b7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.res-link{display:block;padding:10px 12px;border-radius:10px;background:#1f2937;margin-bottom:6px;text-decoration:none;color:#93c5fd;font-size:13px;font-weight:500;border:1px solid #374151;transition:all .2s}
+.res-link:hover{background:#374151;border-color:#4b5563}
+.res-link small{display:block;color:#6b7280;font-size:11px;font-weight:400;margin-top:2px}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:4px}
+.lesson-card{background:#1f2937;border-radius:16px;padding:16px;cursor:pointer;border:2px solid #374151;transition:all .2s}
+.lesson-card:hover{border-color:#4b5563}
+.lesson-card.completed{border-color:rgba(16,185,129,.3)}
+.lesson-num{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.lesson-title{font-size:15px;font-weight:600;margin:4px 0}
+.lesson-meta{font-size:12px;color:#6b7280;display:flex;gap:12px}
+.lesson-body{padding:0}
+.lesson-section{margin-bottom:20px}
+.lesson-section h4{font-size:13px;font-weight:600;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.lesson-text{font-size:14px;color:#d1d5db;line-height:1.7}
+.lesson-text p{margin-bottom:10px}
+.lesson-highlight{background:rgba(16,185,129,.08);border-left:3px solid #10b981;padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0;font-size:13px;color:#d1fae5;line-height:1.5}
+.lesson-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.lesson-compare-item{background:#0d1117;border-radius:10px;padding:10px;font-size:12px;line-height:1.5}
+.lesson-compare-item .compare-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.exercise-box{background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.2);border-radius:14px;padding:14px;margin-bottom:10px}
+.exercise-box .ex-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.exercise-box .ex-task{font-size:13px;color:#ddd6fe;line-height:1.5;margin-bottom:8px}
+.exercise-box .ex-hint{font-size:12px;color:#6b7280;font-style:italic}
+.exercise-check{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
+.exercise-check .checkbox{width:22px;height:22px;border-radius:6px;border:2px solid #374151;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0}
+.exercise-check .checkbox.checked{background:#10b981;border-color:#10b981}
+.exercise-check .ex-text{font-size:13px;color:#d1d5db}
+.ex-steps-toggle{background:none;border:1px solid rgba(139,92,246,.25);color:#a78bfa;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:6px;font-family:inherit;transition:all .2s}
+.ex-steps-toggle:hover{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4)}
+.ex-steps{display:none;margin-top:8px;padding:10px 12px;background:rgba(139,92,246,.04);border-radius:8px;border:1px solid rgba(139,92,246,.12)}
+.ex-steps.open{display:block}
+.ex-steps ol{margin:0;padding-left:20px;font-size:13px;color:#c4b5fd;line-height:1.7}
+.ex-steps li{margin-bottom:4px}
+.ex-steps code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:12px;color:#a5f3fc}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px}
+.sched-item{background:#1f2937;border-radius:12px;padding:12px;margin-bottom:8px;border:2px solid #374151;transition:all .2s}
+.sched-item.today{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.sched-item.past{opacity:.5}
+.sched-item.done{border-color:rgba(16,185,129,.3);opacity:.7}
+.sched-item .si-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sched-item .si-date{font-size:11px;color:#6b7280;font-weight:600}
+.sched-item .si-dur{font-size:10px;color:#4b5563;background:#0d1117;padding:2px 8px;border-radius:6px}
+.sched-item .si-title{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:2px}
+.sched-item .si-desc{font-size:12px;color:#9ca3af;line-height:1.4}
+.sched-item .si-actions{display:flex;gap:6px;margin-top:8px}
+.sched-item .si-actions button{padding:6px 10px;border-radius:8px;border:none;font-size:11px;font-weight:500;cursor:pointer}
+.cp-item{background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;margin-bottom:8px}
+.cp-item.hit{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.cp-item .cp-target{font-size:14px;font-weight:600;color:#fde68a}
+.cp-item.hit .cp-target{color:#6ee7b7;text-decoration:line-through}
+.cp-item .cp-date{font-size:11px;color:#6b7280}
+.form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.form-sheet{background:#111827;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.form-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:12px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.form-field input,.form-field textarea,.form-field select{width:100%;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:14px;font-family:inherit}
+.form-field textarea{min-height:60px;resize:vertical}
+.form-field input:focus,.form-field textarea:focus,.form-field select:focus{outline:none;border-color:#10b981}
+.ask-box{background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.15);border-radius:14px;padding:14px;margin-top:16px}
+.ask-box .ask-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ask-box .ask-row{display:flex;gap:8px}
+.ask-box input{flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:13px;font-family:inherit}
+.ask-box input:focus{outline:none;border-color:#a78bfa}
+.ask-box input::placeholder{color:#4b5563}
+.ask-box button{padding:10px 14px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ask-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:200;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ics-panel{background:#111827;border:2px solid #374151;border-radius:16px;padding:16px;margin-bottom:16px}
+.ics-panel h4{font-size:13px;font-weight:600;color:#93c5fd;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.ics-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ics-filters button{padding:5px 10px;border-radius:8px;border:2px solid #374151;background:#1f2937;color:#9ca3af;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.ics-filters button.active{border-color:#3b82f6;background:rgba(59,130,246,.15);color:#93c5fd}
+.ics-list{max-height:320px;overflow-y:auto;margin-bottom:12px}
+.ics-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2937;font-size:13px}
+.ics-item:last-child{border-bottom:none}
+.ics-check{width:20px;height:20px;border-radius:5px;border:2px solid #374151;background:#0d1117;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+.ics-check.on{border-color:#3b82f6;background:rgba(59,130,246,.2);color:#93c5fd}
+.ics-item-info{flex:1;min-width:0}
+.ics-item-title{font-weight:500;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ics-item-date{font-size:11px;color:#6b7280}
+.ics-actions{display:flex;gap:8px;margin-top:4px}
+.ics-actions button{flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.ics-dl{background:#3b82f6;color:#fff}
+.ics-dl:hover{background:#2563eb}
+.ics-count{font-size:12px;color:#6b7280;margin-bottom:8px}
+@media(min-width:600px){
+body{max-width:960px;padding:0 24px}
+.header{padding:20px 0 12px}
+.header h1{font-size:22px}
+.content{padding:20px 0 100px}
+.nav{padding:10px 16px;gap:8px;border-radius:16px 16px 0 0}
+.nav button{min-width:auto;padding:8px 14px;font-size:12px;flex-direction:row;gap:6px;border-radius:10px}
+.nav button span{font-size:16px;margin-bottom:0}
+.stat-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:16px}
+.stat-val{font-size:22px}
+.card{max-width:640px;margin:0 auto;min-height:240px;padding:28px}
+.card-text{font-size:18px}
+.quiz-option{font-size:15px;padding:16px 20px}
+.scenario-box{max-width:700px}
+.lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lesson-card{margin-bottom:0}
+.mgmt-section{max-width:700px}
+.form-sheet{max-width:560px;border-radius:20px;margin:auto}
+.form-overlay{align-items:center}
+.res-group{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.res-group h4{grid-column:1/-1}
+.focus-box{max-width:700px}
+.sched-item{max-width:700px}
+.ics-panel{max-width:700px}
+.cp-item{max-width:700px}
+.pills{flex-wrap:wrap}
+.ask-box{max-width:640px;margin:16px auto 0}
+.confirm-box{max-width:400px}
+.source-links{justify-content:flex-start}
+}
+@media(min-width:800px){
+body{max-width:1100px}
+.nav{max-width:1100px}
+.stat-grid{grid-template-columns:repeat(4,1fr)}
+.lesson-grid{grid-template-columns:repeat(3,1fr)}
+.card{max-width:700px}
+.res-group{grid-template-columns:repeat(3,1fr)}
+}
+.role-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.role-picker{max-width:520px;width:92%;padding:28px 20px;text-align:center}
+.role-picker h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.role-picker .rp-sub{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5}
+.role-cards{display:flex;flex-direction:column;gap:12px}
+.role-card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left}
+.role-card:hover{border-color:#10b981;background:#263040}
+.role-card .rc-icon{font-size:28px;margin-bottom:8px}
+.role-card .rc-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.role-card .rc-desc{font-size:13px;color:#9ca3af;line-height:1.4}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.role-badge.core{background:rgba(16,185,129,.15);color:#6ee7b7}
+.role-badge.bonus{background:rgba(107,114,128,.15);color:#6b7280}
+.role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
+.role-current:hover{border-color:#10b981;background:#263040}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>PCA Crash Course</h1><small>Prometheus Certified Associate · CNCF Certification</small></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="header-role"></div>
+<div class="badge">Certification</div>
+<span id="app-version" style="font-size:9px;color:#6b7280;font-weight:400;letter-spacing:.3px"></span><span id="sync-badge" style="font-size:11px;color:#6b7280;margin-left:8px;cursor:help"></span>
+</div>
+</div>
+<div class="content" id="app"></div>
+<div class="nav" id="nav"></div>
+<script>
+// ─── DATA ───
+const FLASHCARDS=[
+// Observability Concepts
+{f:"What are the three pillars of observability?",b:"Metrics, Logs, and Traces. Prometheus handles metrics only.",c:"Observability",u:"https://prometheus.io/docs/introduction/overview/"},
+{f:"Does Prometheus use a push or pull model?",b:"Pull — Prometheus scrapes /metrics endpoints at regular intervals. Exception: Pushgateway allows pushing for short-lived jobs.",c:"Observability",u:"https://prometheus.io/docs/introduction/overview/"},
+{f:"What is the Pushgateway used for?",b:"Allows short-lived jobs (batch, cron) to push metrics to Prometheus, since they may exit before being scraped.",c:"Observability",u:"https://prometheus.io/docs/practices/pushing/"},
+{f:"What is an SLI?",b:"Service Level Indicator — the metric being measured (e.g., p99 latency, error rate, availability).",c:"Observability",u:"https://prometheus.io/docs/practices/histograms/#apdex-score"},
+{f:"What is an SLO?",b:"Service Level Objective — the target for an SLI (e.g., p99 latency < 200ms, 99.9% availability).",c:"Observability",u:"https://prometheus.io/docs/practices/histograms/#apdex-score"},
+{f:"What is an SLA?",b:"Service Level Agreement — a business contract with consequences if SLOs are violated (e.g., credits/refunds).",c:"Observability",u:"https://prometheus.io/docs/practices/histograms/#apdex-score"},
+{f:"Name 4 service discovery methods Prometheus supports",b:"Kubernetes, Consul, AWS EC2, file-based (file_sd_configs), DNS, static_configs",c:"Observability",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+// Prometheus Fundamentals
+{f:"What are the main components of the Prometheus ecosystem?",b:"Prometheus server (TSDB + rules + HTTP API), Alertmanager, Pushgateway, client libraries, and exporters.",c:"Fundamentals",u:"https://prometheus.io/docs/introduction/overview/"},
+{f:"What uniquely identifies a time series in Prometheus?",b:"The metric name plus its set of labels. e.g., http_requests_total{method=\"GET\",status=\"200\"}",c:"Fundamentals",u:"https://prometheus.io/docs/concepts/data_model/"},
+{f:"What is the default scrape interval?",b:"1 minute (commonly overridden to 15s in practice).",c:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{f:"What is the default metrics path Prometheus scrapes?",b:"/metrics",c:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{f:"What port does Prometheus run on?",b:"9090",c:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/getting_started/"},
+{f:"What port does Alertmanager run on?",b:"9093",c:"Fundamentals",u:"https://prometheus.io/docs/alerting/latest/overview/"},
+{f:"What is evaluation_interval in prometheus.yml?",b:"How often Prometheus evaluates alerting and recording rules (default 1m).",c:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{f:"What are relabel_configs used for?",b:"Dynamically rewrite labels before scraping — filter targets, rename labels, convert service discovery metadata to Prometheus labels.",c:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{f:"Name 3 Prometheus limitations",b:"No logs/traces (metrics only), single-server (no built-in clustering), local storage not durable for long-term.",c:"Fundamentals",u:"https://prometheus.io/docs/introduction/overview/"},
+// PromQL
+{f:"What are the 4 PromQL expression types?",b:"Instant vector, range vector, scalar, and string (string is currently unused).",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{f:"What is the difference between an instant vector and a range vector?",b:"Instant vector: one sample per series at one timestamp. Range vector: multiple samples per series over a time window (e.g., [5m]).",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{f:"What are the 4 label matchers in PromQL?",b:"= (equal), != (not equal), =~ (regex match), !~ (regex not match). Regexes are fully anchored.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{f:"What does rate() do?",b:"Calculates the per-second average rate of increase of a counter over a range vector. Handles counter resets automatically.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#rate"},
+{f:"What is the difference between rate() and irate()?",b:"rate() averages over the full range. irate() uses only the last two data points — more volatile, not recommended for alerting.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#irate"},
+{f:"What does increase() do?",b:"Returns the total increase of a counter over a time range. Equivalent to rate() × seconds. More human-readable.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#increase"},
+{f:"What does histogram_quantile() do?",b:"Calculates a quantile (e.g., p99) from a histogram's bucket time series. Takes a quantile value (0-1) and a rate of _bucket metric.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#histogram_quantile"},
+{f:"What does absent() return?",b:"Returns 1 if the given metric has no data. Critical for alerting on missing metrics (e.g., target down).",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#absent"},
+{f:"What is the difference between 'by' and 'without' in aggregation?",b:"'by' keeps only listed labels. 'without' drops listed labels and keeps the rest. They are inverses.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/operators/"},
+{f:"What time duration units does PromQL support?",b:"ms, s, m, h, d, w, y. Can combine: 1h30m = 5400 seconds.",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{f:"How do you write an error rate query?",b:"sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/examples/"},
+{f:"How do you calculate p99 latency from a histogram?",b:"histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",c:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#histogram_quantile"},
+// Instrumentation & Exporters
+{f:"What are the 4 Prometheus metric types?",b:"Counter (only up), Gauge (up and down), Histogram (buckets+sum+count), Summary (client-side quantiles).",c:"Instrumentation",u:"https://prometheus.io/docs/concepts/metric_types/"},
+{f:"When do you use a Counter vs a Gauge?",b:"Counter: value only goes up or resets to 0 (requests, errors). Gauge: value can go up or down (temperature, memory, queue size).",c:"Instrumentation",u:"https://prometheus.io/docs/concepts/metric_types/"},
+{f:"What is the key difference between Histogram and Summary?",b:"Histogram buckets are server-side aggregatable (can sum across instances). Summary quantiles are computed client-side and cannot be meaningfully aggregated.",c:"Instrumentation",u:"https://prometheus.io/docs/practices/histograms/"},
+{f:"What suffix must counters have?",b:"_total (e.g., http_requests_total)",c:"Instrumentation",u:"https://prometheus.io/docs/practices/naming/"},
+{f:"What base units should Prometheus metrics use?",b:"seconds (not ms), bytes (not MB), meters, celsius, etc. Always use base SI units in plural form.",c:"Instrumentation",u:"https://prometheus.io/docs/practices/naming/"},
+{f:"What port does node_exporter run on?",b:"9100",c:"Instrumentation",u:"https://prometheus.io/docs/guides/node-exporter/"},
+{f:"What does blackbox_exporter do?",b:"Probes endpoints from the outside — HTTP, TCP, ICMP, DNS checks. Used for black-box monitoring.",c:"Instrumentation",u:"https://github.com/prometheus/blackbox_exporter"},
+{f:"What is the Prometheus exposition format?",b:"# HELP (description), # TYPE (metric type), then metric{labels} value [timestamp] — one sample per line.",c:"Instrumentation",u:"https://prometheus.io/docs/instrumenting/exposition_formats/"},
+{f:"Why should you avoid high-cardinality labels?",b:"Each unique label combination creates a new time series. User IDs, email addresses, or UUIDs as labels can explode storage and memory.",c:"Instrumentation",u:"https://prometheus.io/docs/practices/naming/"},
+// Alerting & Dashboarding
+{f:"What is the 'for' clause in an alerting rule?",b:"Duration the condition must be continuously true before the alert fires. Prevents flapping from brief spikes.",c:"Alerting",u:"https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/"},
+{f:"What is Alertmanager grouping?",b:"Combines similar alerts into one notification. e.g., all HighMemory alerts across instances grouped into a single Slack message.",c:"Alerting",u:"https://prometheus.io/docs/alerting/latest/alertmanager/"},
+{f:"What is Alertmanager inhibition?",b:"Suppresses lower-severity alerts when a related higher-severity alert is firing. e.g., suppress InstanceDown when DatacenterDown is active.",c:"Alerting",u:"https://prometheus.io/docs/alerting/latest/alertmanager/"},
+{f:"What is Alertmanager silencing?",b:"Temporarily mutes alerts — typically for maintenance windows. Configured via the Alertmanager UI.",c:"Alerting",u:"https://prometheus.io/docs/alerting/latest/alertmanager/"},
+{f:"What is a recording rule?",b:"Pre-computes expensive PromQL queries and stores results as new metrics. Naming convention: level:metric:operations.",c:"Alerting",u:"https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/"},
+{f:"What is the naming convention for recording rules?",b:"level:metric:operations — e.g., job:http_requests:rate5m",c:"Alerting",u:"https://prometheus.io/docs/practices/rules/"},
+{f:"How does Grafana connect to Prometheus?",b:"Add Prometheus as a data source via its HTTP API (default http://prometheus:9090). Dashboards use PromQL queries.",c:"Alerting",u:"https://prometheus.io/docs/visualization/grafana/"},
+];
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CRASH COURSE CONFIGURATION                                 ║
+// ║  Search for "TODO" to find all customization points          ║
+// ╚══════════════════════════════════════════════════════════════╝
+const APP_VERSION='v1.0'; // Content version — bump when you update questions/content
+const PLATFORM_VERSION='v3.0'; // Engine version — matches the crash-course-builder skill version
+// ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
+// TODO: (Optional) Paste your Google Apps Script Web App URL to enable cross-device sync. See google-sheets-sync-setup.md for instructions.
+let SYNC_SHEET_URL='';
+let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
+// TODO: Define your content categories (first must be "All")
+const CATEGORIES=["All","Observability","Fundamentals","PromQL","Instrumentation","Alerting"];
+// TODO: Define 3 learner roles with coreCategories, coreLessons, categoryOrder
+const ROLE_CONFIG={
+role1:{label:'Exam Prep',icon:'🎓',desc:'Balanced coverage of all 5 exam domains weighted by their percentages.',
+coreCategories:['Observability','Fundamentals','PromQL','Instrumentation','Alerting'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-7','lesson-8'],
+categoryOrder:['All','PromQL','Fundamentals','Observability','Alerting','Instrumentation']},
+role2:{label:'PromQL Focus',icon:'🔍',desc:'Deep dive into PromQL (28% of exam). Selectors, functions, aggregation, histograms.',
+coreCategories:['PromQL','Fundamentals'],
+coreLessons:['lesson-3','lesson-4','lesson-5','lesson-7'],
+categoryOrder:['All','PromQL','Fundamentals','Alerting','Instrumentation','Observability']},
+role3:{label:'Operations Focus',icon:'⚙️',desc:'Architecture, configuration, alerting, exporters. Practical Prometheus admin skills.',
+coreCategories:['Fundamentals','Alerting','Instrumentation'],
+coreLessons:['lesson-2','lesson-6','lesson-7','lesson-8'],
+categoryOrder:['All','Fundamentals','Alerting','Instrumentation','Observability','PromQL']}
+};
+// TODO: Add 30-50 quiz questions. Each: {q:"question", o:["A","B","C","D"], a:correctIndex, cat:"Category", u:"url", e:"explanation"}
+// Distribute proportionally across categories. The quiz picker auto-generates from cat values.
+// PRODUCT POSITIONING: Where relevant, append " 🟢 Dash0 angle: [1-2 sentences]" to the e: field.
+// This helps learners connect technical facts to product positioning. Skip for questions with no natural connection.
+const QUIZ=[
+{q:"Which of the three observability pillars does Prometheus handle?",o:["Logs","Traces","Metrics","All three"],a:2,cat:"Observability",u:"https://prometheus.io/docs/introduction/overview/",e:"Prometheus is a metrics system only. For logs use Loki/ELK, for traces use Jaeger/Tempo."},
+{q:"What model does Prometheus use to collect metrics?",o:["Push","Pull","Both equally","Event-driven"],a:1,cat:"Observability",u:"https://prometheus.io/docs/introduction/overview/",e:"Prometheus uses a pull model — it scrapes /metrics endpoints. The Pushgateway is an exception for short-lived jobs, but it is still Prometheus pulling from the gateway."},
+{q:"What is the relationship between SLI, SLO, and SLA?",o:["SLA contains SLO which measures SLI","SLI contains SLO which defines SLA","They are independent concepts","SLO is a type of SLI"],a:0,cat:"Observability",u:"https://prometheus.io/docs/practices/histograms/",e:"SLI is the measurement (e.g., latency), SLO is the target for that measurement (e.g., <200ms), SLA is the business contract with consequences if the SLO is violated."},
+{q:"When should you use the Pushgateway?",o:["For all production services","For short-lived batch/cron jobs","For high-availability setups","For cross-datacenter monitoring"],a:1,cat:"Observability",u:"https://prometheus.io/docs/practices/pushing/",e:"The Pushgateway is specifically for jobs that may exit before Prometheus scrapes them. Do NOT use it as a general push mechanism for long-lived services."},
+{q:"What uniquely identifies a time series in Prometheus?",o:["Metric name only","Metric name + timestamp","Metric name + labels","Labels only"],a:2,cat:"Fundamentals",u:"https://prometheus.io/docs/concepts/data_model/",e:"A time series is uniquely identified by its metric name and its complete set of key-value label pairs. Same name with different labels = different time series."},
+{q:"What is the default scrape interval in Prometheus?",o:["15 seconds","30 seconds","1 minute","5 minutes"],a:2,cat:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/",e:"The default is 1 minute (1m), though 15s is very common in practice. This is set in the global section of prometheus.yml."},
+{q:"What are relabel_configs used for?",o:["Renaming metrics after storage","Rewriting labels before scraping targets","Configuring Alertmanager routes","Defining recording rules"],a:1,cat:"Fundamentals",u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/",e:"relabel_configs run before scraping and can filter targets, rename labels, or convert service discovery metadata into Prometheus labels."},
+{q:"Which is NOT a Prometheus limitation?",o:["Cannot handle logs or traces","No built-in clustering","Cannot run on Kubernetes","Local storage is not durable long-term"],a:2,cat:"Fundamentals",u:"https://prometheus.io/docs/introduction/overview/",e:"Prometheus runs very well on Kubernetes. Its actual limitations are: metrics only (no logs/traces), single-server by default, and local storage not designed for long-term retention."},
+{q:"What does rate() calculate?",o:["Total count over a time range","Per-second average rate of increase","Instantaneous rate from last two points","Absolute value change"],a:1,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#rate",e:"rate() calculates the per-second average rate of increase over the full range vector. It automatically handles counter resets. This is the most important PromQL function."},
+{q:"What type of input does rate() require?",o:["Instant vector","Scalar","Range vector","String"],a:2,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#rate",e:"rate() requires a range vector (e.g., metric[5m]). It returns an instant vector of per-second rates. This is a common exam question."},
+{q:"Why should you NOT use irate() for alerting?",o:["It is deprecated","It uses only the last two data points and is too volatile","It does not handle counter resets","It only works with gauges"],a:1,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#irate",e:"irate() calculates instant rate from the last two samples only, making it very spiky. Use rate() for alerting because it smooths over the full range window."},
+{q:"How do you calculate the 99th percentile latency from a histogram?",o:["avg(http_request_duration_seconds)","quantile(0.99, http_request_duration_seconds)","histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))","max(http_request_duration_seconds)"],a:2,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#histogram_quantile",e:"histogram_quantile() takes a quantile (0-1) and a rate of the _bucket metric. The rate() inside is important — without it you get cumulative counts, not per-second rates."},
+{q:"What does absent() return?",o:["0 if metric exists","1 if metric has no data","The metric value","An error"],a:1,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#absent",e:"absent() returns a 1-element vector with value 1 if the input has no data. Essential for alerting on missing metrics (e.g., target disappeared)."},
+{q:"What is the difference between 'by' and 'without' in aggregation?",o:["by keeps listed labels; without drops listed labels","by drops listed labels; without keeps listed labels","They are the same","by is for sum; without is for avg"],a:0,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/operators/",e:"'by (method)' keeps only the method label. 'without (instance)' drops instance and keeps everything else. They are inverses of each other."},
+{q:"Which label matcher uses anchored regex?",o:["=","!=","=~","All of them"],a:2,cat:"PromQL",u:"https://prometheus.io/docs/prometheus/latest/querying/basics/",e:"=~ and !~ use regex matching. Regexes are fully anchored: env=~\"foo\" matches ^foo$ only, not \"foobar\". Use .* for partial matches."},
+{q:"What are the 4 Prometheus metric types?",o:["Counter, Gauge, Timer, Meter","Counter, Gauge, Histogram, Summary","Integer, Float, String, Boolean","Metric, Label, Sample, Series"],a:1,cat:"Instrumentation",u:"https://prometheus.io/docs/concepts/metric_types/",e:"The four types: Counter (only up), Gauge (up/down), Histogram (buckets for distributions), Summary (client-side quantiles). Each has specific use cases."},
+{q:"When should you use a Counter vs a Gauge?",o:["Counter for anything numeric","Gauge only for temperatures","Counter for values that only increase; Gauge for values that can decrease","They are interchangeable"],a:2,cat:"Instrumentation",u:"https://prometheus.io/docs/concepts/metric_types/",e:"If the value can decrease (memory, queue size, temperature), use a Gauge. If it only goes up or resets to 0 (requests, errors, bytes sent), use a Counter."},
+{q:"Why can you aggregate histogram buckets across instances but not summary quantiles?",o:["Histograms are newer","Histogram buckets are additive; summary quantiles are pre-computed and not statistically aggregatable","Summaries use less memory","It is a bug"],a:1,cat:"Instrumentation",u:"https://prometheus.io/docs/practices/histograms/",e:"Histogram buckets can be summed across instances because they are simple counters per bucket. Summary quantiles are pre-calculated on the client and averaging quantiles is statistically meaningless."},
+{q:"What suffix must counter metrics have?",o:["_count","_gauge","_total","_counter"],a:2,cat:"Instrumentation",u:"https://prometheus.io/docs/practices/naming/",e:"Counters must end with _total (e.g., http_requests_total). This is a naming convention, not enforced by Prometheus, but required by best practices and the PCA exam."},
+{q:"What port does node_exporter use by default?",o:["9090","9093","9100","9115"],a:2,cat:"Instrumentation",u:"https://prometheus.io/docs/guides/node-exporter/",e:"node_exporter: 9100. Also know: Prometheus: 9090, Alertmanager: 9093, blackbox_exporter: 9115."},
+{q:"Why should you avoid high-cardinality labels?",o:["They slow down queries","Each unique label combination creates a new time series, exploding storage and memory","They are not supported","They break Grafana"],a:1,cat:"Instrumentation",u:"https://prometheus.io/docs/practices/naming/",e:"Labels like user_id, email, or request_id create unbounded time series. A metric with 1M unique user IDs = 1M time series. This is the #1 Prometheus performance killer."},
+{q:"What does the 'for' clause in an alerting rule specify?",o:["How often to evaluate","How long the condition must be true before firing","Alert severity","Notification interval"],a:1,cat:"Alerting",u:"https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/",e:"'for: 5m' means the PromQL expression must be true for 5 continuous minutes before the alert fires. This prevents false alarms from brief spikes."},
+{q:"What is Alertmanager inhibition?",o:["Disabling an alert permanently","Suppressing alerts when a related higher-severity alert is active","Grouping alerts together","Pausing all alerting"],a:1,cat:"Alerting",u:"https://prometheus.io/docs/alerting/latest/alertmanager/",e:"Inhibition suppresses lower-severity alerts when a higher-severity related alert is firing. Example: suppress InstanceDown alerts when DatacenterDown is active."},
+{q:"What is the naming convention for recording rules?",o:["alert_name_rule","level:metric:operations","rule.metric.name","recording-rule-name"],a:1,cat:"Alerting",u:"https://prometheus.io/docs/practices/rules/",e:"Recording rules use colons as separators: level:metric:operations. Example: job:http_requests:rate5m. This distinguishes them from regular metrics (which use underscores)."},
+{q:"What is a recording rule used for?",o:["Recording audio alerts","Pre-computing expensive PromQL queries as new metrics","Logging query history","Recording configuration changes"],a:1,cat:"Alerting",u:"https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/",e:"Recording rules evaluate a PromQL expression at each evaluation_interval and store the result as a new metric. This speeds up dashboards and alerts that use expensive queries."},
+{q:"How does Grafana query Prometheus?",o:["Via gRPC","Via the Prometheus HTTP API using PromQL","By reading the TSDB directly","Via Alertmanager"],a:1,cat:"Alerting",u:"https://prometheus.io/docs/visualization/grafana/",e:"Grafana adds Prometheus as a data source and sends PromQL queries to the HTTP API (default port 9090). It does not access the TSDB directly."},
+];
+// TODO: Add 8-12 scenario drills. Each: {q:"situation", a:"suggested response", u:["url1","url2"]}
+const SCENARIOS=[
+{q:"Our monitoring is all push-based (StatsD). Why should we consider Prometheus and its pull model?",a:"Pull gives Prometheus control over scrape timing and target health detection — if a target stops responding, you know immediately (up == 0). Push-based systems only know there is a problem when metrics stop arriving, which is harder to distinguish from low traffic. Pull also makes service discovery natural: Prometheus discovers targets from K8s/Consul and scrapes them automatically. You still get push via the Pushgateway for batch jobs.",u:["https://prometheus.io/docs/introduction/overview/","https://prometheus.io/docs/practices/pushing/"]},
+{q:"We have a metric with user_id as a label and our Prometheus is running out of memory. What is wrong?",a:"High-cardinality labels. Each unique user_id creates a separate time series. If you have 100K users, that is 100K time series per metric. Remove user_id from the label set and instead use it in logs or traces. If you need per-user metrics, aggregate them (e.g., count by user_tier or region). Prometheus is designed for bounded label cardinality.",u:["https://prometheus.io/docs/practices/naming/","https://prometheus.io/docs/practices/instrumentation/"]},
+{q:"A developer asks: should I use a Histogram or a Summary for tracking request latency?",a:"Use a Histogram in almost all cases. Histograms are server-side aggregatable — you can sum buckets across instances and compute quantiles with histogram_quantile(). Summaries compute quantiles on the client and cannot be meaningfully aggregated. The only case for Summary is when you need exact quantiles for a single instance and cannot pre-define bucket boundaries.",u:["https://prometheus.io/docs/practices/histograms/","https://prometheus.io/docs/concepts/metric_types/"]},
+{q:"Our alert for HighErrorRate fires during every deployment and wakes up oncall. How do we fix this?",a:"Two approaches: (1) Add a 'for' clause (e.g., for: 5m) so brief deployment spikes do not trigger. (2) Use Alertmanager silences during deployment windows. You can also make the alert more robust: use a longer rate window (rate(...[15m]) instead of [5m]) to smooth out transient spikes. For recurring maintenance, create an inhibition rule tied to a deployment-in-progress metric.",u:["https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/","https://prometheus.io/docs/alerting/latest/alertmanager/"]},
+{q:"How would you set up monitoring for a Kubernetes cluster with Prometheus?",a:"Use the kube-prometheus-stack Helm chart — it deploys Prometheus, Alertmanager, Grafana, node_exporter, kube-state-metrics, and pre-built dashboards and alerting rules. Prometheus discovers targets via kubernetes_sd_configs. Pods expose /metrics, kube-state-metrics exposes K8s object state, node_exporter exposes host metrics. relabel_configs convert K8s metadata (namespace, pod name) into Prometheus labels.",u:["https://prometheus.io/docs/prometheus/latest/configuration/configuration/","https://prometheus.io/docs/introduction/overview/"]},
+{q:"We need to monitor external URLs for uptime from Prometheus. How?",a:"Use the blackbox_exporter (port 9115). Configure probe modules for HTTP, TCP, ICMP, or DNS checks. In prometheus.yml, add a scrape_config that targets the blackbox_exporter with relabel_configs to pass the actual target URL as a parameter. The blackbox_exporter probes the URL and returns success/failure metrics (probe_success, probe_duration_seconds).",u:["https://github.com/prometheus/blackbox_exporter","https://prometheus.io/docs/guides/multi-target-exporter/"]},
+{q:"Our Grafana dashboard is slow because it runs complex PromQL queries across thousands of time series. What can we do?",a:"Create recording rules. Pre-compute the expensive aggregations (e.g., sum(rate(...)) by (job)) and store the result as a new metric. The dashboard then queries the pre-computed metric instead of running the full aggregation on every page load. Name them using the convention level:metric:operations (e.g., job:http_requests:rate5m).",u:["https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/","https://prometheus.io/docs/practices/rules/"]},
+{q:"How do I write a PromQL query to calculate the percentage of 5xx errors?",a:"sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100. This sums the rate of 5xx requests and divides by the total request rate. The =~ operator with \"5..\" matches any status starting with 5 (500, 502, 503, etc.). Multiply by 100 for percentage.",u:["https://prometheus.io/docs/prometheus/latest/querying/examples/","https://prometheus.io/docs/prometheus/latest/querying/operators/"]},
+];
+// TODO: Add 10-15 rapid fire questions. Each: {q:"question", a:"short answer", t:secondsAllowed, u:"url"}
+const RAPID=[
+{q:"What port does Prometheus run on?",a:"9090",t:5,u:"https://prometheus.io/docs/prometheus/latest/getting_started/"},
+{q:"What port does node_exporter use?",a:"9100",t:5,u:"https://prometheus.io/docs/guides/node-exporter/"},
+{q:"What port does Alertmanager use?",a:"9093",t:5,u:"https://prometheus.io/docs/alerting/latest/overview/"},
+{q:"What suffix must counters end with?",a:"_total",t:5,u:"https://prometheus.io/docs/practices/naming/"},
+{q:"Default metrics path?",a:"/metrics",t:5,u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{q:"Default scrape interval?",a:"1 minute (1m)",t:6,u:"https://prometheus.io/docs/prometheus/latest/configuration/configuration/"},
+{q:"What does rate() return?",a:"Per-second average rate of increase over a range vector",t:10,u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#rate"},
+{q:"Name the 4 metric types",a:"Counter, Gauge, Histogram, Summary",t:8,u:"https://prometheus.io/docs/concepts/metric_types/"},
+{q:"What does absent() return when the metric exists?",a:"Nothing (empty result). Returns 1 only when no data exists.",t:8,u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#absent"},
+{q:"Recording rule naming convention?",a:"level:metric:operations (e.g., job:http_requests:rate5m)",t:10,u:"https://prometheus.io/docs/practices/rules/"},
+{q:"What is the 'for' clause in alerting rules?",a:"Duration condition must be true before alert fires",t:8,u:"https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/"},
+{q:"What is Alertmanager inhibition?",a:"Suppresses lower-severity alerts when higher-severity is active",t:10,u:"https://prometheus.io/docs/alerting/latest/alertmanager/"},
+{q:"Pull or push model?",a:"Pull — Prometheus scrapes targets. Exception: Pushgateway.",t:6,u:"https://prometheus.io/docs/introduction/overview/"},
+{q:"Histogram vs Summary: which is aggregatable?",a:"Histogram — buckets are additive. Summary quantiles cannot be aggregated.",t:10,u:"https://prometheus.io/docs/practices/histograms/"},
+{q:"What does the =~ label matcher do?",a:"Regex match (fully anchored)",t:6,u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{q:"What is the base unit for time in Prometheus metrics?",a:"seconds (not milliseconds)",t:5,u:"https://prometheus.io/docs/practices/naming/"},
+{q:"What is the PCA exam's largest domain?",a:"PromQL at 28%",t:6,u:"https://training.linuxfoundation.org/certification/prometheus-certified-associate/"},
+{q:"What does irate() use that rate() does not?",a:"Only the last two data points (more volatile)",t:8,u:"https://prometheus.io/docs/prometheus/latest/querying/functions/#irate"},
+];
+// ─── LESSONS ───
+// TODO: Add 6-10 lessons. Each: {id, title, time, week, icon, body (HTML string), sources:[], exercises:[{task,hint,url}]}
+const LESSONS=[
+{id:"lesson-1",title:"Observability Concepts",time:"8 min read",week:1,icon:"👁️",
+sources:["https://prometheus.io/docs/introduction/overview/","https://prometheus.io/docs/practices/pushing/"],
+exercises:[
+{task:"Draw the three pillars of observability and list which tools handle each.",hint:"Metrics: Prometheus. Logs: Loki/ELK. Traces: Jaeger/Tempo.",steps:["Draw three columns: Metrics, Logs, Traces","Under Metrics write: Prometheus, Datadog, CloudWatch Metrics","Under Logs write: Loki, ELK, CloudWatch Logs","Under Traces write: Jaeger, Tempo, Zipkin","Draw arrows showing how they connect (trace ID in logs, exemplars in metrics)"]},
+{task:"Define SLI, SLO, and SLA for a web application with concrete examples.",hint:"Start with the SLI (what you measure), then set the SLO (target), then describe the SLA (contract).",steps:["Pick a web app you work on or know well","Define an SLI: e.g., p99 request latency measured at the load balancer","Define an SLO: e.g., p99 latency < 300ms over any 30-day rolling window","Define an SLA: e.g., if monthly availability drops below 99.9%, customer gets 10% service credit","Write down what Prometheus metrics you would use to measure each SLI"]}
+],
+body:\`<div class="lesson-section"><h4>The Three Pillars</h4><div class="lesson-text"><p><strong>Metrics:</strong> Numeric measurements over time (CPU, request count, latency). This is what Prometheus does.</p><p><strong>Logs:</strong> Discrete text events ("User 123 logged in"). Use Loki, ELK, etc.</p><p><strong>Traces:</strong> Request flow across services. Use Jaeger, Tempo, etc.</p><p>Prometheus is a <strong>metrics-only</strong> system. This is a common exam question.</p></div></div>
+<div class="lesson-highlight">Prometheus uses a <strong>pull model</strong> — it scrapes /metrics endpoints. The Pushgateway is the exception for short-lived jobs.</div>
+<div class="lesson-section"><h4>Push vs Pull</h4><div class="lesson-text"><p><strong>Pull advantages:</strong> Prometheus controls timing, instantly detects dead targets (up==0), natural fit for service discovery.</p><p><strong>Push use case:</strong> Pushgateway for batch/cron jobs that exit before being scraped. Do NOT use Pushgateway for long-lived services.</p></div></div>
+<div class="lesson-section"><h4>SLI / SLO / SLA</h4><div class="lesson-text"><p><strong>SLI</strong> = what you measure (p99 latency, error rate). <strong>SLO</strong> = your target (latency < 200ms). <strong>SLA</strong> = business contract with penalties.</p></div></div>\`},
+{id:"lesson-2",title:"Prometheus Architecture and Configuration",time:"12 min read",week:1,icon:"🏗️",
+sources:["https://prometheus.io/docs/introduction/overview/","https://prometheus.io/docs/prometheus/latest/configuration/configuration/"],
+exercises:[
+{task:"Run Prometheus locally with Docker and explore the UI.",hint:"Use the official prometheus Docker image.",steps:["Create a file prometheus.yml with this content:\nglobal:\n  scrape_interval: 15s\nscrape_configs:\n  - job_name: prometheus\n    static_configs:\n      - targets: [\"localhost:9090\"]","Run: docker run -d --name prometheus -p 9090:9090 -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus","Open http://localhost:9090 in your browser","Click Status > Targets — you should see the prometheus job as UP","Click Graph, type 'up' in the expression box, click Execute — you should see up{job=\"prometheus\"} = 1","Try: prometheus_build_info — this shows the version and build details"],url:"https://prometheus.io/docs/prometheus/latest/getting_started/"},
+{task:"Add node_exporter as a scrape target and verify it in the Targets page.",hint:"Run node_exporter on port 9100, add it to scrape_configs.",steps:["Run: docker run -d --name node-exporter -p 9100:9100 prom/node-exporter","Edit prometheus.yml and add under scrape_configs:\n  - job_name: node\n    static_configs:\n      - targets: [\"host.docker.internal:9100\"]","Restart Prometheus: docker restart prometheus","Go to Status > Targets — you should see both prometheus and node jobs","In the Graph tab, try: node_cpu_seconds_total — you should see CPU metrics"],url:"https://prometheus.io/docs/guides/node-exporter/"}
+],
+body:\`<div class="lesson-section"><h4>Components</h4><div class="lesson-text"><p><strong>Prometheus server:</strong> scrapes targets, stores data in TSDB, evaluates rules, serves HTTP API (port 9090).</p><p><strong>Alertmanager:</strong> receives alerts, deduplicates, groups, routes, sends notifications (port 9093).</p><p><strong>Pushgateway:</strong> intermediary for short-lived jobs to push metrics.</p><p><strong>Exporters:</strong> expose third-party metrics (node_exporter:9100, blackbox_exporter:9115).</p><p><strong>Client libraries:</strong> instrument your code (Go, Java, Python, Ruby, .NET, Rust).</p></div></div>
+<div class="lesson-section"><h4>Data Model</h4><div class="lesson-text"><p>Every time series = <strong>metric name + labels</strong>. Example: <code>http_requests_total{method="GET",status="200"}</code></p><p>Samples are (timestamp, float64 value) pairs stored in the TSDB.</p></div></div>
+<div class="lesson-section"><h4>Configuration (prometheus.yml)</h4><div class="lesson-text"><p>Key sections: <code>global</code> (scrape_interval, evaluation_interval), <code>scrape_configs</code> (jobs + targets), <code>rule_files</code>, <code>alerting</code> (Alertmanager targets).</p><p><strong>scrape_interval:</strong> how often to scrape (default 1m). <strong>evaluation_interval:</strong> how often to evaluate rules (default 1m).</p></div></div>
+<div class="lesson-highlight">Know these ports: Prometheus=9090, Alertmanager=9093, node_exporter=9100, blackbox_exporter=9115.</div>\`},
+{id:"lesson-3",title:"PromQL Basics: Selectors and Functions",time:"12 min read",week:1,icon:"🔍",
+sources:["https://prometheus.io/docs/prometheus/latest/querying/basics/","https://prometheus.io/docs/prometheus/latest/querying/functions/"],
+exercises:[
+{task:"Practice instant vector and range vector selectors in the Prometheus UI.",hint:"Try with and without label matchers, then add [5m] for range vectors.",steps:["Open http://localhost:9090/graph","Type: up — this is an instant vector. Click Execute. Note the single value per target.","Type: up{job=\"prometheus\"} — label matcher narrows to one target.","Type: up[5m] — this is a range vector. Switch to Graph tab to see values over 5 minutes.","Try regex: node_cpu_seconds_total{mode=~\"user|system\"} — matches both modes.","Try negative: node_cpu_seconds_total{mode!=\"idle\"} — excludes idle."]},
+{task:"Use rate() and sum() to calculate per-second request rate.",hint:"rate() needs a range vector. sum() aggregates across labels.",steps:["In the expression box, type: rate(prometheus_http_requests_total[5m])","Click Execute. You should see per-second rates for each handler/code combination.","Now aggregate: sum(rate(prometheus_http_requests_total[5m])) by (code)","This shows total request rate grouped by HTTP status code.","Try: sum(rate(prometheus_http_requests_total[5m])) — without 'by', this gives one total number.","Try topk: topk(3, rate(prometheus_http_requests_total[5m])) — top 3 busiest endpoints."]}
+],
+body:\`<div class="lesson-section"><h4>Selectors</h4><div class="lesson-text"><p><strong>Instant vector:</strong> <code>http_requests_total{method="GET"}</code> — one value per series at current time.</p><p><strong>Range vector:</strong> <code>http_requests_total[5m]</code> — all values in last 5 minutes.</p><p><strong>Label matchers:</strong> <code>=</code> (equal), <code>!=</code> (not equal), <code>=~</code> (regex), <code>!~</code> (not regex). Regexes are fully anchored.</p></div></div>
+<div class="lesson-section"><h4>Essential Functions</h4><div class="lesson-text"><p><strong>rate(v[t])</strong> — per-second average rate. THE most important function. Use for counters.</p><p><strong>irate(v[t])</strong> — instant rate (last 2 points). Volatile — not for alerting.</p><p><strong>increase(v[t])</strong> — total increase. Human-readable (= rate × seconds).</p><p><strong>absent(v)</strong> — returns 1 if no data. Critical for missing-metric alerts.</p></div></div>
+<div class="lesson-highlight">rate() is the #1 function to know. It takes a range vector, returns an instant vector of per-second rates, and automatically handles counter resets.</div>\`},
+{id:"lesson-4",title:"PromQL Advanced: Aggregation and Histograms",time:"10 min read",week:2,icon:"📊",
+sources:["https://prometheus.io/docs/prometheus/latest/querying/operators/","https://prometheus.io/docs/prometheus/latest/querying/functions/#histogram_quantile"],
+exercises:[
+{task:"Write an error rate percentage query and a p99 latency query.",hint:"Error rate: 5xx rate / total rate. p99: histogram_quantile(0.99, ...).",steps:["Error rate: sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100","If you have a histogram, p99: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))","The 'le' (less-than-or-equal) label is required for histogram_quantile to work.","Try changing 0.99 to 0.5 for median, 0.95 for p95.","You should see: p50 < p95 < p99 (each percentile is higher)."]},
+{task:"Practice aggregation operators: sum, avg, topk, count with by/without.",hint:"Try the same query with 'by (job)' vs 'without (instance)'.",steps:["sum(up) — total number of UP targets","sum(up) by (job) — UP targets per job","count(up) — total number of targets (UP or DOWN)","avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance) — average idle CPU per instance","topk(3, sum(rate(prometheus_http_requests_total[5m])) by (handler)) — top 3 busiest handlers"]}
+],
+body:\`<div class="lesson-section"><h4>Aggregation Operators</h4><div class="lesson-text"><p><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>count</code>, <code>topk</code>, <code>bottomk</code>, <code>quantile</code>, <code>stddev</code>, <code>stdvar</code>, <code>count_values</code></p><p>Use <code>by (label1, label2)</code> to keep only those labels. Use <code>without (label1)</code> to drop those labels.</p></div></div>
+<div class="lesson-section"><h4>Binary Operators</h4><div class="lesson-text"><p>Arithmetic: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>. Comparison: <code>==</code>, <code>!=</code>, <code>></code>, <code><</code>, <code>>=</code>, <code><=</code>.</p><p>Error rate: <code>sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))</code></p></div></div>
+<div class="lesson-section"><h4>histogram_quantile()</h4><div class="lesson-text"><p>Calculates percentiles from histogram buckets: <code>histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))</code></p><p>The <code>le</code> (less-than-or-equal) label must be present. Always use <code>rate()</code> inside to get per-second rates.</p></div></div>
+<div class="lesson-highlight">histogram_quantile() is critical for SLO monitoring. Know the syntax: quantile value (0-1), then rate of the _bucket metric.</div>\`},
+{id:"lesson-5",title:"Metric Types and Naming Conventions",time:"8 min read",week:2,icon:"🏷️",
+sources:["https://prometheus.io/docs/concepts/metric_types/","https://prometheus.io/docs/practices/naming/"],
+exercises:[
+{task:"Classify 10 real metrics by type (Counter, Gauge, Histogram, Summary).",hint:"If it can decrease, it is a Gauge. If it only resets to 0, Counter.",steps:["http_requests_total → Counter (only goes up, has _total suffix)","node_memory_MemAvailable_bytes → Gauge (fluctuates up and down)","http_request_duration_seconds_bucket → Histogram (has _bucket suffix + le label)","process_cpu_seconds_total → Counter (cumulative CPU time)","node_filesystem_avail_bytes → Gauge (available disk space fluctuates)","up → Gauge (0 or 1, can change)","prometheus_tsdb_head_series → Gauge (number of active series changes)","http_request_duration_seconds_sum → part of Histogram (cumulative sum)","http_request_duration_seconds_count → part of Histogram (event count, acts as counter)","go_goroutines → Gauge (number of goroutines fluctuates)"]},
+{task:"Review the naming conventions and fix 5 badly named metrics.",hint:"Check for: _total on counters, base units (seconds not ms), no high-cardinality labels.",steps:["Bad: request_count → Fix: http_requests_total (add prefix, add _total)","Bad: latency_ms → Fix: http_request_duration_seconds (use seconds, not ms)","Bad: memory_megabytes → Fix: process_memory_bytes (use bytes, not MB)","Bad: error_percentage → Fix: http_errors_ratio (use _ratio for 0-1 values, not percentage)","Bad: cpu{user_email=\"a@b.com\"} → Fix: remove user_email label (high cardinality)"]}
+],
+body:\`<div class="lesson-section"><h4>The 4 Metric Types</h4><div class="lesson-text"><p><strong>Counter:</strong> Only goes up (or resets to 0). Use rate()/increase(). e.g., requests, errors, bytes sent.</p><p><strong>Gauge:</strong> Goes up and down. Read directly or use delta(). e.g., temperature, memory, queue size.</p><p><strong>Histogram:</strong> Counts observations in configurable buckets + sum + count. Server-side aggregatable. Use histogram_quantile().</p><p><strong>Summary:</strong> Computes quantiles client-side over sliding windows. NOT aggregatable across instances.</p></div></div>
+<div class="lesson-highlight">Histogram vs Summary: Histograms are almost always preferred because their buckets can be summed across instances. Summary quantiles cannot be meaningfully aggregated.</div>
+<div class="lesson-section"><h4>Naming Conventions</h4><div class="lesson-text"><p>Prefix: application domain (<code>http_</code>, <code>node_</code>, <code>process_</code>)</p><p>Suffixes: <code>_total</code> (counters), <code>_seconds</code>/<code>_bytes</code> (units), <code>_info</code> (metadata), <code>_ratio</code> (0-1 percentages)</p><p>Always use base units: seconds (not ms), bytes (not MB).</p><p><strong>Avoid high-cardinality labels:</strong> no user IDs, emails, UUIDs, or request IDs.</p></div></div>\`},
+{id:"lesson-6",title:"Exporters and Instrumentation",time:"8 min read",week:2,icon:"🔌",
+sources:["https://prometheus.io/docs/instrumenting/exporters/","https://prometheus.io/docs/instrumenting/exposition_formats/"],
+exercises:[
+{task:"Explore node_exporter metrics: find CPU, memory, disk, and network metrics.",hint:"node_exporter metrics all start with node_.",steps:["Open http://localhost:9100/metrics in your browser to see raw exposition format","Search for node_cpu_seconds_total — note the mode label (idle, user, system, etc.)","Search for node_memory_MemTotal_bytes and node_memory_MemAvailable_bytes","Search for node_filesystem_avail_bytes — note the mountpoint and fstype labels","In Prometheus UI, try: 100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100) — this gives CPU usage %","Try: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 — memory usage %"]},
+{task:"Read the exposition format of the Prometheus /metrics endpoint and identify HELP, TYPE, and samples.",hint:"Look for lines starting with # HELP, # TYPE, then the metric values.",steps:["Open http://localhost:9090/metrics in your browser","Find a # HELP line — this describes what the metric measures","Find the # TYPE line immediately after — it declares counter, gauge, histogram, or summary","Find the actual samples below: metric_name{labels} value","Look for a histogram: search for _bucket. Note the le= labels and the _sum/_count companions","Look for a counter: search for _total. Note there is no le= label."]}
+],
+body:\`<div class="lesson-section"><h4>Key Exporters</h4><div class="lesson-text"><p><strong>node_exporter (9100):</strong> Linux/macOS system metrics — CPU, memory, disk, network.</p><p><strong>blackbox_exporter (9115):</strong> Probes external endpoints — HTTP, TCP, ICMP, DNS. Black-box monitoring.</p><p><strong>mysqld_exporter (9104):</strong> MySQL metrics.</p><p><strong>Prometheus itself (9090):</strong> Self-monitoring at /metrics.</p></div></div>
+<div class="lesson-section"><h4>Exposition Format</h4><div class="lesson-text"><p>Plain text, one sample per line:</p><p><code># HELP metric_name Description</code></p><p><code># TYPE metric_name counter|gauge|histogram|summary</code></p><p><code>metric_name{label="value"} 1234 1625000000000</code></p></div></div>
+<div class="lesson-highlight">The exposition format is human-readable. Every /metrics endpoint follows this pattern. Knowing how to read it is essential for debugging.</div>\`},
+{id:"lesson-7",title:"Alerting Rules and Recording Rules",time:"10 min read",week:3,icon:"🔔",
+sources:["https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/","https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/"],
+exercises:[
+{task:"Write an alerting rule for high error rate (>5% for 5 minutes).",hint:"Use rate() for 5xx requests divided by total requests.",steps:["Create a file alerts.yml","Add this content:\ngroups:\n  - name: http\n    rules:\n      - alert: HighErrorRate\n        expr: sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) > 0.05\n        for: 5m\n        labels:\n          severity: critical\n        annotations:\n          summary: Error rate above 5%","Add to prometheus.yml under rule_files: [\"alerts.yml\"]","Restart Prometheus and check Status > Rules","You should see the HighErrorRate rule listed (state: inactive if no matching data)"]},
+{task:"Write a recording rule to pre-compute request rate by job.",hint:"Recording rules use 'record' instead of 'alert'. Name: level:metric:operations.",steps:["Create a file recording_rules.yml","Add:\ngroups:\n  - name: http_recording\n    rules:\n      - record: job:http_requests:rate5m\n        expr: sum(rate(http_requests_total[5m])) by (job)","Add to prometheus.yml rule_files","Restart Prometheus, check Status > Rules","After one evaluation_interval, query job:http_requests:rate5m — it should return pre-computed data"]}
+],
+body:\`<div class="lesson-section"><h4>Alerting Rules</h4><div class="lesson-text"><p><code>alert</code>: name. <code>expr</code>: PromQL condition. <code>for</code>: duration before firing. <code>labels</code>: routing metadata. <code>annotations</code>: human-readable description.</p><p>The <code>for</code> clause prevents flapping — the condition must be continuously true for that duration before the alert fires.</p></div></div>
+<div class="lesson-section"><h4>Recording Rules</h4><div class="lesson-text"><p>Pre-compute expensive queries: <code>record: job:http_requests:rate5m</code> with <code>expr: sum(rate(...)) by (job)</code></p><p>Naming convention: <strong>level:metric:operations</strong>. The colons distinguish recording rules from raw metrics (which use underscores).</p></div></div>
+<div class="lesson-highlight">Recording rules speed up dashboards. Alerting rules detect problems. Both are defined in YAML files referenced by rule_files in prometheus.yml.</div>\`},
+{id:"lesson-8",title:"Alertmanager: Routing, Grouping, Silencing",time:"10 min read",week:3,icon:"📣",
+sources:["https://prometheus.io/docs/alerting/latest/overview/","https://prometheus.io/docs/alerting/latest/alertmanager/"],
+exercises:[
+{task:"Run Alertmanager with Docker and connect it to Prometheus.",hint:"Alertmanager runs on port 9093. Add it to the alerting section of prometheus.yml.",steps:["Create alertmanager.yml:\nroute:\n  receiver: default\nreceivers:\n  - name: default","Run: docker run -d --name alertmanager -p 9093:9093 -v $(pwd)/alertmanager.yml:/etc/alertmanager/alertmanager.yml prom/alertmanager","Edit prometheus.yml alerting section:\nalerting:\n  alertmanagers:\n    - static_configs:\n        - targets: [\"host.docker.internal:9093\"]","Restart Prometheus","Open http://localhost:9093 — you should see the Alertmanager UI","Check Prometheus Status > Runtime & Build — verify Alertmanagers shows 1 active"]},
+{task:"Create a silence in the Alertmanager UI for a maintenance window.",hint:"Click Silences > New Silence in the Alertmanager UI.",steps:["Open http://localhost:9093/#/silences","Click New Silence","Add a matcher: alertname = HighErrorRate","Set duration to 1 hour","Add a comment: Scheduled maintenance window","Click Create — the silence should appear in the list","Any HighErrorRate alerts during this window will be suppressed"]}
+],
+body:\`<div class="lesson-section"><h4>Alertmanager Concepts</h4><div class="lesson-text"><p><strong>Grouping:</strong> Combine similar alerts into one notification. All HighMemory alerts across instances become one Slack message.</p><p><strong>Inhibition:</strong> Suppress lower-severity alerts when higher-severity fires. DatacenterDown inhibits InstanceDown.</p><p><strong>Silencing:</strong> Temporarily mute alerts for maintenance. Set via the UI or API.</p><p><strong>Routing:</strong> Label-based route tree directs alerts to receivers (Slack, PagerDuty, email, webhook).</p></div></div>
+<div class="lesson-section"><h4>Configuration</h4><div class="lesson-text"><p>Alertmanager uses alertmanager.yml with: <code>route</code> (routing tree), <code>receivers</code> (notification targets), <code>inhibit_rules</code>, <code>templates</code>.</p><p>Prometheus sends alerts to Alertmanager — Alertmanager handles deduplication, grouping, and delivery.</p></div></div>
+<div class="lesson-highlight">The separation of concerns is key: Prometheus detects problems (alerting rules). Alertmanager handles notification workflow (routing, grouping, silencing, sending).</div>\`},
+];
+// ─── DEFAULT SCHEDULE ───
+// TODO: Add 10-20 study sessions. Each: {id, date, time, dur (minutes), title, desc, phase}
+const DEFAULT_SESSIONS=[
+{id:"s1",date:"2026-04-14",time:"09:00",dur:45,title:"Observability + Architecture",desc:"Lessons 1-2. Run Prometheus locally with Docker. Explore the UI.",phase:1},
+{id:"s2",date:"2026-04-15",time:"09:00",dur:60,title:"PromQL Basics",desc:"Lesson 3. Practice selectors, rate(), sum() in the Prometheus UI.",phase:1},
+{id:"s3",date:"2026-04-16",time:"09:00",dur:45,title:"Flashcards + Quiz: Fundamentals",desc:"Observability and Fundamentals flashcards. Take both quiz sections.",phase:1},
+{id:"s4",date:"2026-04-21",time:"09:00",dur:60,title:"PromQL Advanced + Metric Types",desc:"Lessons 4-5. histogram_quantile, aggregation, naming conventions.",phase:2},
+{id:"s5",date:"2026-04-22",time:"09:00",dur:60,title:"Exporters + Instrumentation",desc:"Lesson 6. Explore node_exporter, read exposition format, classify metrics.",phase:2},
+{id:"s6",date:"2026-04-23",time:"09:00",dur:60,title:"Alerting + Alertmanager",desc:"Lessons 7-8. Write alerting rules, set up Alertmanager, practice silences.",phase:3},
+{id:"s7",date:"2026-04-24",time:"09:00",dur:45,title:"Full Review",desc:"All scenarios, rapid fire until 85%+, final exam quiz. Review weak areas.",phase:3},
+];
+// TODO: Add 5-8 checkpoints. Each: {id, target, by (date), metric, threshold}
+// Metrics: 'bestQuiz','bestRapid','cards','scenarios','exercises'
+const DEFAULT_CHECKPOINTS=[
+{id:"cp1",target:"Score 80%+ on PromQL quiz",by:"2026-04-17",metric:"bestQuiz",threshold:80},
+{id:"cp2",target:"Complete all hands-on exercises",by:"2026-04-23",metric:"exercises",threshold:80},
+{id:"cp3",target:"Rapid fire 85%+",by:"2026-04-24",metric:"bestRapid",threshold:85},
+{id:"cp4",target:"Score 90%+ on Final Exam",by:"2026-04-25",metric:"bestQuiz",threshold:90},
+];
+// ─── PERSISTENCE ───
+// TODO: Change storage key to something unique for your course
+const STORAGE_KEY="pca-crash-course-v1";
+function saveState(){
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}catch(e){}
+debouncedCloudSave();
+}
+function loadState(){
+try{
+const raw=localStorage.getItem(STORAGE_KEY);
+if(!raw)return null;
+return JSON.parse(raw);
+}catch(e){return null}
+}
+function exportState(){
+try{return localStorage.getItem(STORAGE_KEY)||"{}"}catch(e){return"{}"}
+}
+function importState(json){
+try{
+const data=JSON.parse(json);
+if(data.stats){stats={...stats,...data.stats}}
+if(data.history){sessionHistory=data.history}
+saveState();render();return true;
+}catch(e){return false}
+}
+// ─── CLOUD SYNC ENGINE (offline-resilient) ───
+let syncStatus='idle',lastSyncAt=null,syncPending=false;
+function syncEnabled(){return typeof SYNC_SHEET_URL==='string'&&SYNC_SHEET_URL.length>10}
+function getSyncKey(){return SYNC_USER_ID?(SYNC_USER_ID+'/'+STORAGE_KEY):STORAGE_KEY}
+function isOnline(){return typeof navigator!=='undefined'?navigator.onLine:true}
+async function cloudSave(){
+if(!syncEnabled()){syncPending=false;return}
+if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
+syncStatus='syncing';updateSyncUI();
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
+method:'POST',headers:{'Content-Type':'text/plain'},
+body:JSON.stringify({data,savedAt:data.savedAt})
+});
+syncStatus='synced';lastSyncAt=new Date().toISOString();syncPending=false;
+}catch(e){
+syncStatus=isOnline()?'error':'offline';syncPending=true;
+console.warn('Cloud sync save failed:',e);
+}
+updateSyncUI();
+}
+async function cloudLoad(){
+if(!syncEnabled())return null;
+if(!isOnline()){syncStatus='offline';updateSyncUI();return null}
+syncStatus='syncing';updateSyncUI();
+try{
+const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(getSyncKey()));
+const json=await resp.json();
+syncStatus='synced';lastSyncAt=new Date().toISOString();updateSyncUI();
+if(json.ok&&json.data)return json;
+return null;
+}catch(e){syncStatus=isOnline()?'error':'offline';updateSyncUI();console.warn('Cloud sync load failed:',e);return null}
+}
+function updateSyncUI(){
+const el=document.getElementById('sync-badge');
+if(!el)return;
+const icons={idle:'☁️',syncing:'⟳',synced:'✓',error:'✕',offline:'⏸'};
+const colors={idle:'#6b7280',syncing:'#f59e0b',synced:'#10b981',error:'#ef4444',offline:'#6b7280'};
+const titles={idle:'Cloud sync ready',syncing:'Syncing...',synced:'Synced'+(lastSyncAt?' '+new Date(lastSyncAt).toLocaleTimeString():''),error:'Sync error — will retry when online',offline:'Offline — will sync when reconnected'};
+el.textContent=icons[syncStatus]||'☁️';el.style.color=colors[syncStatus]||'#6b7280';el.title=titles[syncStatus]||'';
+}
+let syncTimer=null;
+function debouncedCloudSave(){
+if(!syncEnabled())return;
+if(syncTimer)clearTimeout(syncTimer);
+syncTimer=setTimeout(()=>cloudSave(),2000);
+}
+function saveSyncSettings(url,userId){
+SYNC_SHEET_URL=url.trim();
+SYNC_USER_ID=(userId||'').trim();
+try{
+if(SYNC_SHEET_URL)localStorage.setItem(STORAGE_KEY+'-sync-url',SYNC_SHEET_URL);
+else localStorage.removeItem(STORAGE_KEY+'-sync-url');
+if(SYNC_USER_ID)localStorage.setItem(STORAGE_KEY+'-sync-user',SYNC_USER_ID);
+else localStorage.removeItem(STORAGE_KEY+'-sync-user');
+}catch(e){}
+updateSyncUI();
+if(syncEnabled())cloudLoad().then(cloud=>{
+if(cloud&&cloud.data){
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+saveState();
+}
+render();
+}
+});
+}
+// Auto-sync when coming back online
+if(typeof window!=='undefined'){
+window.addEventListener('online',()=>{
+if(syncEnabled()&&syncPending){console.log('☁️ Back online — syncing pending changes');cloudSave()}
+else if(syncEnabled()){syncStatus='idle';updateSyncUI()}
+});
+window.addEventListener('offline',()=>{
+if(syncEnabled()){syncStatus='offline';updateSyncUI()}
+});
+}
+function resetAll(){
+stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;
+try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
+showConfirm=false;mode="dashboard";render();
+}
+function resetSection(key){
+if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
+else if(key==="cards"){stats.cards=0}
+else if(key==="scenarios"){stats.scenarios=0}
+else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
+else if(key==="exercises"){exercisesDone={}}
+sessionHistory=sessionHistory.filter(h=>h.type!==key);
+saveState();render();
+}
+// ─── SESSION HISTORY ───
+let sessionHistory=[];
+function logSession(type,detail){
+sessionHistory.push({type,detail,ts:new Date().toISOString()});
+if(sessionHistory.length>50)sessionHistory=sessionHistory.slice(-50);
+saveState();
+}
+// ─── STATE ───
+let mode="dashboard",fcCat="All",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
+let qzQs=[],qzIdx=0,qzSel=null,qzShow=false,qzScore=0,qzDone=false,qzMode=null; // qzMode: null=picker, category string, or "final"
+let scIdx=0,scRevealed=false,scPracticed=new Set();
+let rfState="ready",rfQs=[],rfIdx=0,rfTimer=0,rfResults=[],rfInterval=null;
+let stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}};
+let showConfirm=false,confirmAction=null,confirmMsg="",showExport=false;
+let learnView="list",learnIdx=0,exercisesDone={};
+let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
+let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
+let userRole=null,showRolePicker=false;
+// ─── LOAD SAVED STATE ───
+(function(){
+const saved=loadState();
+if(saved){
+if(saved.stats){stats={...stats,...saved.stats};if(!stats.quizScores)stats.quizScores={}}
+if(saved.history)sessionHistory=saved.history;
+if(saved.exercisesDone)exercisesDone=saved.exercisesDone;
+if(saved.schedule)schedule=saved.schedule;
+if(saved.checkpoints)checkpoints=saved.checkpoints;
+if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
+if(saved.userRole)userRole=saved.userRole;
+if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
+if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+}
+if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
+if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
+try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
+})();
+// ─── CLOUD SYNC ON LOAD ───
+(async function(){
+if(!syncEnabled())return;
+const cloud=await cloudLoad();
+if(!cloud||!cloud.data)return;
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+saveState();render();
+console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
+}
+})();
+// ─── ROLE PICKER ───
+function renderRolePickerOverlay(){
+return`<div class="role-overlay">
+<div class="role-picker">
+<h2>What's your focus?</h2>
+<div class="rp-sub">This shapes which content surfaces first. You can still access everything — this just sets your starting point.</div>
+<div class="role-cards">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pickRole('${k}')">
+<div class="rc-icon">${v.icon}</div>
+<div class="rc-title">${v.label}</div>
+<div class="rc-desc">${v.desc}</div>
+</div>`).join('')}
+</div>
+</div>
+</div>`;
+}
+function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
+function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
+function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
+function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
+// ─── RENDER ───
+function render(){
+const app=document.getElementById("app");
+const nav=document.getElementById("nav");
+// Show role picker on first launch
+if(!userRole&&!showRolePicker){showRolePicker=true}
+let overlayHtml='';
+if(showRolePicker)overlayHtml=renderRolePickerOverlay();
+const modes=[["dashboard","🏠","Home"],["learn","📖","Learn"],["flashcards","📃","Cards"],["quiz","📝","Quiz"],["scenarios","💬","Drills"],["rapid","⚡","Rapid"],["manage","⚙️","More"]];
+nav.innerHTML=modes.map(([m,i,l])=>`<button class="${mode===m?'active':''}" onclick="setMode('${m}')"><span>${i}</span>${l}</button>`).join("");
+if(mode==="dashboard")renderDashboard(app);
+else if(mode==="flashcards")renderFlashcards(app);
+else if(mode==="quiz")renderQuiz(app);
+else if(mode==="scenarios")renderScenarios(app);
+else if(mode==="rapid")renderRapid(app);
+else if(mode==="learn")renderLearn(app);
+else if(mode==="manage")renderManage(app);
+// Update header role indicator
+const hdr=document.getElementById('header-role');
+if(hdr)hdr.innerHTML=userRole?`<span class="role-current" onclick="showRolePicker=true;render()">${ROLE_CONFIG[userRole].icon} ${ROLE_CONFIG[userRole].label.split(' ')[0]}</span>`:'';
+const verEl=document.getElementById('app-version');if(verEl)verEl.textContent=APP_VERSION;
+// Append role picker overlay if needed
+if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d.innerHTML=overlayHtml;const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove();document.body.appendChild(d)}else{const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove()}
+}
+function setMode(m){mode=m;render()}
+// ─── DASHBOARD ───
+function renderDashboard(el){
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
+el.innerHTML=`
+<div class="stat-grid">
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">📝</div><div class="stat-val">${stats.quizzes}</div><div class="stat-label">Quizzes</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">🏆</div><div class="stat-val">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
+<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-icon">📃</div><div class="stat-val">${stats.cards}</div><div class="stat-label">Cards Flipped</div></div>
+<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-icon">💬</div><div class="stat-val">${stats.scenarios}</div><div class="stat-label">Scenarios</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">⚡</div><div class="stat-val">${stats.rapid}</div><div class="stat-label">Rapid Rounds</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">🌟</div><div class="stat-val">${stats.bestRapid?stats.bestRapid+'%':'—'}</div><div class="stat-label">Best Rapid</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${doneEx}/${totalEx}</div><div class="stat-label">Exercises</div></div>
+</div>
+<div class="focus-box"><div class="focus-title">Exam Breakdown</div><div class="focus-text">PromQL <strong>28%</strong> &middot; Fundamentals <strong>20%</strong> &middot; Observability <strong>18%</strong> &middot; Alerting <strong>18%</strong> &middot; Instrumentation <strong>16%</strong> &nbsp;&middot;&nbsp; 90 min, multiple choice, 1 retake included</div></div>
+${renderDashSchedule()}`;
+}
+function renderDashSchedule(){
+const today=new Date().toISOString().slice(0,10);
+const nextSession=schedule.filter(s=>s.date>=today&&!sessionsDone[s.id]).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))[0];
+const nextCp=checkpoints.filter(cp=>{
+const met=getMetricVal(cp.metric);return met<cp.threshold&&cp.by>=today;
+}).sort((a,b)=>a.by.localeCompare(b.by))[0];
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">`;
+if(nextCp){
+h+=`<div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Next Checkpoint</div><div style="font-size:14px;font-weight:600;color:#fde68a;margin-top:2px">${nextCp.target}</div></div>
+<div style="text-align:right"><div style="font-size:11px;color:#6b7280">by ${fmtDate(nextCp.by)}</div><div style="font-size:13px;font-weight:600;color:#fff">${getMetricVal(nextCp.metric)}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''} / ${nextCp.threshold}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''}</div></div></div>`;
+}
+if(nextSession){
+const isToday=nextSession.date===today;
+h+=`<div style="background:#1f2937;border:1px solid ${isToday?'rgba(16,185,129,.4)':'#374151'};border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">
+<div><div style="font-size:11px;color:${isToday?'#10b981':'#6b7280'};font-weight:600">${isToday?'TODAY':'NEXT UP'} · ${fmtDate(nextSession.date)} · ${nextSession.time}</div><div style="font-size:14px;font-weight:600;color:#e5e7eb;margin-top:2px">${nextSession.title}</div></div>
+<div style="font-size:11px;color:#6b7280;white-space:nowrap">${nextSession.dur} min →</div></div>`;
+}
+h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+<div style="font-size:12px;color:#6b7280">${doneCount}/${schedule.length} sessions done</div>
+<button style="background:none;border:none;color:#10b981;font-size:12px;font-weight:600;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">Full schedule →</button>
+</div></div>`;
+return h;
+}
+function schedItemHtml(s,isToday){
+const done=sessionsDone[s.id];
+return`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button></div>`:`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`}
+function fmtDate(d){const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+function markSessionDone(id){sessionsDone[id]=Date.now();saveState();render()}
+function getMetricVal(m){
+if(m==="bestQuiz")return stats.bestQuiz||0;
+if(m==="bestRapid")return stats.bestRapid||0;
+if(m==="cards")return stats.cards||0;
+if(m==="scenarios")return stats.scenarios||0;
+if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return t?Math.round(Object.keys(exercisesDone).length/t*100):0}
+return 0;
+}
+// ─── FLASHCARDS ───
+function fcGetCards(){return fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat))}
+function renderFlashcards(el){
+const cards=fcGetCards();
+if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(fcIdx>=cards.length)fcIdx=0;
+const card=cards[fcIdx];
+const isFav=fcFavs.has(card.f);
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
++'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
++'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
++'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+'</div>'
++'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
++(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
++(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
++'</div>'
++(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
++'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
+}
+function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
+function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
+function fcNext(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx+1)%cards.length;saveState();render()}
+function fcPrev(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx-1+cards.length)%cards.length;saveState();render()}
+function fcShuffle(){fcFlipped=false;const cards=fcGetCards();fcIdx=Math.floor(Math.random()*cards.length);saveState();render()}
+function fcToggleFav(idx){const cards=fcGetCards();const card=cards[idx];if(!card)return;if(fcFavs.has(card.f))fcFavs.delete(card.f);else fcFavs.add(card.f);if(fcCat==="★ Favorites"&&!fcFavs.has(card.f)){const nc=fcGetCards();if(fcIdx>=nc.length)fcIdx=Math.max(0,nc.length-1)}saveState();render()}
+// ─── QUIZ ───
+const QUIZ_CATS=[...new Set(QUIZ.map(q=>q.cat))];
+function getQuizCatIcon(cat){return{Observability:'👁️',Fundamentals:'🏗️',PromQL:'🔍',Instrumentation:'🔌',Alerting:'🔔'}[cat]||'📝'}
+function startQuiz(catOrFinal){
+if(catOrFinal==='final'){qzMode='final';qzQs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10)}
+else{qzMode=catOrFinal;qzQs=QUIZ.filter(q=>q.cat===catOrFinal).sort(()=>Math.random()-.5)}
+qzIdx=0;qzSel=null;qzShow=false;qzScore=0;qzDone=false;render()}
+function backToQuizPicker(){qzMode=null;qzQs=[];qzDone=false;render()}
+function renderQuiz(el){
+// Quiz picker screen
+if(qzMode===null){
+const cats=QUIZ_CATS.map(cat=>{const cnt=QUIZ.filter(q=>q.cat===cat).length;const best=stats.quizScores[cat];const bestStr=best!=null?`<span style="color:#10b981;font-size:12px">${best}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+return`<div style="background:#1f2937;border:2px solid #374151;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s" onclick="startQuiz('${cat}')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='#374151'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">${getQuizCatIcon(cat)}</span><div><div style="font-weight:600;font-size:15px">${cat}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${cnt} questions</div></div></div><div style="text-align:right">${bestStr}</div></div></div>`}).join('');
+const finalBest=stats.quizScores['final'];const finalStr=finalBest!=null?`<span style="color:#10b981;font-size:12px">${finalBest}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+el.innerHTML=`<div style="margin-bottom:20px"><div style="font-size:20px;font-weight:700;margin-bottom:4px">Quizzes</div><div style="color:#6b7280;font-size:13px;margin-bottom:16px">Test yourself by section or take the final exam</div></div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${cats}</div>
+<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(59,130,246,.12));border:2px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s" onclick="startQuiz('final')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16,185,129,.3)'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">🎓</span><div><div style="font-weight:700;font-size:16px">Final Exam</div><div style="color:#9ca3af;font-size:12px;margin-top:2px">10 random questions across all sections</div></div></div><div style="text-align:right">${finalStr}</div></div></div>`;return}
+// Results screen
+if(qzDone){
+const pct=Math.round(qzScore/qzQs.length*100);
+stats.quizzes++;if(pct>stats.bestQuiz)stats.bestQuiz=pct;
+const scoreKey=qzMode==='final'?'final':qzMode;
+if(!stats.quizScores[scoreKey]||pct>stats.quizScores[scoreKey])stats.quizScores[scoreKey]=pct;
+const label=qzMode==='final'?'Final Exam':qzMode;
+logSession("quiz",label+" — Score: "+pct+"%");
+const g=pct>=90?"A":pct>=80?"B":pct>=70?"C":pct>=60?"D":"F";
+const c=pct>=70?"#10b981":pct>=50?"#f59e0b":"#ef4444";
+const m=pct>=90?"You're ready for Next.":pct>=70?"Getting there. Run it again.":"Keep studying. You've got time.";
+el.innerHTML=`<div class="center"><div style="font-size:13px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode}</div><div class="grade" style="color:${c}">${g}</div><div style="font-size:24px;font-weight:600;margin-bottom:4px">${qzScore}/${qzQs.length}</div><div style="color:#6b7280;margin-bottom:24px">${m}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" onclick="startQuiz('${qzMode==='final'?'final':qzMode}')">Try Again</button><button class="btn btn-secondary" onclick="backToQuizPicker()">All Quizzes</button></div></div>`;return}
+// Question screen
+const q=qzQs[qzIdx];
+const headerLabel=qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode;
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:12px;color:#6b7280;cursor:pointer" onclick="backToQuizPicker()">← All Quizzes</span><span style="font-size:12px;color:#9ca3af">${headerLabel}</span></div>
+<div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
+<div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
+${q.o.map((o,i)=>{
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
+${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
+${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
+${qzShow?askClaudeBox('Quiz question: '+q.q):''}
+${qzShow?`<button class="btn btn-primary btn-full" onclick="qzNext()">${qzIdx+1>=qzQs.length?"See Results":"Next Question"}</button>`:''}`;
+}
+function qzSelect(i){if(qzShow)return;qzSel=i;qzShow=true;if(i===qzQs[qzIdx].a)qzScore++;render()}
+function qzNext(){if(qzIdx+1>=qzQs.length){qzDone=true}else{qzIdx++;qzSel=null;qzShow=false}render()}
+// ─── SCENARIOS ───
+function renderScenarios(el){
+const s=SCENARIOS[scIdx];
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Scenarios practiced</span><span>${scPracticed.size}/${SCENARIOS.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${SCENARIOS.length?Math.round(scPracticed.size/SCENARIOS.length*100):0}%"></div></div></div>
+<div class="card-label">Prospect says:</div>
+<div class="scenario-box scenario-q"><div style="color:#fca5a5;font-size:17px;line-height:1.5;font-style:italic">"${s.q}"</div></div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:8px">Think through your answer first, then reveal.</div>
+${!scRevealed?`<div class="scenario-box scenario-reveal" onclick="scReveal()"><div style="color:#9ca3af;font-size:14px">Tap to reveal suggested response</div></div>`
+:`<div class="scenario-box scenario-a"><div class="card-label" style="color:#6ee7b7">Suggested response:</div><div style="color:#d1fae5;font-size:14px;line-height:1.6">${s.a}</div>${s.u?`<div class="source-links">${s.u.map(link=>`<a class="source-link" href="${link}" target="_blank" rel="noopener">📖 ${new URL(link).hostname.replace('www.','')}</a>`).join('')}</div>`:''}</div>`}
+${scRevealed?askClaudeBox('Scenario objection: '+s.q):''}
+<div class="btn-row"><button class="btn btn-secondary" onclick="scPrev()">Prev</button><button class="btn btn-secondary" onclick="scShuf()">Shuffle</button><button class="btn btn-primary" onclick="scNext()">Next</button></div>`;
+}
+function scReveal(){scRevealed=true;stats.scenarios++;scPracticed.add(scIdx);logSession("scenarios","Practiced: "+SCENARIOS[scIdx].q.slice(0,40));render()}
+function scNext(){scRevealed=false;scIdx=(scIdx+1)%SCENARIOS.length;render()}
+function scPrev(){scRevealed=false;scIdx=(scIdx-1+SCENARIOS.length)%SCENARIOS.length;render()}
+function scShuf(){scRevealed=false;scIdx=Math.floor(Math.random()*SCENARIOS.length);render()}
+// ─── RAPID FIRE ───
+function renderRapid(el){
+if(rfState==="ready"){
+el.innerHTML=`<div class="center"><div style="font-size:40px;margin-bottom:16px">⏱</div><div style="font-size:20px;font-weight:600;margin-bottom:8px">Rapid Fire Mode</div><div style="color:#6b7280;max-width:280px;margin-bottom:24px;font-size:14px;line-height:1.5">Question + countdown. Think fast, then rate yourself.</div><button class="btn btn-primary" style="font-size:16px;padding:14px 32px" onclick="rfStart()">Start Round</button></div>`;return}
+if(rfState==="done"){
+const n=rfResults.filter(r=>r.ok).length;const pct=Math.round(n/rfResults.length*100);
+stats.rapid++;if(pct>stats.bestRapid)stats.bestRapid=pct;logSession("rapid","Score: "+pct+"%");
+const c=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+const m=pct>=80?"Fast and confident.":pct>=60?"Decent, drill the weak ones.":"Re-read the material.";
+el.innerHTML=`<div class="center"><div class="grade" style="color:${c}">${n}/${rfResults.length}</div><div style="color:#6b7280;margin-bottom:16px">${m}</div><div style="width:100%;max-width:320px;margin-bottom:24px">${rfResults.map(r=>`<div class="results-item" style="color:${r.ok?'#6ee7b7':'#fca5a5'}">${r.ok?'✔':'✘'} <span style="color:#d1d5db">${r.q}</span></div>`).join("")}</div><button class="btn btn-primary" onclick="rfStart()">Go Again</button></div>`;return}
+const q=rfQs[rfIdx];const tc=rfTimer<=3?"red":rfTimer<=5?"yellow":"green";
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><span style="font-size:12px;color:#6b7280">Q${rfIdx+1}/${rfQs.length}</span><span class="timer ${tc}">${rfState==="revealed"?"—":rfTimer+"s"}</span></div>
+<div class="card question" style="margin-bottom:16px;cursor:default"><div style="font-size:19px;font-weight:500">${q.q}</div></div>
+${rfState==="active"?`<div class="center" style="min-height:30vh"><div style="color:#6b7280;font-size:14px;margin-bottom:16px">Think of your answer...</div><button class="btn btn-secondary" onclick="rfReveal()">I've got my answer</button></div>`
+:`<div class="scenario-box scenario-a" style="margin-bottom:16px"><div class="card-label" style="color:#6ee7b7">Answer:</div><div style="color:#d1fae5;line-height:1.5">${q.a}</div>${q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-top:10px">📖 Read the docs</a>`:''}</div>
+${askClaudeBox('Rapid fire: '+q.q)}
+<div style="text-align:center;font-size:14px;color:#6b7280;margin:12px 0">Did you nail it?</div>
+<div style="display:flex;gap:12px"><button class="btn btn-danger" style="flex:1;padding:14px" onclick="rfRate(false)">Nope</button><button class="btn btn-success" style="flex:1;padding:14px" onclick="rfRate(true)">Nailed it</button></div>`}`;
+}
+function rfStart(){rfQs=[...RAPID].sort(()=>Math.random()-.5);rfIdx=0;rfResults=[];rfState="active";rfTimer=rfQs[0].t;clearInterval(rfInterval);rfInterval=setInterval(rfTick,1000);render()}
+function rfTick(){if(rfState!=="active")return;rfTimer--;if(rfTimer<=0){rfState="revealed";clearInterval(rfInterval)}render()}
+function rfReveal(){clearInterval(rfInterval);rfState="revealed";render()}
+function rfRate(ok){rfResults.push({q:rfQs[rfIdx].q,ok});if(rfIdx+1>=rfQs.length){rfState="done";clearInterval(rfInterval)}else{rfIdx++;rfTimer=rfQs[rfIdx].t;rfState="active";rfInterval=setInterval(rfTick,1000)}render()}
+// ─── LEARN ───
+function renderLearn(el){
+if(learnView==="detail")return renderLessonDetail(el);
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Exercises completed</span><span>${doneEx}/${totalEx}</span></div><div class="progress-track"><div class="progress-fill" style="width:${totalEx?Math.round(doneEx/totalEx*100):0}%"></div></div></div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Phase 1 — Foundations</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===1).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Phase 2 — Deep Dive</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===2).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Phase 3 — Alerting + Review</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===3).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>`;
+}
+function lessonCard(l,idx){
+const exDone=l.exercises.filter((_,i)=>exercisesDone[l.id+"-"+i]).length;
+const allDone=exDone===l.exercises.length;
+const core=isCoreLesson(l.id);
+return`<div class="lesson-card${allDone?' completed':''}" onclick="openLesson(${idx})"${!core?' style="opacity:.7"':''}>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="lesson-num">${l.icon} Lesson ${idx+1}</div>
+<div style="display:flex;gap:6px;align-items:center">
+${userRole?`<span class="role-badge ${core?'core':'bonus'}">${core?'Core':'Bonus'}</span>`:''}
+${allDone?'<span style="font-size:11px;color:#10b981;font-weight:600">✓</span>':`<span style="font-size:11px;color:#6b7280">${exDone}/${l.exercises.length}</span>`}
+</div>
+</div>
+<div class="lesson-title">${l.title}</div>
+<div class="lesson-meta"><span>${l.time}</span><span>Phase ${l.week}</span></div>
+</div>`}
+function openLesson(idx){learnIdx=idx;learnView="detail";render()}
+function backToLessons(){learnView="list";render()}
+function renderLessonDetail(el){
+const l=LESSONS[learnIdx];
+let html=`<button class="back-btn" onclick="backToLessons()">← All Lessons</button>`;
+html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Phase ${l.week}</div>`;
+html+=`<div style="font-size:22px;font-weight:700;margin:6px 0 4px">${l.title}</div>`;
+html+=`<div style="font-size:12px;color:#6b7280;margin-bottom:20px">${l.time}</div>`;
+// Body
+html+=`<div class="lesson-section"><div class="lesson-text">${l.body}</div></div>`;
+// Highlights
+if(l.highlights&&l.highlights.length){
+html+=`<div class="lesson-section"><h4>Key Takeaways</h4>`;
+l.highlights.forEach(h=>{html+=`<div class="lesson-highlight">${h}</div>`});
+html+=`</div>`}
+// Comparison table
+if(l.compare){
+html+=`<div class="lesson-section"><h4>${l.compare.left.label} vs ${l.compare.right.label}</h4><div class="lesson-compare">`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#6ee7b7">${l.compare.left.label}</div>${l.compare.left.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">${l.compare.right.label}</div>${l.compare.right.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`</div></div>`}
+// Exercises
+html+=`<div class="lesson-section"><h4>Exercises</h4>`;
+l.exercises.forEach((ex,i)=>{
+const key=l.id+"-"+i;
+const done=!!exercisesDone[key];
+const stepsId='steps-'+l.id+'-'+i;
+html+=`<div class="exercise-box">
+<div class="ex-label">Exercise ${i+1}</div>
+<div class="ex-task">${ex.task}</div>
+${ex.hint?`<div class="ex-hint">💡 ${ex.hint}</div>`:''}
+${ex.url?`<a class="source-link" href="${ex.url}" target="_blank" rel="noopener" style="margin:8px 0 4px">🔗 Open resource</a>`:''}
+${ex.steps&&ex.steps.length?`<button class="ex-steps-toggle" onclick="const s=document.getElementById('${stepsId}');s.classList.toggle('open');this.textContent=s.classList.contains('open')?'Hide steps':'Show steps'">Show steps</button>
+<div class="ex-steps" id="${stepsId}"><ol>${ex.steps.map(s=>'<li>'+s+'</li>').join('')}</ol></div>`:''}
+<div class="exercise-check" onclick="toggleExercise('${key}')">
+<div class="checkbox${done?' checked':''}">${done?'✓':''}</div>
+<div class="ex-text">${done?'Done!':'Mark as done'}</div>
+</div></div>`});
+html+=`</div>`;
+// Sources
+if(l.sources&&l.sources.length){
+html+=`<div class="lesson-section"><h4>Source Material</h4>`;
+l.sources.forEach(s=>{html+=`<a class="res-link" href="${s}" target="_blank" rel="noopener">${s.replace('https://','').split('/').slice(0,2).join('/')}<small>${s}</small></a>`});
+html+=`</div>`}
+// Nav
+html+=askClaudeBox('Lesson: '+l.title);
+html+=`<div class="btn-row" style="margin-top:24px">`;
+if(learnIdx>0)html+=`<button class="btn btn-secondary" onclick="openLesson(${learnIdx-1})">← Prev</button>`;
+if(learnIdx<LESSONS.length-1)html+=`<button class="btn btn-primary" onclick="openLesson(${learnIdx+1})">Next →</button>`;
+html+=`</div>`;
+el.innerHTML=html;
+}
+function toggleExercise(key){
+if(exercisesDone[key])delete exercisesDone[key];
+else exercisesDone[key]=Date.now();
+saveState();render();
+}
+// ─── MANAGEMENT ───
+function renderManage(el){
+if(!schedView)schedView="settings";
+const saved=loadState();
+const lastSaved=saved&&saved.savedAt?new Date(saved.savedAt).toLocaleString():"Never";
+const totalSessions=sessionHistory.length;
+const storageBytes=exportState().length;
+const storageKB=(storageBytes/1024).toFixed(1);
+const tabs=[["settings","Settings"],["schedule","Schedule"],["checkpoints","Checkpoints"],["resources","Resources"]];
+let html=`${showConfirm?`<div class="confirm-overlay" onclick="cancelConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">${confirmMsg}</div><div style="color:#6b7280;font-size:13px;margin-bottom:20px">This can't be undone.</div><div style="display:flex;gap:12px"><button class="btn btn-secondary" style="flex:1" onclick="cancelConfirm()">Cancel</button><button class="btn-danger-solid" style="flex:1" onclick="execConfirm()">Confirm</button></div></div></div>`:''}
+${showForm?renderFormOverlay():''}
+<div class="pills" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="pill ${schedView===k?'active':''}" onclick="schedView='${k}';render()">${l}</button>`).join("")}</div>`;
+if(schedView==="schedule"){html+=renderScheduleTab();el.innerHTML=html;return}
+if(schedView==="checkpoints"){html+=renderCheckpointsTab();el.innerHTML=html;return}
+if(schedView==="resources"){html+=renderResourcesTab();el.innerHTML=html;return}
+html+=`
+<div class="mgmt-section">
+<h3>Focus Level</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Controls which content is highlighted as core vs bonus across the app.</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:2px solid ${userRole===k?'#10b981':'#374151'};background:${userRole===k?'rgba(16,185,129,.06)':'#1f2937'};cursor:pointer;transition:all .2s" onclick="pickRole('${k}')">
+<div style="font-size:24px">${v.icon}</div>
+<div style="flex:1"><div style="font-size:14px;font-weight:600;color:${userRole===k?'#6ee7b7':'#e5e7eb'}">${v.label}</div><div style="font-size:12px;color:#6b7280">${v.desc.split('.')[0]}</div></div>
+${userRole===k?'<div style="color:#10b981;font-size:14px;font-weight:600">✓</div>':''}
+</div>`).join('')}
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Progress Summary</h3>
+<div class="mgmt-row"><span class="label">Quizzes completed</span><span class="value">${stats.quizzes}</span></div>
+<div class="mgmt-row"><span class="label">Best overall score</span><span class="value">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</span></div>
+${QUIZ_CATS.map(cat=>`<div class="mgmt-row"><span class="label" style="padding-left:12px">${getQuizCatIcon(cat)} ${cat}</span><span class="value">${stats.quizScores[cat]?stats.quizScores[cat]+'%':'—'}</span></div>`).join('')}
+<div class="mgmt-row"><span class="label" style="padding-left:12px">🎓 Final Exam</span><span class="value">${stats.quizScores['final']?stats.quizScores['final']+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Cards flipped</span><span class="value">${stats.cards}</span></div>
+<div class="mgmt-row"><span class="label">Scenarios practiced</span><span class="value">${stats.scenarios}</span></div>
+<div class="mgmt-row"><span class="label">Rapid fire rounds</span><span class="value">${stats.rapid}</span></div>
+<div class="mgmt-row"><span class="label">Best rapid score</span><span class="value">${stats.bestRapid?stats.bestRapid+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Exercises completed</span><span class="value">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</span></div>
+<div class="mgmt-row"><span class="label">Total sessions logged</span><span class="value">${totalSessions}</span></div>
+<div class="mgmt-row"><span class="label">Last saved</span><span class="value">${lastSaved}</span></div>
+<div class="mgmt-row"><span class="label">Storage used</span><span class="value">${storageKB} KB</span></div>
+</div>
+<div class="mgmt-section">
+<h3>Reset by Section</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button class="btn-outline" onclick="askResetSection('quiz')">Reset Quizzes</button>
+<button class="btn-outline" onclick="askResetSection('cards')">Reset Cards</button>
+<button class="btn-outline" onclick="askResetSection('scenarios')">Reset Scenarios</button>
+<button class="btn-outline" onclick="askResetSection('rapid')">Reset Rapid Fire</button>
+<button class="btn-outline" onclick="askResetSection('exercises')">Reset Exercises</button>
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Session History (last 20)</h3>
+${sessionHistory.length===0?'<div style="color:#4b5563;font-size:13px;padding:8px 0">No sessions yet. Start studying!</div>'
+:sessionHistory.slice(-20).reverse().map(h=>{
+const d=new Date(h.ts);
+const icon=h.type==="quiz"?"📝":h.type==="cards"?"📃":h.type==="scenarios"?"💬":"⚡";
+return`<div class="history-item"><span>${icon} ${h.detail}</span><span style="color:#4b5563">${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>`}).join("")}
+</div>
+<div class="mgmt-section">
+<h3>☁️ Cloud Sync</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Sync progress across devices via Google Sheets. Paste your Apps Script URL below.</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input id="syncUrlInput" type="text" value="${SYNC_SHEET_URL||''}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;font-family:monospace;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+<input id="syncUserInput" type="text" value="${SYNC_USER_ID||''}" placeholder="Your name (e.g. barry)" style="flex:1;max-width:220px;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+<span style="font-size:11px;color:#6b7280">Optional — keeps your data separate when sharing a sync sheet</span>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncSettings(document.getElementById('syncUrlInput').value,document.getElementById('syncUserInput').value);render()">Save</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncSettings('','');document.getElementById('syncUrlInput').value='';document.getElementById('syncUserInput').value='';render()">Disconnect</button>
+<span style="font-size:12px;color:${syncEnabled()?'#10b981':'#6b7280'}">${syncEnabled()?'✓ Connected'+(lastSyncAt?' — last sync '+new Date(lastSyncAt).toLocaleTimeString():''):'Not connected'}</span>
+</div>
+${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+getSyncKey()+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
+</div>
+<div class="mgmt-section">
+<h3>Export / Import Data</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btn-outline" style="flex:1" onclick="showExportData()">Export</button>
+<button class="btn-outline" style="flex:1" onclick="showImportPrompt()">Import</button>
+</div>
+${showExport?`<div class="export-box" id="exportBox">${exportState()}</div><div style="font-size:11px;color:#4b5563;margin-top:4px">Copy this text to back up or transfer your progress.</div>`:''}
+<div id="importArea"></div>
+</div>
+<div class="mgmt-section" style="border:2px solid rgba(239,68,68,.2)">
+<h3 style="color:#fca5a5">Danger Zone</h3>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div><div style="font-size:13px;font-weight:500;color:#fca5a5">Reset all progress</div><div style="font-size:11px;color:#4b5563">Clears everything and starts fresh</div></div>
+<button class="btn-danger-solid" onclick="askResetAll()">Reset All</button>
+</div>
+</div>`;
+el.innerHTML=html;
+}
+// ─── SCHEDULE TAB ───
+function renderScheduleTab(){
+const today=new Date().toISOString().slice(0,10);
+const sorted=[...schedule].sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const upcoming=sorted.filter(s=>s.date>=today);
+const past=sorted.filter(s=>s.date<today).reverse();
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:14px;font-weight:600">${doneCount}/${schedule.length} sessions completed</div>
+<div style="display:flex;gap:6px">
+<button class="btn-outline" style="padding:6px 10px;font-size:11px" onclick="toggleIcsPanel()">📅 Export</button>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openSessionForm()">+ Add</button>
+</div>
+</div>`;
+h+=renderIcsPanel();
+h+=`<div class="progress-bar"><div class="progress-track"><div class="progress-fill" style="width:${schedule.length?Math.round(doneCount/schedule.length*100):0}%"></div></div></div>`;
+if(upcoming.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Upcoming</div>`;
+upcoming.forEach(s=>{
+const isToday=s.date===today;const done=sessionsDone[s.id];
+h+=`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min${s.phase?' · Phase '+s.phase:''}</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+<div class="si-actions">
+${!done?`<button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button>`:`<button style="background:#374151;color:#6ee7b7" onclick="unmarkSession('${s.id}')">✓ Done</button>`}
+<button style="background:#374151;color:#9ca3af" onclick="openSessionForm('${s.id}')">Edit</button>
+<button style="background:#374151;color:#fca5a5" onclick="deleteSession('${s.id}')">Del</button>
+</div></div>`});
+}
+if(past.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Past</div>`;
+past.slice(0,5).forEach(s=>{
+const done=sessionsDone[s.id];
+h+=`<div class="sched-item past${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Mark Done</button></div>`:
+`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`});
+if(past.length>5)h+=`<div style="text-align:center;color:#4b5563;font-size:12px;padding:8px">+ ${past.length-5} more past sessions</div>`;
+}
+return h;
+}
+function unmarkSession(id){delete sessionsDone[id];saveState();render()}
+function deleteSession(id){schedule=schedule.filter(s=>s.id!==id);delete sessionsDone[id];saveState();render()}
+function openSessionForm(editingId){
+if(editingId){const s=schedule.find(x=>x.id===editingId);if(s)formData={...s};editId=editingId}
+else{formData={id:'s-'+Date.now(),date:new Date().toISOString().slice(0,10),time:'09:00',dur:30,title:'',desc:'',phase:0};editId=null}
+showForm='session';render();
+}
+function closeForm(){showForm=null;editId=null;formData={};render()}
+function saveSessionForm(){
+if(!formData.title){alert('Title required');return}
+if(editId){const idx=schedule.findIndex(s=>s.id===editId);if(idx>=0)schedule[idx]={...formData}}
+else{schedule.push({...formData})}
+saveState();closeForm();
+}
+function renderFormOverlay(){
+if(showForm==='session')return renderSessionFormSheet();
+if(showForm==='checkpoint')return renderCheckpointFormSheet();
+return'';
+}
+function renderSessionFormSheet(){
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Study Session</h3>
+<div class="form-field"><label>Title</label><input type="text" id="sf-title" value="${formData.title||''}" placeholder="e.g., Lesson 5: Competitive Landscape"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Date</label><input type="date" id="sf-date" value="${formData.date||''}"></div>
+<div class="form-field" style="flex:1"><label>Time</label><input type="time" id="sf-time" value="${formData.time||'09:00'}"></div>
+</div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Duration (min)</label><input type="number" id="sf-dur" value="${formData.dur||30}" min="5" step="5"></div>
+<div class="form-field" style="flex:1"><label>Phase</label><select id="sf-phase"><option value="0"${formData.phase==0?' selected':''}>None</option><option value="1"${formData.phase==1?' selected':''}>Phase 1</option><option value="2"${formData.phase==2?' selected':''}>Phase 2</option><option value="3"${formData.phase==3?' selected':''}>Phase 3</option></select></div>
+</div>
+<div class="form-field"><label>Description / Activities</label><textarea id="sf-desc" placeholder="What to do in this session...">${formData.desc||''}</textarea></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabSessionForm();saveSessionForm()">Save</button>
+</div></div></div>`}
+function grabSessionForm(){
+formData.title=document.getElementById('sf-title').value;
+formData.date=document.getElementById('sf-date').value;
+formData.time=document.getElementById('sf-time').value;
+formData.dur=parseInt(document.getElementById('sf-dur').value)||30;
+formData.phase=parseInt(document.getElementById('sf-phase').value)||0;
+formData.desc=document.getElementById('sf-desc').value;
+}
+// ─── CHECKPOINTS TAB ───
+function renderCheckpointsTab(){
+const today=new Date().toISOString().slice(0,10);
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="font-size:14px;font-weight:600">Milestones & Targets</div>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openCheckpointForm()">+ Add Checkpoint</button>
+</div>`;
+const sorted=[...checkpoints].sort((a,b)=>a.by.localeCompare(b.by));
+sorted.forEach(cp=>{
+const val=getMetricVal(cp.metric);
+const hit=val>=cp.threshold;
+const overdue=!hit&&cp.by<today;
+h+=`<div class="cp-item${hit?' hit':''}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="cp-target">${hit?'✓ ':''}${cp.target}</div>
+<div style="display:flex;gap:4px">
+<button style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:12px;padding:4px" onclick="openCheckpointForm('${cp.id}')">Edit</button>
+<button style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:12px;padding:4px" onclick="deleteCheckpoint('${cp.id}')">Del</button>
+</div>
+</div>
+<div class="cp-date">${hit?'Achieved!':'Target by '+fmtDate(cp.by)} · Current: ${val}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''} / ${cp.threshold}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''}</div>
+${!hit?`<div style="margin-top:6px"><div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,Math.round(val/cp.threshold*100))}%;${overdue?'background:#ef4444':''}"></div></div></div>`:''}
+</div>`});
+return h;
+}
+function openCheckpointForm(editingId){
+if(editingId){const c=checkpoints.find(x=>x.id===editingId);if(c)formData={...c};editId=editingId}
+else{formData={id:'cp-'+Date.now(),target:'',by:new Date().toISOString().slice(0,10),metric:'bestQuiz',threshold:80};editId=null}
+showForm='checkpoint';render();
+}
+function renderCheckpointFormSheet(){
+const metrics=[['bestQuiz','Best Quiz Score (%)'],['bestRapid','Best Rapid Score (%)'],['cards','Cards Flipped'],['scenarios','Scenarios Practiced'],['exercises','Exercise Completion (%)']];
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Checkpoint</h3>
+<div class="form-field"><label>Target Description</label><input type="text" id="cf-target" value="${formData.target||''}" placeholder="e.g., Score 80%+ on quiz"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Due By</label><input type="date" id="cf-by" value="${formData.by||''}"></div>
+<div class="form-field" style="flex:1"><label>Threshold</label><input type="number" id="cf-thresh" value="${formData.threshold||80}" min="1"></div>
+</div>
+<div class="form-field"><label>Metric to Track</label><select id="cf-metric">${metrics.map(([v,l])=>`<option value="${v}"${formData.metric===v?' selected':''}>${l}</option>`).join('')}</select></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabCheckpointForm();saveCheckpointForm()">Save</button>
+</div></div></div>`}
+function grabCheckpointForm(){
+formData.target=document.getElementById('cf-target').value;
+formData.by=document.getElementById('cf-by').value;
+formData.threshold=parseInt(document.getElementById('cf-thresh').value)||80;
+formData.metric=document.getElementById('cf-metric').value;
+}
+function saveCheckpointForm(){
+if(!formData.target){alert('Target description required');return}
+if(editId){const idx=checkpoints.findIndex(c=>c.id===editId);if(idx>=0)checkpoints[idx]={...formData}}
+else{checkpoints.push({...formData})}
+saveState();closeForm();
+}
+function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveState();render()}
+// ─── RESOURCES TAB ───
+function renderResourcesTab(){
+return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
+<h3 style="color:#93c5fd">📚 Study Resources</h3>
+<div class="res-group">
+<h4>Exam Info</h4>
+<a class="res-link" href="https://training.linuxfoundation.org/certification/prometheus-certified-associate/" target="_blank" rel="noopener">PCA Exam Page<small>Linux Foundation — registration, domains, pricing</small></a>
+</div>
+<div class="res-group">
+<h4>Official Prometheus Docs</h4>
+<a class="res-link" href="https://prometheus.io/docs/introduction/overview/" target="_blank" rel="noopener">Introduction — Overview<small>Architecture, components, when to use Prometheus</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/basics/" target="_blank" rel="noopener">PromQL Basics<small>Selectors, label matchers, time durations</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/functions/" target="_blank" rel="noopener">PromQL Functions<small>rate, increase, histogram_quantile, absent, and more</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/operators/" target="_blank" rel="noopener">PromQL Operators<small>Aggregation, binary operators, by/without</small></a>
+<a class="res-link" href="https://prometheus.io/docs/concepts/metric_types/" target="_blank" rel="noopener">Metric Types<small>Counter, Gauge, Histogram, Summary</small></a>
+<a class="res-link" href="https://prometheus.io/docs/practices/naming/" target="_blank" rel="noopener">Naming Conventions<small>_total, _seconds, _bytes, base units, cardinality</small></a>
+</div>
+<div class="res-group">
+<h4>Configuration and Alerting</h4>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/" target="_blank" rel="noopener">Configuration Reference<small>prometheus.yml — global, scrape_configs, service discovery</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/" target="_blank" rel="noopener">Alerting Rules<small>alert, expr, for, labels, annotations syntax</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/" target="_blank" rel="noopener">Recording Rules<small>Pre-compute expensive queries as new metrics</small></a>
+<a class="res-link" href="https://prometheus.io/docs/alerting/latest/overview/" target="_blank" rel="noopener">Alertmanager Overview<small>Grouping, inhibition, silencing, routing</small></a>
+</div>
+<div class="res-group">
+<h4>Exporters</h4>
+<a class="res-link" href="https://prometheus.io/docs/guides/node-exporter/" target="_blank" rel="noopener">node_exporter Guide<small>System metrics — CPU, memory, disk, network</small></a>
+<a class="res-link" href="https://github.com/prometheus/blackbox_exporter" target="_blank" rel="noopener">blackbox_exporter<small>Probe endpoints — HTTP, TCP, ICMP, DNS</small></a>
+</div>
+</div>`;}
+function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
+function askResetSection(key){const names={quiz:"Quiz",cards:"Flashcard",scenarios:"Scenario",rapid:"Rapid Fire",exercises:"Exercise"};confirmMsg="Reset "+names[key]+" progress?";confirmAction=key;showConfirm=true;render()}
+function cancelConfirm(){showConfirm=false;confirmAction=null;render()}
+function execConfirm(){if(confirmAction==="all"){resetAll()}else if(confirmAction){resetSection(confirmAction);showConfirm=false;confirmAction=null;render()}}
+function showExportData(){showExport=!showExport;render()}
+function showImportPrompt(){
+const area=document.getElementById("importArea");
+if(area.innerHTML){area.innerHTML="";return}
+area.innerHTML=`<textarea id="importInput" style="width:100%;height:80px;background:#0d1117;color:#6ee7b7;border:1px solid #374151;border-radius:8px;padding:8px;font-family:monospace;font-size:11px;margin-top:8px" placeholder="Paste exported data here..."></textarea><button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px;font-size:13px" onclick="doImport()">Import Data</button>`;
+}
+function doImport(){
+const input=document.getElementById("importInput");
+if(input&&input.value){
+const ok=importState(input.value);
+if(ok){mode="dashboard";render()}
+else{alert("Invalid data format")}
+}
+}
+// ─── ASK CLAUDE ───
+function askClaudeBox(context){
+return`<div class="ask-box">
+<div class="ask-label">🔍 Go deeper — ask Claude</div>
+<div class="ask-row">
+<input type="text" id="askInput" placeholder="e.g., How does Workload Identity actually work?" onkeydown="if(event.key==='Enter')askClaude('${context.replace(/'/g,"\\'")}')">
+<button onclick="askClaude('${context.replace(/'/g,"\\'")}')">Ask</button>
+</div>
+</div>`}
+function askClaude(context){
+const input=document.getElementById('askInput');
+if(!input||!input.value.trim())return;
+const q=input.value.trim();
+const prompt=`I'm studying for the Prometheus Certified Associate (PCA) exam. Context: ${context}\n\nMy question: ${q}\n\nPlease give a clear, exam-focused answer. Include PromQL examples, YAML config snippets, or architecture details where relevant. Flag if something is a common exam question.`;
+navigator.clipboard.writeText(prompt).then(()=>{
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+}).catch(()=>{
+const ta=document.createElement('textarea');ta.value=prompt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+});
+input.value='';
+}
+function showToast(msg){
+const existing=document.querySelector('.ask-toast');if(existing)existing.remove();
+const t=document.createElement('div');t.className='ask-toast';t.textContent=msg;document.body.appendChild(t);
+setTimeout(()=>t.remove(),3000);
+}
+// ─── ICS EXPORT ───
+function toggleIcsPanel(){
+icsOpen=!icsOpen;
+if(icsOpen){icsSelected=new Set();icsPhaseFilter='all';schedule.forEach(s=>icsSelected.add(s.id))}
+render();
+}
+function icsFilterPhase(p){
+icsPhaseFilter=p;
+icsSelected=new Set();
+const filtered=p==='all'?schedule:schedule.filter(s=>s.phase==p);
+filtered.forEach(s=>icsSelected.add(s.id));
+render();
+}
+function icsToggle(id){if(icsSelected.has(id))icsSelected.delete(id);else icsSelected.add(id);render()}
+function icsSelectAll(){const visible=icsVisibleSessions();visible.forEach(s=>icsSelected.add(s.id));render()}
+function icsSelectNone(){icsSelected.clear();render()}
+function icsVisibleSessions(){return icsPhaseFilter==='all'?[...schedule]:schedule.filter(s=>s.phase==icsPhaseFilter)}
+function renderIcsPanel(){
+if(!icsOpen)return'';
+const visible=icsVisibleSessions().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const phases=[...new Set(schedule.map(s=>s.phase).filter(Boolean))].sort();
+let h=`<div class="ics-panel">
+<h4>📅 Export to Calendar</h4>
+<div class="ics-filters">
+<button class="${icsPhaseFilter==='all'?'active':''}" onclick="icsFilterPhase('all')">All Sessions</button>
+${phases.map(p=>`<button class="${icsPhaseFilter==p?'active':''}" onclick="icsFilterPhase(${p})">Phase ${p}</button>`).join('')}
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button style="background:none;border:none;color:#3b82f6;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectAll()">Select all</button>
+<span style="color:#374151;font-size:12px">|</span>
+<button style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectNone()">Select none</button>
+</div>
+<div class="ics-count">${icsSelected.size} of ${visible.length} session${visible.length!==1?'s':''} selected</div>
+<div class="ics-list">`;
+visible.forEach(s=>{
+const on=icsSelected.has(s.id);
+h+=`<div class="ics-item" onclick="icsToggle('${s.id}')">
+<div class="ics-check${on?' on':''}">${on?'✓':''}</div>
+<div class="ics-item-info"><div class="ics-item-title">${s.title}</div><div class="ics-item-date">${fmtDate(s.date)} · ${s.time} · ${s.dur} min</div></div>
+</div>`});
+h+=`</div>
+<div class="ics-actions">
+<button class="btn btn-secondary" onclick="toggleIcsPanel()">Cancel</button>
+<button class="ics-dl" ${icsSelected.size===0?'disabled style="opacity:.4;cursor:default" ':''}onclick="${icsSelected.size?'downloadIcs()':''}">Download .ics (${icsSelected.size})</button>
+</div></div>`;
+return h;
+}
+function downloadIcs(){
+const selected=schedule.filter(s=>icsSelected.has(s.id)).sort((a,b)=>a.date.localeCompare(b.date));
+if(!selected.length)return;
+const pad=n=>(n<10?'0':'')+n;
+const toIcsDate=(d,t,dur)=>{
+const[y,m,dy]=d.split('-').map(Number);
+const[h,mi]=(t||'09:00').split(':').map(Number);
+const start=new Date(y,m-1,dy,h,mi);
+const end=new Date(start.getTime()+dur*60000);
+const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+return{start:fmt(start),end:fmt(end)};
+};
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:PCA Exam Study Sessions\r\n`;
+selected.forEach(s=>{
+const{start,end}=toIcsDate(s.date,s.time,s.dur);
+const desc=(s.desc||'').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+cal+=`BEGIN:VEVENT\r\nUID:${uid()}@crashcourse\r\nDTSTART:${start}\r\nDTEND:${end}\r\nSUMMARY:${s.title.replace(/,/g,'\\,')}\r\nDESCRIPTION:${desc}\r\n`;
+if(s.phase)cal+=`CATEGORIES:Phase ${s.phase}\r\n`;
+cal+=`STATUS:CONFIRMED\r\nBEGIN:VALARM\r\nTRIGGER:-PT10M\r\nACTION:DISPLAY\r\nDESCRIPTION:Study session starting soon\r\nEND:VALARM\r\nEND:VEVENT\r\n`;
+});
+cal+=`END:VCALENDAR`;
+const blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download='pca-study-sessions.ics';a.click();
+URL.revokeObjectURL(url);
+showToast(`Downloaded ${selected.length} session${selected.length!==1?'s':''} as .ics`);
+icsOpen=false;render();
+}
+// ─── INIT ───
+render();
+</script>
+</body>
+</html>
