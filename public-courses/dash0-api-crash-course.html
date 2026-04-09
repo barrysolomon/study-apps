@@ -630,31 +630,31 @@ steps:["Script should GET /api/v1/dashboards and check for name match","If found
 body:`<div class="lesson-section"><h4>The GitOps Pattern for Dashboards</h4><div class="lesson-text"><p>Store all dashboard JSON files in a Git repository. Use a CI/CD pipeline to deploy changes automatically:</p></div></div>
 <div class="code-block">#!/bin/bash
 # deploy-dashboards.sh
-TOKEN="${DASH0_TOKEN}"
+TOKEN="\${DASH0_TOKEN}"
 ENDPOINT="https://api.eu-west-1.dash0.com"
 
 for file in dashboards/*.json; do
-  NAME=$(jq -r '.metadata.name' "$file")
-  
+  NAME=\$(jq -r '.metadata.name' "\$file")
+
   # Check if dashboard exists
-  EXISTING=$(curl -s -o /dev/null -w "%{http_code}" \\
-    -H "Authorization: Bearer $TOKEN" \\
-    "$ENDPOINT/api/v1/dashboards/$NAME")
-  
-  if [ "$EXISTING" = "200" ]; then
+  EXISTING=\$(curl -s -o /dev/null -w "%{http_code}" \\
+    -H "Authorization: Bearer \$TOKEN" \\
+    "\$ENDPOINT/api/v1/dashboards/\$NAME")
+
+  if [ "\$EXISTING" = "200" ]; then
     # Update existing
-    curl -s -X PUT "$ENDPOINT/api/v1/dashboards/$NAME" \\
-      -H "Authorization: Bearer $TOKEN" \\
+    curl -s -X PUT "\$ENDPOINT/api/v1/dashboards/\$NAME" \\
+      -H "Authorization: Bearer \$TOKEN" \\
       -H "Content-Type: application/json" \\
-      -d @"$file"
-    echo "Updated: $NAME"
+      -d @"\$file"
+    echo "Updated: \$NAME"
   else
     # Create new
-    curl -s -X POST "$ENDPOINT/api/v1/dashboards" \\
-      -H "Authorization: Bearer $TOKEN" \\
+    curl -s -X POST "\$ENDPOINT/api/v1/dashboards" \\
+      -H "Authorization: Bearer \$TOKEN" \\
       -H "Content-Type: application/json" \\
-      -d @"$file"
-    echo "Created: $NAME"
+      -d @"\$file"
+    echo "Created: \$NAME"
   fi
 done</div>
 <div class="lesson-section"><h4>Terraform Integration</h4><div class="lesson-text"><p>Use the official Dash0 Terraform provider to manage dashboards and check-rules as IaC:</p></div></div>
