@@ -1,0 +1,1641 @@
+<!--
+  CRASH COURSE TEMPLATE — Search for "TODO" (~16 places to customize)
+
+  Built from the full-featured crash course engine. All code is working.
+  Just replace the placeholder content with your topic-specific material.
+
+  FEATURES: Dashboard (drilldown stats), Learn (lessons+exercises), Cards (flashcards),
+  Quiz (per-section + Final Exam), Drills (scenarios), Rapid Fire (timed),
+  More (settings/schedule/checkpoints/resources/ICS export),
+  Google Sheets cloud sync (optional — set SYNC_SHEET_URL to enable)
+
+  Role selector, session history, persistent progress, cross-device sync, responsive dark theme.
+  
+  DATA STRUCTURES:
+  FLASHCARDS: {f, b, c, u}
+  QUIZ: {q, o:[], a, cat, u, e}  — e: field can include "🟢 Dash0 angle: ..." for product positioning
+  SCENARIOS: {q, a, u:[]}
+  RAPID: {q, a, t, u}
+  LESSONS: {id, title, time, week, icon, body, sources:[], exercises:[{task,hint,url}]}
+  SCHEDULE: {id, date, time, dur, title, desc, phase}
+  CHECKPOINTS: {id, target, by, metric, threshold}
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dash0 MCP Crash Course</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:700}.header small{font-size:12px;color:#6b7280}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500}
+.content{padding:16px;padding-bottom:100px;min-height:calc(100vh - 130px)}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:960px;margin:0 auto;background:rgba(10,10,15,.95);border-top:1px solid #1f2937;padding:8px;display:flex;justify-content:space-around;gap:4px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav button{display:flex;flex-direction:column;align-items:center;padding:6px 6px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;min-width:46px;flex:1}
+.nav button.active{background:#10b981;color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.nav button span{font-size:18px;margin-bottom:2px}
+.card{border-radius:16px;padding:20px;min-height:200px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:all .3s;user-select:none;-webkit-user-select:none}
+.card.question{background:#1f2937;border:2px solid #374151}
+.card.answer{background:rgba(16,185,129,.1);border:2px solid rgba(16,185,129,.3)}
+.card-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.card-text{font-size:17px;line-height:1.5}
+.card-hint{font-size:12px;color:#4b5563;text-align:center;margin-top:16px}
+.fav-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.4;transition:all .2s;padding:4px;line-height:1}
+.fav-btn:hover{opacity:.7;transform:scale(1.2)}
+.fav-btn.active{opacity:1;filter:none}
+.btn-row{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.btn{padding:12px 20px;border-radius:12px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:#10b981;color:#fff}.btn-primary:hover{background:#059669}
+.btn-secondary{background:#1f2937;color:#d1d5db}.btn-secondary:hover{background:#374151}
+.btn-danger{background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.3);color:#fca5a5}
+.btn-success{background:rgba(16,185,129,.2);border:2px solid rgba(16,185,129,.3);color:#6ee7b7}
+.btn-full{width:100%;padding:14px;font-size:15px}
+.progress-bar{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.progress-track{width:100%;background:#1f2937;border-radius:999px;height:8px}
+.progress-fill{background:#10b981;height:8px;border-radius:999px;transition:width .5s}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{white-space:nowrap;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;border:none;cursor:pointer;transition:all .2s}
+.pill.active{background:#10b981;color:#fff}.pill:not(.active){background:#1f2937;color:#9ca3af}
+.quiz-option{text-align:left;padding:14px 16px;border-radius:12px;border:2px solid #374151;background:#1f2937;color:#d1d5db;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-bottom:10px;transition:all .2s}
+.quiz-option.correct{background:rgba(16,185,129,.15);border-color:#10b981;color:#6ee7b7}
+.quiz-option.wrong{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5}
+.quiz-option.dimmed{background:rgba(31,41,55,.5);border-color:#1f2937;color:#4b5563}
+.scenario-box{border-radius:16px;padding:20px;margin-bottom:16px}
+.scenario-q{background:rgba(239,68,68,.08);border:2px solid rgba(153,27,27,.4)}
+.scenario-a{background:rgba(16,185,129,.08);border:2px solid rgba(16,185,129,.3)}
+.scenario-reveal{background:#1f2937;border:2px solid #374151;text-align:center;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.timer{font-size:28px;font-family:monospace;font-weight:700}
+.timer.green{color:#10b981}.timer.yellow{color:#f59e0b}.timer.red{color:#ef4444}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:#1f2937;border-radius:12px;padding:12px;text-align:center;transition:all .2s;border:2px solid transparent}
+.stat-card:hover{border-color:#374151;background:#263040}
+.stat-icon{font-size:24px;margin-bottom:4px}.stat-val,.stat-num{font-size:20px;font-weight:700}.stat-label{font-size:11px;color:#6b7280}
+.focus-box{background:#1f2937;border-radius:16px;padding:16px}
+.focus-title{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.focus-text{font-size:14px;color:#d1d5db;line-height:1.6}
+.results-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0}
+.grade{font-size:56px;font-weight:700;text-align:center;margin-bottom:8px}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:50vh}
+.mgmt-section{background:#1f2937;border-radius:16px;padding:16px;margin-bottom:16px}
+.mgmt-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#d1d5db}
+.mgmt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151}
+.mgmt-row:last-child{border-bottom:none}
+.mgmt-row .label{font-size:13px;color:#9ca3af}
+.mgmt-row .value{font-size:13px;font-weight:600;color:#fff}
+.btn-outline{background:transparent;border:2px solid #374151;color:#9ca3af;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:#6b7280;color:#d1d5db}
+.btn-danger-solid{background:#dc2626;color:#fff;border:none;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger-solid:hover{background:#b91c1c}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.confirm-box{background:#1f2937;border:2px solid #374151;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151;font-size:12px}
+.history-item:last-child{border-bottom:none}
+.export-box{background:#0d1117;border:1px solid #374151;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#6ee7b7;word-break:break-all;max-height:120px;overflow-y:auto;margin-top:8px}
+.source-link{display:inline-flex;align-items:center;gap:4px;margin-top:12px;padding:6px 12px;border-radius:8px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#93c5fd;font-size:12px;font-weight:500;text-decoration:none;transition:all .2s}
+.source-link:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.source-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.res-group{margin-bottom:20px}
+.res-group h4{font-size:13px;font-weight:600;color:#6ee7b7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.res-link{display:block;padding:10px 12px;border-radius:10px;background:#1f2937;margin-bottom:6px;text-decoration:none;color:#93c5fd;font-size:13px;font-weight:500;border:1px solid #374151;transition:all .2s}
+.res-link:hover{background:#374151;border-color:#4b5563}
+.res-link small{display:block;color:#6b7280;font-size:11px;font-weight:400;margin-top:2px}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:4px}
+.lesson-card{background:#1f2937;border-radius:16px;padding:16px;cursor:pointer;border:2px solid #374151;transition:all .2s}
+.lesson-card:hover{border-color:#4b5563}
+.lesson-card.completed{border-color:rgba(16,185,129,.3)}
+.lesson-num{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.lesson-title{font-size:15px;font-weight:600;margin:4px 0}
+.lesson-meta{font-size:12px;color:#6b7280;display:flex;gap:12px}
+.lesson-body{padding:0}
+.lesson-section{margin-bottom:20px}
+.lesson-section h4{font-size:13px;font-weight:600;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.lesson-text{font-size:14px;color:#d1d5db;line-height:1.7}
+.lesson-text p{margin-bottom:10px}
+.lesson-highlight{background:rgba(16,185,129,.08);border-left:3px solid #10b981;padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0;font-size:13px;color:#d1fae5;line-height:1.5}
+.lesson-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.lesson-compare-item{background:#0d1117;border-radius:10px;padding:10px;font-size:12px;line-height:1.5}
+.lesson-compare-item .compare-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.exercise-box{background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.2);border-radius:14px;padding:14px;margin-bottom:10px}
+.exercise-box .ex-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.exercise-box .ex-task{font-size:13px;color:#ddd6fe;line-height:1.5;margin-bottom:8px}
+.exercise-box .ex-hint{font-size:12px;color:#6b7280;font-style:italic}
+.exercise-check{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
+.exercise-check .checkbox{width:22px;height:22px;border-radius:6px;border:2px solid #374151;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0}
+.exercise-check .checkbox.checked{background:#10b981;border-color:#10b981}
+.exercise-check .ex-text{font-size:13px;color:#d1d5db}
+.ex-steps-toggle{background:none;border:1px solid rgba(139,92,246,.25);color:#a78bfa;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:6px;font-family:inherit;transition:all .2s}
+.ex-steps-toggle:hover{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4)}
+.ex-steps{display:none;margin-top:8px;padding:10px 12px;background:rgba(139,92,246,.04);border-radius:8px;border:1px solid rgba(139,92,246,.12)}
+.ex-steps.open{display:block}
+.ex-steps ol{margin:0;padding-left:20px;font-size:13px;color:#c4b5fd;line-height:1.7}
+.ex-steps li{margin-bottom:4px}
+.ex-steps code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:12px;color:#a5f3fc}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px}
+.sched-item{background:#1f2937;border-radius:12px;padding:12px;margin-bottom:8px;border:2px solid #374151;transition:all .2s}
+.sched-item.today{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.sched-item.past{opacity:.5}
+.sched-item.done{border-color:rgba(16,185,129,.3);opacity:.7}
+.sched-item .si-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sched-item .si-date{font-size:11px;color:#6b7280;font-weight:600}
+.sched-item .si-dur{font-size:10px;color:#4b5563;background:#0d1117;padding:2px 8px;border-radius:6px}
+.sched-item .si-title{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:2px}
+.sched-item .si-desc{font-size:12px;color:#9ca3af;line-height:1.4}
+.sched-item .si-actions{display:flex;gap:6px;margin-top:8px}
+.sched-item .si-actions button{padding:6px 10px;border-radius:8px;border:none;font-size:11px;font-weight:500;cursor:pointer}
+.cp-item{background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;margin-bottom:8px}
+.cp-item.hit{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.cp-item .cp-target{font-size:14px;font-weight:600;color:#fde68a}
+.cp-item.hit .cp-target{color:#6ee7b7;text-decoration:line-through}
+.cp-item .cp-date{font-size:11px;color:#6b7280}
+.form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.form-sheet{background:#111827;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.form-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:12px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.form-field input,.form-field textarea,.form-field select{width:100%;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:14px;font-family:inherit}
+.form-field textarea{min-height:60px;resize:vertical}
+.form-field input:focus,.form-field textarea:focus,.form-field select:focus{outline:none;border-color:#10b981}
+.ask-box{background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.15);border-radius:14px;padding:14px;margin-top:16px}
+.ask-box .ask-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ask-box .ask-row{display:flex;gap:8px}
+.ask-box input{flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:13px;font-family:inherit}
+.ask-box input:focus{outline:none;border-color:#a78bfa}
+.ask-box input::placeholder{color:#4b5563}
+.ask-box button{padding:10px 14px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ask-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:200;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ics-panel{background:#111827;border:2px solid #374151;border-radius:16px;padding:16px;margin-bottom:16px}
+.ics-panel h4{font-size:13px;font-weight:600;color:#93c5fd;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.ics-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ics-filters button{padding:5px 10px;border-radius:8px;border:2px solid #374151;background:#1f2937;color:#9ca3af;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.ics-filters button.active{border-color:#3b82f6;background:rgba(59,130,246,.15);color:#93c5fd}
+.ics-list{max-height:320px;overflow-y:auto;margin-bottom:12px}
+.ics-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2937;font-size:13px}
+.ics-item:last-child{border-bottom:none}
+.ics-check{width:20px;height:20px;border-radius:5px;border:2px solid #374151;background:#0d1117;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+.ics-check.on{border-color:#3b82f6;background:rgba(59,130,246,.2);color:#93c5fd}
+.ics-item-info{flex:1;min-width:0}
+.ics-item-title{font-weight:500;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ics-item-date{font-size:11px;color:#6b7280}
+.ics-actions{display:flex;gap:8px;margin-top:4px}
+.ics-actions button{flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.ics-dl{background:#3b82f6;color:#fff}
+.ics-dl:hover{background:#2563eb}
+.ics-count{font-size:12px;color:#6b7280;margin-bottom:8px}
+@media(min-width:600px){
+body{max-width:960px;padding:0 24px}
+.header{padding:20px 0 12px}
+.header h1{font-size:22px}
+.content{padding:20px 0 100px}
+.nav{padding:10px 16px;gap:8px;border-radius:16px 16px 0 0}
+.nav button{min-width:auto;padding:8px 14px;font-size:12px;flex-direction:row;gap:6px;border-radius:10px}
+.nav button span{font-size:16px;margin-bottom:0}
+.stat-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:16px}
+.stat-val,.stat-num{font-size:22px}
+.card{max-width:640px;margin:0 auto;min-height:240px;padding:28px}
+.card-text{font-size:18px}
+.quiz-option{font-size:15px;padding:16px 20px}
+.scenario-box{max-width:700px}
+.lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lesson-card{margin-bottom:0}
+.mgmt-section{max-width:700px}
+.form-sheet{max-width:560px;border-radius:20px;margin:auto}
+.form-overlay{align-items:center}
+.res-group{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.res-group h4{grid-column:1/-1}
+.focus-box{max-width:700px}
+.sched-item{max-width:700px}
+.ics-panel{max-width:700px}
+.cp-item{max-width:700px}
+.pills{flex-wrap:wrap}
+.ask-box{max-width:640px;margin:16px auto 0}
+.confirm-box{max-width:400px}
+.source-links{justify-content:flex-start}
+}
+@media(min-width:800px){
+body{max-width:1100px}
+.nav{max-width:1100px}
+.stat-grid{grid-template-columns:repeat(4,1fr)}
+.lesson-grid{grid-template-columns:repeat(3,1fr)}
+.card{max-width:700px}
+.res-group{grid-template-columns:repeat(3,1fr)}
+}
+.role-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.role-picker{max-width:520px;width:92%;padding:28px 20px;text-align:center}
+.role-picker h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.role-picker .rp-sub{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5}
+.role-cards{display:flex;flex-direction:column;gap:12px}
+.role-card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left}
+.role-card:hover{border-color:#10b981;background:#263040}
+.role-card .rc-icon{font-size:28px;margin-bottom:8px}
+.role-card .rc-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.role-card .rc-desc{font-size:13px;color:#9ca3af;line-height:1.4}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.role-badge.core{background:rgba(16,185,129,.15);color:#6ee7b7}
+.role-badge.bonus{background:rgba(107,114,128,.15);color:#6b7280}
+.role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
+.role-current:hover{border-color:#10b981;background:#263040}
+.fs-s .card-text,.fs-s .lesson-text,.fs-s .quiz-option,.fs-s .scenario-box,.fs-s .scenario-q,.fs-s .scenario-a,.fs-s .focus-text{font-size:13px}
+.fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-option,.fs-m .scenario-box,.fs-m .scenario-q,.fs-m .scenario-a,.fs-m .focus-text{font-size:15px}
+.fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-option,.fs-l .scenario-box,.fs-l .scenario-q,.fs-l .scenario-a,.fs-l .focus-text{font-size:17px}
+.fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-option,.fs-xl .scenario-box,.fs-xl .scenario-q,.fs-xl .scenario-a,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>Dash0 MCP Crash Course</h1><small>From setup to AI-powered observability</small></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="header-role"></div>
+<div class="badge">Self-Paced</div>
+<span id="app-version" style="font-size:9px;color:#6b7280;font-weight:400;letter-spacing:.3px"></span><span id="sync-badge" style="font-size:11px;color:#6b7280;margin-left:8px;cursor:help"></span>
+</div>
+</div>
+<div class="content" id="app"></div>
+<div class="nav" id="nav"></div>
+<script>
+// ─── DATA ───
+const FLASHCARDS=[
+// ── Fundamentals (8) ──
+{f:"What is MCP?",b:"Model Context Protocol — an open standard (by Anthropic) for connecting LLMs to external tools and data sources via a structured tool-calling interface.",c:"Fundamentals",u:"https://modelcontextprotocol.io/introduction",d:1},
+{f:"What transport does the Dash0 MCP server use?",b:"Streamable HTTP transport (remote hosted). No local install needed — the server runs on Dash0's infrastructure.",c:"Fundamentals",u:"https://github.com/dash0hq/mcp-dash0",d:1},
+{f:"How many tools does the Dash0 MCP server expose?",b:"23 tools covering service discovery, logs, traces, metrics/PromQL, synthetic checks, web vitals, Kubernetes events, dashboards, and more.",c:"Fundamentals",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:1},
+{f:"What authentication does the Dash0 MCP server require?",b:"A Dash0 auth token passed as an Authorization: Bearer header. The token must have permissions on the target dataset(s).",c:"Fundamentals",u:"https://github.com/dash0hq/mcp-dash0",d:1},
+{f:"What is the key difference between MCP and a REST API?",b:"With MCP, the LLM autonomously decides which tools to call and when based on natural language intent — no need to memorize endpoints, parameters, or query syntax.",c:"Fundamentals",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"Where does the Dash0 MCP endpoint URL come from?",b:"From the Dash0 app: Organization Settings → Endpoints → MCP. The URL is region-specific.",c:"Fundamentals",u:"https://github.com/dash0hq/mcp-dash0",d:2},
+{f:"What signal types can the Dash0 MCP server access?",b:"Logs, traces, metrics (including PromQL), synthetic check results, web vitals, and Kubernetes events — the full Dash0 observability dataset.",c:"Fundamentals",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How does the Dash0 MCP server differ from the Dash0 CLI?",b:"The CLI is human-native (terminal commands). The MCP server is AI-native — it exposes structured tools that LLMs call directly, enabling natural language observability without remembering any command syntax.",c:"Fundamentals",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+
+// ── Setup & Config (7) ──
+{f:"What config format does Claude Code use for MCP servers?",b:"A .mcp.json file in the project root (or ~/.claude/mcp.json globally). It uses the mcpServers key with the server name, type, url, and headers.",c:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",d:1},
+{f:"Show the minimal Claude Code .mcp.json for Dash0 MCP.",b:'{"mcpServers":{"dash0":{"type":"streamableHttp","url":"<endpoint_mcp>","headers":{"Authorization":"Bearer <token>"}}}}',c:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",d:1},
+{f:"What fallback config works for clients that don't support Streamable HTTP?",b:'Use npx mcp-remote as a local bridge: {"command":"npx","args":["-y","mcp-remote","<endpoint>","--header","Authorization: Bearer ${DASH0_AUTH_TOKEN}"],"env":{"DASH0_AUTH_TOKEN":"<token>"}}',c:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",d:2},
+{f:"Where do you find per-IDE MCP setup instructions for Dash0?",b:"The Dash0 Integrations Hub at dash0.com/hub/integrations?tag=AI — each supported tool (Claude, Cursor, Windsurf, Cline, GitHub Copilot, Zed, etc.) has a dedicated copy-paste config page.",c:"Setup & Config",u:"https://www.dash0.com/hub/integrations",d:1},
+{f:"What auth token permissions are required for the Dash0 MCP server?",b:"'All permissions' on the dataset(s) you want to work with. Read-only tokens will block write operations like creating/updating dashboards.",c:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",d:2},
+{f:"How do you verify the Dash0 MCP server is connected in your IDE?",b:"Check the IDE's MCP server list (e.g., Claude Code sidebar or Cursor settings). Browse available tools — you should see the 23 Dash0 tools listed with their descriptions.",c:"Setup & Config",u:"https://www.dash0.com/docs/dash0/ai/mcp/use-mcp",d:2},
+{f:"Which IDE config file location is used for VS Code / GitHub Copilot MCP servers?",b:"settings.json — either in the workspace .vscode/ directory or user-level settings. The mcpServers key is nested under the relevant extension config.",c:"Setup & Config",u:"https://www.dash0.com/hub/integrations",d:2},
+
+// ── Service Discovery (10) ──
+{f:"What MCP tool lists all services instrumented in Dash0?",b:"list_services — returns a list of all service names visible in your Dash0 dataset, along with metadata like last seen timestamp.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"How do you ask the MCP server about service dependencies?",b:"Use natural language: 'Show me the dependencies for payment-service' — the LLM calls the appropriate topology/service tools to build the dependency graph.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"What does service topology data from the MCP server tell you?",b:"Which services call which, upstream/downstream relationships, and communication patterns — enabling impact analysis when a service degrades.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you find all services that call the payment-service using MCP?",b:"Ask: 'Which services have upstream dependencies on payment-service?' The LLM will call list_services and topology tools to map callers.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"What is the RED method and how does MCP surface it?",b:"RED = Rate (requests/sec), Errors (error rate %), Duration (latency). MCP tools expose these metrics per service and per operation through natural language queries.",c:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"How do you use MCP to find recently deployed services?",b:"Ask: 'Which services appeared in the last 24 hours?' The LLM combines list_services with timestamp filtering to surface new services.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"What natural language prompt discovers high-error services?",b:"'Show me all services with an error rate above 1% in the last hour' — the LLM maps this to service health queries across all instrumented services.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How does MCP enable pre-feature-development service discovery?",b:"Before building a new feature, ask 'What existing endpoints does checkout-service expose?' The MCP server retrieves service metadata and recent span data to answer.",c:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"What MCP tool returns details about a specific service's health?",b:"The LLM combines multiple tools — service metadata, recent error rates via get_metrics, and current latency — to compose a health summary for a specific service.",c:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:3},
+{f:"How does the Dash0 MCP triage tool help with incident analysis?",b:"The triage tool (mentioned in changelog) helps AI agents navigate from a symptom to a root cause by correlating service health, affected resources, and failed health checks automatically.",c:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:3},
+
+// ── Logs & Traces (9) ──
+{f:"What MCP tool retrieves logs from Dash0?",b:"get_logs — accepts natural language time ranges, service names, log levels, and attribute filters. Returns structured log records.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"What MCP tool retrieves distributed traces?",b:"get_traces — retrieves trace data including spans, duration, service hops, and error status for a given service, time window, or trace ID.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"How do you get error logs for payment-service in the last hour via MCP?",b:"Ask: 'Show me error logs for payment-service in the last hour' — the LLM calls get_logs with the appropriate service filter, time range, and severity=ERROR.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you find slow traces (>2s) for checkout-service via MCP?",b:"Ask: 'Find traces for checkout-service that took longer than 2 seconds in the last 30 minutes' — the LLM calls get_traces with duration threshold filtering.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"What is the advantage of MCP log queries vs. raw PromQL log queries?",b:"MCP accepts plain English — you don't need to know Dash0's log query syntax or filter attribute names. The LLM translates intent to the right query parameters.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you correlate a specific trace ID with its logs using MCP?",b:"Ask: 'Show me logs correlated with trace ID abc123' — the LLM calls get_traces for the trace ID and then get_logs filtered by the same trace ID to show the full picture.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How does MCP handle log volume — does it return all matching logs?",b:"The LLM typically retrieves a sample or uses limit/sort to return the most relevant logs. You can ask for 'the most recent 50 error logs' or 'just the last 10 failures'.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"How do you investigate a distributed transaction across 5 services using only MCP?",b:"Ask: 'Show me the full trace for the failed checkout at 3:45pm including all service hops' — the LLM assembles the end-to-end trace using get_traces with trace-following capabilities.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"What context does MCP add to log results that raw log queries don't?",b:"The LLM can summarize patterns across log results, identify anomalies, compare with previous time windows, and suggest investigation steps — all in the same response.",c:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+
+// ── Metrics & PromQL (9) ──
+{f:"What MCP tool queries raw metrics from Dash0?",b:"get_metrics — retrieves time series metric data for a given service, metric name, and time window in plain English.",c:"Metrics & PromQL",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"What MCP tool executes PromQL expressions against Dash0?",b:"query_promql — executes a PromQL expression directly and returns the result. This unlocks the full power of Prometheus Query Language for real-time analysis.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:1},
+{f:"How do you get the p99 latency for api-gateway over the last hour via MCP?",b:"Ask: 'What is the p99 latency for api-gateway over the last hour?' The LLM generates a PromQL expression using histogram_quantile and calls query_promql.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"How does MCP help engineers who don't know PromQL?",b:"The LLM generates the PromQL expression from natural language — the user describes what they want in English and the MCP server handles the query syntax.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"What PromQL metric type would you use for request rate in Dash0 MCP?",b:"rate() on a counter metric, e.g., rate(http_requests_total[5m]). The LLM constructs this expression from 'show me request rate for X' prompts.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"How do you compare error rates between two services using MCP?",b:"Ask: 'Compare the error rate for payment-service vs. checkout-service over the last 2 hours' — the LLM runs two get_metrics or query_promql calls and summarizes the comparison.",c:"Metrics & PromQL",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"What is the MCP 'Query Builder' capability?",b:"An interface for constructing observability queries mentioned in the changelog — helps AI agents build and execute PromQL queries directly through the MCP server for real-time analysis.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:3},
+{f:"How do you get a high-availability summary (request volume, error count, latency) via MCP?",b:"Ask: 'Give me a high-level stats summary for order-service: request volume, error count, and p95 latency over the last 24 hours' — the LLM orchestrates multiple metric queries.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:3},
+{f:"How does MCP handle PromQL expression optimization?",b:"The LLM can suggest more efficient PromQL expressions when asked to optimize — e.g., replacing recording rules patterns, adjusting step resolution, or reducing label cardinality.",c:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:3},
+
+// ── Synthetic & Web (7) ──
+{f:"Can the Dash0 MCP server access synthetic check results?",b:"Yes — synthetic check data is part of the full observability dataset accessible through MCP tools, including availability status and historical results.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"What are web vitals and can MCP query them?",b:"Web vitals (LCP, FID, CLS, INP, TTFB) are performance metrics for frontend user experience. Dash0 collects them and MCP can query availability and web vitals data.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"How do you get synthetic check status for all monitored endpoints via MCP?",b:"Ask: 'Show me the current status of all synthetic checks' — the LLM calls the appropriate synthetic check tools to return pass/fail status, response times, and last run.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you find endpoints with degraded availability using MCP?",b:"Ask: 'Which synthetic checks have had failures in the last 4 hours?' — the MCP tools return historical check results filtered by failure status.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"What natural language prompt checks if a specific URL is currently up?",b:"'Is the checkout page at checkout.example.com currently passing its synthetic check?' — the LLM calls synthetic check tools for that specific endpoint.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you correlate web vitals degradation with a deployment using MCP?",b:"Ask: 'Did the LCP score for the homepage worsen after the 2pm deployment today?' — the LLM queries web vitals time series and correlates with the deployment timestamp.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"What is the value of MCP for synthetic monitoring vs. going to the Dash0 UI?",b:"MCP embeds availability checks into the developer workflow — ask from Claude Code or Cursor without switching context. The LLM also explains root causes, not just raw check results.",c:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+
+// ── K8s & Dashboards (8) ──
+{f:"What MCP tool retrieves Kubernetes events from Dash0?",b:"get_kubernetes_events — returns K8s events including OOMKilled, CrashLoopBackOff, scheduling failures, and other cluster events correlated with your telemetry data.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"Can the Dash0 MCP server list available dashboards?",b:"Yes — list_dashboards returns all dashboards in your Dash0 organization including names, IDs, and metadata, enabling AI agents to navigate to relevant dashboards.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:1},
+{f:"How do you investigate a pod OOMKilled event using MCP?",b:"Ask: 'Show me Kubernetes events related to OOMKilled in the last hour and correlate with memory metrics for those pods' — the LLM calls get_kubernetes_events and then memory metric queries.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you get a list of currently crashing pods via MCP?",b:"Ask: 'Which pods are in CrashLoopBackOff right now?' — the LLM calls get_kubernetes_events filtered to recent CrashLoopBackOff events.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How does MCP help with dashboard navigation?",b:"Ask: 'Which dashboards do we have for the payment service?' — list_dashboards returns matching dashboards. The LLM can also suggest relevant dashboards based on context.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:2},
+{f:"How do you correlate K8s node pressure with application latency using MCP?",b:"Ask: 'Did node memory pressure on cluster-prod coincide with latency spikes in checkout-service today?' — the LLM combines get_kubernetes_events with get_metrics queries.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"Can the MCP server create or update Dash0 dashboards?",b:"Yes — based on the MCP tool catalog, dashboard management (including creation and updates) is included in the 23 tools, enabling AI agents to automate dashboard workflows.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+{f:"What K8s deployment workflow benefits from MCP integration?",b:"Post-deploy validation: 'Did the 3pm deploy to payment-service cause any K8s restarts or error rate increases in the 15 minutes following rollout?' — automated post-deploy health checks.",c:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",d:3},
+
+// ── Pitch & Positioning (7) ──
+{f:"What is the core 'AI-native observability' pitch for Dash0 MCP?",b:"Instead of learning query languages or memorizing UI navigation, engineers ask questions in plain English. The MCP server handles the translation — making observability as easy as asking a colleague.",c:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:1},
+{f:"How does Dash0 MCP compare to 'Grafana + ChatGPT'?",b:"Grafana + ChatGPT is disconnected — you copy/paste data between tools. Dash0 MCP is integrated — the LLM directly queries live data, no copy-paste, no context loss, real-time answers.",c:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:1},
+{f:"What is the MECE argument for MCP over a traditional observability UI?",b:"(1) No context switching — stay in your IDE. (2) No syntax learning — natural language. (3) Intelligent analysis — the LLM doesn't just return data, it interprets it. (4) Composable — combine multiple signals in one response.",c:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"Why did Dash0 launch the MCP server as remote/hosted rather than local?",b:"Zero install friction — no npm packages, no local binary, no version management. One config block and the server is live. Easier for enterprise customers to adopt across large teams.",c:"Pitch & Positioning",u:"https://github.com/dash0hq/mcp-dash0",d:2},
+{f:"How do you position Dash0 MCP against Datadog's AI Assistant?",b:"Dash0 MCP is open protocol (MCP standard) — works in any MCP-compatible IDE/agent. Datadog's AI is proprietary and locked to their UI. Dash0 MCP brings observability into developer workflows, not the other way around.",c:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:2},
+{f:"What security concern does a CISO have about MCP and how do you respond?",b:"Concern: the MCP server has access to all observability data. Response: access is scoped to specific datasets via auth token permissions. No write access to application infrastructure — only to Dash0 assets (dashboards, synthetic checks).",c:"Pitch & Positioning",u:"https://github.com/dash0hq/mcp-dash0",d:1},
+{f:"What one-sentence value statement captures the Dash0 MCP proposition?",b:"'Dash0 MCP turns your AI coding assistant into an observability expert — with live access to logs, traces, metrics, and Kubernetes events, all in plain English.'",c:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",d:1},
+];
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CRASH COURSE CONFIGURATION                                 ║
+// ╚══════════════════════════════════════════════════════════════╝
+const APP_VERSION='v1.0';
+const PLATFORM_VERSION='v3.1';
+const COURSE_TITLE='Dash0 MCP Crash Course';
+let SYNC_SHEET_URL='';
+let SYNC_USER_ID='';
+const CATEGORIES=["All","Fundamentals","Setup & Config","Service Discovery","Logs & Traces","Metrics & PromQL","Synthetic & Web","K8s & Dashboards","Pitch & Positioning"];
+const ROLE_CONFIG={
+role1:{label:'Sales Rep',icon:'💼',desc:'Conversational fluency. AI-native observability story, competitive positioning.',
+coreCategories:['Fundamentals','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-3','lesson-8'],
+categoryOrder:['All','Fundamentals','Pitch & Positioning','Setup & Config','Service Discovery','Logs & Traces','Metrics & PromQL','Synthetic & Web','K8s & Dashboards']},
+role2:{label:'Solutions Architect',icon:'🏗️',desc:'Demo-ready working knowledge. Setup walkthroughs, tool usage, customer Q&A.',
+coreCategories:['Fundamentals','Setup & Config','Service Discovery','Logs & Traces','Metrics & PromQL','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-8'],
+categoryOrder:['All','Fundamentals','Setup & Config','Service Discovery','Logs & Traces','Metrics & PromQL','Synthetic & Web','K8s & Dashboards','Pitch & Positioning']},
+role3:{label:'Engineer / DevOps',icon:'⚡',desc:'Deep technical. All 23 tools, advanced workflows, incident investigation patterns.',
+coreCategories:['Fundamentals','Setup & Config','Service Discovery','Logs & Traces','Metrics & PromQL','Synthetic & Web','K8s & Dashboards','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-7','lesson-8'],
+categoryOrder:['All','Setup & Config','Service Discovery','Logs & Traces','Metrics & PromQL','Synthetic & Web','K8s & Dashboards','Fundamentals','Pitch & Positioning']}
+};
+const RELATED_COURSES=[
+{title:"Dash0 CLI Crash Course",url:"dash0-cli-crash-course.html",icon:"🖥️",desc:"Terminal workflows for CI/CD and GitOps"},
+{title:"Dash0 API Crash Course",url:"dash0-api-crash-course.html",icon:"🌐",desc:"Direct HTTP access for custom integrations"}
+];
+const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
+const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
+const QUIZ=[
+// ── Fundamentals (6) ──
+{q:"What does MCP stand for?",o:["Machine Control Protocol","Model Context Protocol","Managed Cloud Pipeline","Modular Configuration Protocol"],a:1,cat:"Fundamentals",u:"https://modelcontextprotocol.io/introduction",e:"Model Context Protocol — an open standard by Anthropic for connecting LLMs to external tools and data sources via structured tool-calling.",d:1},
+{q:"Which transport does the Dash0 MCP server use?",o:["WebSocket","gRPC streaming","Streamable HTTP","Server-Sent Events"],a:2,cat:"Fundamentals",u:"https://github.com/dash0hq/mcp-dash0",e:"Streamable HTTP transport — introduced in the MCP spec in March 2025. This means the Dash0 MCP server is remote-hosted; no local install required.",d:1},
+{q:"Approximately how many tools does the Dash0 MCP server expose?",o:["5","12","23","50"],a:2,cat:"Fundamentals",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"23 tools covering service discovery, logs, traces, metrics/PromQL, synthetic checks, web vitals, Kubernetes events, dashboards, and more.",d:1},
+{q:"What is the key user experience difference between MCP and a REST API?",o:["MCP is faster due to binary encoding","With MCP, the LLM autonomously decides which tools to call based on natural language — no need to memorize endpoints or query syntax","MCP requires fewer authentication steps","MCP returns data in a human-readable format without parsing"],a:1,cat:"Fundamentals",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The LLM interprets natural language intent and selects the right tool with the right parameters. 🟢 Dash0 angle: This is the AI-native observability story — users don't need to learn query languages or remember command flags.",d:1},
+{q:"Where in the Dash0 app do you find your region-specific MCP endpoint URL?",o:["Organization Settings → Endpoints → MCP","Profile → API Keys → MCP URL","Integrations Hub → Dash0 MCP → Copy URL","Project Settings → Telemetry → MCP Endpoint"],a:0,cat:"Fundamentals",u:"https://github.com/dash0hq/mcp-dash0",e:"Navigate to Organization Settings → Endpoints → MCP and copy the URL for your region. Each region has a different endpoint.",d:2},
+{q:"What signal types can the Dash0 MCP server access?",o:["Only metrics and logs","Only traces and metrics","Logs, traces, metrics, synthetic checks, web vitals, and Kubernetes events","Metrics and dashboards only"],a:2,cat:"Fundamentals",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The full Dash0 observability dataset is accessible — logs, traces, metrics (including PromQL), synthetic check results, web vitals, and Kubernetes events.",d:1},
+
+// ── Setup & Config (5) ──
+{q:"What config key does the Claude Code .mcp.json file use to define MCP servers?",o:["servers","mcpServers","tools","integrations"],a:1,cat:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",e:"The .mcp.json file uses the 'mcpServers' key at the top level, with each server defined as a named object containing type, url, and headers.",d:1},
+{q:"Which transport type value do you set for the Dash0 MCP server in a Claude Code config?",o:["http","rest","streamableHttp","remoteHttp"],a:2,cat:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",e:"Use 'streamableHttp' as the type value. This is the correct MCP transport type for the Dash0 remote server.",d:1},
+{q:"What is the fallback configuration method for MCP clients that don't support Streamable HTTP?",o:["Use a REST proxy","Use npx mcp-remote as a local bridge process","Configure a local SOCKS5 tunnel","Use the Dash0 CLI in proxy mode"],a:1,cat:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",e:"npx mcp-remote acts as a local bridge that translates the older stdio transport to the Dash0 remote Streamable HTTP endpoint. This handles legacy MCP clients.",d:2},
+{q:"What permission level must the Dash0 auth token have for MCP?",o:["Read-only on all datasets","Write-only on the target dataset","All permissions on the target dataset(s)","Admin permissions on the organization"],a:2,cat:"Setup & Config",u:"https://github.com/dash0hq/mcp-dash0",e:"The token must have 'All permissions' on the datasets you want to work with. Read-only tokens won't allow dashboard creation or synthetic check management.",d:2},
+{q:"Where do you find per-IDE MCP setup instructions for Dash0 beyond the GitHub README?",o:["The Dash0 CLI documentation","The Dash0 Integrations Hub at dash0.com/hub/integrations?tag=AI","The Dash0 changelog","The Dash0 API reference"],a:1,cat:"Setup & Config",u:"https://www.dash0.com/hub/integrations",e:"The Integrations Hub has dedicated copy-paste setup pages for Claude, Cline, Cursor, GitHub Copilot, Windsurf, Zed, LangChain, and more.",d:1},
+
+// ── Service Discovery (7) ──
+{q:"What natural language prompt would you use to list all services instrumented in Dash0?",o:["run list_services()","'Show me all services'","'Get service catalog data'","You must use the CLI for service listing"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Natural language like 'Show me all services' or 'What services are visible in Dash0?' will trigger the list_services tool. MCP tools are called transparently by the LLM.",d:1},
+{q:"What does RED stand for in service metrics?",o:["Response, Errors, Duration","Rate, Errors, Duration","Rate, Events, Diagnostics","Requests, Errors, Data"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"RED = Rate (requests per second), Errors (error rate %), Duration (latency). The Dash0 MCP server exposes RED metrics per service and per operation.",d:1},
+{q:"How do you use MCP to find which services depend on payment-service?",o:["You must build the dependency graph manually from trace data","Ask 'Which services have upstream dependencies on payment-service?' — the LLM maps callers using topology tools","Run `dash0 -X spans query --depends-on payment-service`","Use the Dash0 UI topology view only"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Natural language topology queries are a core use case. The LLM uses service discovery and trace data tools to build the dependency picture.",d:2},
+{q:"What Dash0 MCP capability is described as 'Resource-Centric SRE Automation'?",o:["The ability to create dashboards from natural language","Agents navigating between services and viewing RED metrics for every operation, identifying resources affected by failed health checks","Automated alerting based on PromQL expressions","K8s operator integration for zero-config instrumentation"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"The changelog describes Resource-Centric SRE Automation — AI agents can navigate the service graph, check health, and identify affected resources, all through MCP.",d:2},
+{q:"How do you find newly deployed services that appeared in the last 24 hours using MCP?",o:["Check the Dash0 UI deployment view","Ask: 'Which services appeared in Dash0 in the last 24 hours?' — the LLM combines list_services with timestamp filtering","Create a synthetic check to monitor new service registrations","Use `dash0 -X services list --since 24h`"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"MCP makes this conversational. The LLM handles the timestamp filtering and service metadata lookup transparently.",d:2},
+{q:"What MCP triage tool capability helps correlate health check failures to affected resources?",o:["It sends automated alerts when health checks fail","It navigates from a failed health check to identify which services and resources are affected","It creates a Jira ticket automatically when services degrade","It rolls back the last deployment when health checks fail"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"The triage tool (mentioned in the Dash0 changelog) helps AI agents navigate from symptoms to root cause by correlating service health and resource impact.",d:3},
+{q:"What pre-development use case does Dash0 MCP enable for engineers building new features?",o:["Automatically generating code stubs from service specs","Querying existing service endpoints, dependencies, and performance baselines before writing code","Creating synthetic tests automatically","Generating deployment manifests from service metadata"],a:1,cat:"Service Discovery",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The docs highlight 'Implementation planning' as a key use case — query service dependencies, existing endpoints, and performance baselines when building new features.",d:3},
+
+// ── Logs & Traces (6) ──
+{q:"How do you get error logs for payment-service from the last hour using MCP?",o:["Run get_logs(service='payment-service', level='error', window='1h')","Ask in natural language: 'Show me error logs for payment-service in the last hour'","Use `dash0 -X logs query --service payment-service --level error`","Configure a log alert in the Dash0 UI"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The MCP approach is fully conversational. The LLM calls get_logs with the appropriate service filter, time range, and severity level based on your natural language request.",d:1},
+{q:"What is the advantage of MCP log queries vs. writing raw PromQL or query syntax?",o:["MCP log queries are 10x faster","You don't need to know Dash0's log query syntax or filter attribute names — the LLM translates plain English to the right parameters","MCP provides richer log data than the raw API","MCP log queries are automatically cached for 24 hours"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"This is the central value prop of MCP for logs. 🟢 Dash0 angle: Lowering the barrier to observability — junior engineers can run sophisticated log queries without training.",d:2},
+{q:"How do you find slow distributed traces (>2s) for checkout-service using MCP?",o:["Query: 'SELECT * FROM traces WHERE duration > 2000'","Ask: 'Find traces for checkout-service that took longer than 2 seconds in the last 30 minutes'","Use `dash0 -X traces query --service checkout-service --min-duration 2s`","Set up a threshold alert on trace duration"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The get_traces tool accepts natural language time range and duration filters via the LLM's translation layer.",d:2},
+{q:"How does MCP help correlate a specific trace with its related logs?",o:["It automatically generates a correlation report in PDF format","Ask: 'Show me logs correlated with trace ID abc123' — the LLM calls get_traces and then get_logs filtered by the same trace ID","Trace-log correlation requires the Dash0 UI","Use the Dash0 API correlation endpoint directly"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Multi-tool orchestration is where MCP shines — the LLM can call get_traces and get_logs in sequence and present a unified correlated view.",d:3},
+{q:"What additional value does MCP add to log results beyond what raw log queries return?",o:["Automatic log archiving to S3","The LLM can summarize patterns, identify anomalies, compare with previous time windows, and suggest next investigation steps — all in one response","Automatic deduplication of duplicate log lines","Real-time log streaming with sub-second latency"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"This is the AI layer — the LLM doesn't just retrieve data, it interprets it. 🟢 Dash0 angle: Observability insights, not just observability data.",d:2},
+{q:"How do you investigate a full end-to-end transaction across 5 microservices using only MCP?",o:["You must use the Dash0 UI for cross-service trace visualization","Ask: 'Show me the full trace for the failed checkout at 3:45pm including all service hops' — the LLM assembles the trace using get_traces with multi-service following","Export the trace as JSON and analyze manually","Use Jaeger UI connected to Dash0's backend"],a:1,cat:"Logs & Traces",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"The MCP server can traverse distributed traces end-to-end through the get_traces tool, presenting the full picture in natural language without requiring UI navigation.",d:3},
+
+// ── Metrics & PromQL (6) ──
+{q:"Which Dash0 MCP tool executes PromQL expressions directly?",o:["get_metrics","run_query","query_promql","execute_promql"],a:2,cat:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"query_promql executes a PromQL expression and returns the result — 'unlocking the full power of Prometheus Query Language for real-time analysis' per the Dash0 changelog.",d:1},
+{q:"How does MCP help engineers who don't know PromQL?",o:["It provides a PromQL wizard UI","The LLM generates the PromQL expression from natural language — the user describes what they want in English","MCP automatically imports Grafana dashboards which contain pre-written PromQL","MCP uses a simplified query language instead of PromQL"],a:1,cat:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"This is a major accessibility win. 🟢 Dash0 angle: PromQL has a steep learning curve; MCP removes that barrier entirely — any engineer can query metrics without PromQL training.",d:2},
+{q:"How do you get p99 latency for api-gateway using MCP?",o:["Ask: 'Run histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))'","Ask: 'What is the p99 latency for api-gateway over the last hour?' — the LLM generates the PromQL query automatically","Use `dash0 metrics p99 --service api-gateway`","Configure a percentile dashboard panel in the Dash0 UI"],a:1,cat:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"You don't need to know histogram_quantile or PromQL syntax — the LLM generates the right expression and calls query_promql for you.",d:2},
+{q:"How do you compare error rates between two services via MCP?",o:["MCP can only query one service at a time","Ask: 'Compare the error rate for payment-service vs. checkout-service over the last 2 hours' — the LLM runs multiple metric queries and summarizes","Use a Grafana panel with two PromQL queries","Export CSV data from both services and compare in Excel"],a:1,cat:"Metrics & PromQL",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Multi-service comparison is a natural use case for conversational observability. The LLM orchestrates multiple query_promql calls and presents the comparison.",d:2},
+{q:"What is the MCP 'Query Builder' capability described in the Dash0 changelog?",o:["A drag-and-drop dashboard panel builder","An interface for constructing and executing PromQL queries directly through the MCP server for real-time analysis","A tool that generates dashboard JSON from PromQL expressions","A natural language to SQL converter for log queries"],a:1,cat:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"The Query Builder capability enables AI agents to build and execute PromQL queries directly — combining the accessibility of natural language with the full power of PromQL.",d:3},
+{q:"How do you request a high-level availability summary (volume, errors, latency) for a service via MCP?",o:["You must build a custom dashboard to get this data","Ask: 'Give me a high-level stats summary for order-service: request volume, error count, and p95 latency over the last 24 hours' — the LLM orchestrates multiple metric queries","Configure a SLO and check the SLO dashboard","Use the Dash0 service overview page in the UI"],a:1,cat:"Metrics & PromQL",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"This is the 'high-level statistics' use case highlighted in the Dash0 docs. 🟢 Dash0 angle: Service health summaries on-demand, without building dashboards or writing PromQL.",d:3},
+
+// ── Synthetic & Web (5) ──
+{q:"Can the Dash0 MCP server access synthetic check results?",o:["No — synthetic data requires the Dash0 UI","Yes — synthetic check data is accessible through MCP tools","Only if you configure a special webhook","Only for checks created via the CLI"],a:1,cat:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Synthetic check data is part of the full Dash0 observability dataset accessible through MCP. You can query availability status, historical results, and response times.",d:1},
+{q:"What are Core Web Vitals and can MCP query them?",o:["Core Web Vitals are server metrics; MCP can query them","Core Web Vitals (LCP, FID, CLS, INP, TTFB) are frontend performance metrics; Dash0 collects them and MCP can query availability and web vitals data","Web vitals are only accessible through the Dash0 RUM SDK, not MCP","Web vitals require a separate MCP plugin"],a:1,cat:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"LCP (Largest Contentful Paint), FID (First Input Delay), CLS (Cumulative Layout Shift), INP, and TTFB are all part of the Dash0 observability dataset accessible via MCP.",d:2},
+{q:"How do you find synthetic checks with failures in the last 4 hours via MCP?",o:["Check the Dash0 alerting inbox","Ask: 'Which synthetic checks have had failures in the last 4 hours?' — the LLM queries historical check results filtered by failure status","Set up a custom alert for check failures","Use the synthetic check dashboard in the Dash0 UI"],a:1,cat:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Synthetic check history is available through MCP, enabling conversational availability investigation without navigating the UI.",d:2},
+{q:"How do you correlate web vitals degradation with a specific deployment using MCP?",o:["Web vitals cannot be correlated with deployments through MCP","Ask: 'Did the LCP score for the homepage worsen after the 2pm deployment today?' — the LLM queries web vitals time series and correlates with the deployment timestamp","Export web vitals data to a spreadsheet and analyze manually","Set up a web vitals alert triggered by deployments"],a:1,cat:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Multi-signal correlation (web vitals + deployment events) is a natural use case for conversational observability via MCP.",d:3},
+{q:"Why is Dash0 MCP better than checking synthetic monitor status in the Dash0 UI?",o:["MCP has fresher data than the UI","MCP embeds availability checks into the developer workflow — ask from Claude Code or Cursor without context switching; the LLM explains root causes, not just raw results","MCP is faster than the UI","MCP provides mobile notifications that the UI does not"],a:1,cat:"Synthetic & Web",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Context-switching friction is real. 🟢 Dash0 angle: MCP brings availability data into where engineers already work — their IDE — and adds LLM interpretation on top.",d:2},
+
+// ── K8s & Dashboards (5) ──
+{q:"What MCP tool retrieves Kubernetes events from Dash0?",o:["list_pods","get_k8s_logs","get_kubernetes_events","kubectl_get_events"],a:2,cat:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"get_kubernetes_events returns K8s events including OOMKilled, CrashLoopBackOff, scheduling failures, and other cluster events correlated with telemetry data.",d:1},
+{q:"How do you find all pods currently in CrashLoopBackOff using MCP?",o:["Run `kubectl get pods --all-namespaces | grep CrashLoop` in your IDE","Ask: 'Which pods are in CrashLoopBackOff right now?' — the LLM calls get_kubernetes_events filtered to recent CrashLoopBackOff events","Check the Kubernetes dashboard in the Dash0 UI","Set up a check rule for CrashLoopBackOff in Dash0"],a:1,cat:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Kubernetes troubleshooting through natural language is a first-class MCP use case. No kubectl context switching needed.",d:2},
+{q:"What MCP tool lists available dashboards in your Dash0 organization?",o:["get_dashboards","fetch_dashboards","list_dashboards","browse_dashboards"],a:2,cat:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"list_dashboards returns all dashboards including names, IDs, and metadata. The LLM can use this to navigate to relevant dashboards or suggest which dashboards exist for a service.",d:2},
+{q:"How do you investigate an OOMKilled event for a pod using MCP?",o:["Check container logs manually and look for memory messages","Ask: 'Show me Kubernetes events related to OOMKilled in the last hour and correlate with memory metrics for those pods' — the LLM calls get_kubernetes_events and memory metric queries","Run kubectl describe pod <name> in your terminal","Check the Dash0 K8s overview panel"],a:1,cat:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Multi-signal K8s investigation — events + metrics — is exactly the kind of orchestrated query the LLM handles automatically through MCP.",d:3},
+{q:"What is the post-deploy health validation use case for Dash0 MCP?",o:["MCP automatically rolls back failed deployments","Ask: 'Did the 3pm deploy to payment-service cause any K8s restarts or error rate increases in the 15 minutes following rollout?' — automated post-deploy health check","Configure deployment gates in the Dash0 UI","MCP sends Slack notifications after each deployment"],a:1,cat:"K8s & Dashboards",u:"https://www.dash0.com/docs/dash0/ai/mcp",e:"Post-deploy validation is a high-value automated workflow. 🟢 Dash0 angle: MCP enables AI agents in CI/CD pipelines to validate deployments using real observability data without human intervention.",d:3},
+
+// ── Pitch & Positioning (5) ──
+{q:"What is the core 'AI-native observability' pitch for Dash0 MCP?",o:["Dash0 MCP replaces human operators with AI agents","Instead of learning query languages or navigating UIs, engineers ask questions in plain English — the MCP server handles the translation","Dash0 MCP is the fastest observability query engine","Dash0 MCP integrates with every monitoring tool on the market"],a:1,cat:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"This is the headline value prop. 🟢 Dash0 angle: Observability as easy as asking a colleague — the AI-native approach reduces time-to-insight dramatically.",d:1},
+{q:"A customer asks why they should use Dash0 MCP instead of Grafana + ChatGPT. What's the key differentiator?",o:["Dash0 MCP is cheaper than Grafana","Grafana + ChatGPT is disconnected — you manually copy data between tools. Dash0 MCP is integrated — the LLM queries live data directly, no copy-paste, real-time answers","Dash0 MCP has better dashboards than Grafana","Dash0 MCP uses GPT-4 while Grafana uses an older model"],a:1,cat:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"Integration is the key word. Copy-paste workflows break context and introduce latency. 🟢 Dash0 angle: MCP closes the loop between the AI layer and the data layer — they're not two separate systems.",d:1},
+{q:"Why did Dash0 launch the MCP server as remote/hosted rather than requiring local installation?",o:["Remote servers are more secure than local ones","Zero install friction — no npm packages, no version management; one config block and the server is live for the entire team","Remote servers have lower latency","Dash0 doesn't publish open-source packages"],a:1,cat:"Pitch & Positioning",u:"https://github.com/dash0hq/mcp-dash0",e:"Enterprise adoption depends on frictionless setup. 🟢 Dash0 angle: A single config block scales to 500 engineers — no per-developer installs, no version drift.",d:2},
+{q:"How do you respond to a security team asking what data the MCP server can access?",o:["Everything in your entire cloud infrastructure","Only the Dash0 observability dataset — logs, traces, metrics, synthetics, K8s events. Scoped to datasets your auth token has permissions for. No write access to application infrastructure.","Only publicly accessible metrics","The MCP server has no data access — it only creates visualizations"],a:1,cat:"Pitch & Positioning",u:"https://github.com/dash0hq/mcp-dash0",e:"Security teams need clear scope. Token permissions gate data access. The MCP server only touches Dash0 assets (dashboards, synthetics) — not your application infrastructure.",d:1},
+{q:"What is the competitive positioning of Dash0 MCP vs. proprietary AI observability assistants?",o:["Dash0 MCP is more expensive but more capable","Dash0 MCP is open protocol (MCP standard) — works in any MCP-compatible IDE/agent. Proprietary AI assistants are locked to their own UI; Dash0 MCP brings observability into developer workflows","Dash0 MCP requires more setup than proprietary solutions","Dash0 MCP only works with Claude, not other LLMs"],a:1,cat:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-mcp-server",e:"Open protocol is a strategic differentiator. 🟢 Dash0 angle: Developers use the tools they love (Claude Code, Cursor, Windsurf) — Dash0 MCP meets them there. Proprietary AI assistants require switching to a new interface.",d:2},
+];
+const SCENARIOS=[
+// ── Sales Scenarios (3) ──
+{q:"A prospect says: 'We already have Datadog with an AI assistant built in. Why would we need Dash0 MCP?'",
+a:"This is a great opportunity to highlight the open protocol advantage. Datadog's AI assistant is proprietary and locked to their UI — it doesn't live in your IDE, it requires you to go to Datadog. Dash0 MCP is built on the Model Context Protocol open standard, which means it works natively in Claude Code, Cursor, Windsurf, Cline, and any other MCP-compatible tool your engineers already use.\n\nThe workflow difference is significant: with Datadog's AI, engineers switch context to the Datadog UI, ask a question, then go back to their code. With Dash0 MCP, they never leave their IDE. They ask in Claude Code: 'What's causing the error spike in checkout-service?' and get a live answer from your actual Dash0 data — no context switch, no copy-paste.\n\nAlso worth noting: Dash0 MCP exposes all 23 tools including PromQL execution, Kubernetes event correlation, and synthetic check queries — this is a full observability interface, not just a dashboard search feature.\n\nAsk them: 'How often does your team stay in Datadog's interface versus coding? If observability lived in their IDE, would they use it more?'",
+u:["https://www.dash0.com/changelog/dash0-mcp-server","https://github.com/dash0hq/mcp-dash0"]},
+
+{q:"A customer's security team wants to know exactly what data the MCP server can access before approving it.",
+a:"This is a legitimate and important question — here's the precise answer:\n\nThe Dash0 MCP server accesses only your Dash0 observability dataset: logs, distributed traces, metrics (including PromQL queries), synthetic check results, web vitals, Kubernetes events, and your Dash0 asset metadata (dashboards, synthetic check definitions). It does NOT have access to your application infrastructure, cloud provider APIs, databases, code repositories, or any system outside of Dash0.\n\nAccess is scoped to specific datasets via the auth token you configure. You create a token with 'All permissions' on the datasets you choose — nothing more. If you want read-only access to logs and traces but no dashboard modification, you can create a token with restricted dataset permissions.\n\nThe server is remote-hosted on Dash0's infrastructure (not local), which means the auth token is passed as an HTTP header on each request — it's never stored on the developer's machine beyond the IDE config file.\n\nFor the security team review, I'd recommend starting with a read-heavy dataset in a non-production environment and validating the access scope before granting production dataset permissions.",
+u:["https://github.com/dash0hq/mcp-dash0","https://www.dash0.com/docs/dash0/ai/mcp"]},
+
+{q:"A prospect asks: 'Why should we use MCP instead of just giving engineers access to the Dash0 UI and the Dash0 CLI?'",
+a:"Great question — MCP, the CLI, and the UI serve different contexts, and the answer is 'use all three,' but MCP fills a gap the others don't.\n\nThe CLI is great for scripted workflows, CI/CD pipelines, and GitOps operations — managing assets, querying from the terminal, sending telemetry. The UI is best for exploration, building dashboards, and visual investigation. But both require deliberate context switching — you have to stop coding and go to another tool.\n\nMCP is the zero-context-switch option. When an engineer is in Claude Code debugging a function and notices something odd in the logs, they can ask 'What's the error rate for this service?' without opening a browser or running a terminal command. The answer comes back in the same conversation thread they're already in.\n\nThe bigger picture: as AI coding agents become standard in engineering workflows, the tools that integrate with those agents gain compounding value. MCP is how observability enters the AI coding loop — it means your AI assistant can reference real production data when helping debug or design code. That's fundamentally new.\n\nAsk them: 'When was the last time an engineer stopped coding to check observability data because it was too much friction to switch tools?'",
+u:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"]},
+
+// ── SA / Technical Scenarios (5) ──
+{q:"A solutions architect demo: Show me how to debug a service degradation in payment-service using only natural language.",
+a:"Here's the workflow (demonstrate in Claude Code or Cursor with Dash0 MCP configured):\n\nStep 1 — Identify the problem: 'Show me the error rate and latency for payment-service over the last 2 hours. Has anything changed in the last 30 minutes?'\nThe LLM calls get_metrics / query_promql and returns a time series comparison showing when the degradation started.\n\nStep 2 — Get logs: 'Show me error logs for payment-service from the last 30 minutes.'\nThe LLM calls get_logs and returns the top errors with timestamps, message patterns, and stack traces.\n\nStep 3 — Find the slowest traces: 'Show me the slowest traces for payment-service in the last 30 minutes — what operation is taking the longest?'\nThe LLM calls get_traces with duration sorting and identifies the bottleneck operation.\n\nStep 4 — Check dependencies: 'Are any of the services that payment-service calls also showing elevated errors?'\nThe LLM uses service topology and metric tools to check upstream services.\n\nStep 5 — Check K8s: 'Are there any Kubernetes events for pods running payment-service in the last hour?'\nThe LLM calls get_kubernetes_events and surfaces any restarts, OOMKills, or scheduling issues.\n\nTotal time: ~2 minutes. Zero UI navigation. Zero PromQL written. All in the IDE.",
+u:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"]},
+
+{q:"A customer asks: 'Can we use MCP to automate post-deployment health checks in our CI/CD pipeline?'",
+a:"Yes — this is one of the highest-value production use cases for Dash0 MCP. Here's the pattern:\n\nIn your CI/CD pipeline (GitHub Actions, GitLab CI, etc.), after a deployment completes, trigger a step that invokes an AI agent (e.g., Claude via the API) with the Dash0 MCP server configured. The agent prompt: 'The payment-service was just deployed at {TIMESTAMP} with version {VERSION}. Check for the following in the 15 minutes following deployment: (1) error rate increase above 1%, (2) p99 latency increase above 20%, (3) any Kubernetes restarts or OOMKilled events. Report status as HEALTHY or DEGRADED with evidence.'\n\nThe agent autonomously calls get_metrics, query_promql, and get_kubernetes_events through MCP and returns a structured health assessment. You can gate the deployment promotion or send a Slack notification based on the result.\n\nThis is fundamentally different from writing custom health check scripts — you describe the check in natural language, the LLM figures out which MCP tools to call, and the result is actionable.\n\nPrerequisites: MCP server configured, Dash0 auth token with appropriate dataset permissions, and a Claude API key or similar LLM with MCP support.",
+u:["https://www.dash0.com/docs/dash0/ai/mcp","https://github.com/dash0hq/mcp-dash0"]},
+
+{q:"An engineer asks: 'I need to compare metrics for payment-service across three different time windows — before, during, and after an incident. Can MCP do this?'",
+a:"Yes — multi-window comparison is a natural use case for conversational PromQL via MCP. Here's how to frame the request:\n\n'Compare the following for payment-service: (1) error rate and p99 latency during the 2 hours before the incident (yesterday 10pm-midnight), (2) during the incident (midnight to 2am), and (3) the 2 hours after resolution (2am-4am). Summarize what changed and when it normalized.'\n\nThe LLM will generate the appropriate PromQL expressions with time range offsets and call query_promql three times (or use PromQL offset modifier), then synthesize a comparative summary.\n\nThis kind of cross-window comparison typically requires either: writing multiple PromQL queries with offset modifiers manually, or building a Grafana panel with multiple time range overrides. MCP reduces this to a single natural language request.\n\nFor engineers who are comfortable with PromQL, MCP also lets you validate your own queries — 'Run this PromQL and tell me if the result looks correct for a service recovering from a database timeout'.",
+u:["https://www.dash0.com/changelog/dash0-mcp-server","https://www.dash0.com/docs/dash0/ai/mcp"]},
+
+{q:"During an incident, the on-call engineer uses Dash0 MCP to investigate. Walk through a realistic incident investigation workflow.",
+a:"Context: Alert fires — checkout-service p99 latency exceeds 5 seconds at 11:47pm. On-call engineer opens Claude Code.\n\n1. 'What's the current error rate and latency for checkout-service? When did it start spiking?'\n→ LLM: query_promql for latency time series → 'Latency started rising at 11:42pm, currently 7.3s p99, baseline is 340ms'\n\n2. 'Show me the most recent error logs for checkout-service from the last 20 minutes.'\n→ LLM: get_logs → Returns errors: 'Connection pool exhausted — upstream: database-primary'\n\n3. 'Is database-primary showing any issues? Check its error rate and latency.'\n→ LLM: get_metrics → 'database-primary showing 40% error rate, query latency 12s avg — started same time'\n\n4. 'Show me K8s events for database-primary pods in the last 30 minutes.'\n→ LLM: get_kubernetes_events → 'OOMKilled on database-primary-0 at 11:41pm, restart took 90s'\n\n5. 'Which other services are calling database-primary and might also be affected?'\n→ LLM: service topology tools → Lists 4 other services with upstream dependency\n\nRoot cause identified: 11:41pm OOMKill on database-primary caused connection pool exhaustion cascading to checkout-service. Total investigation time: ~4 minutes. No browser opened.",
+u:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"]},
+
+{q:"A customer's platform team wants to give all engineers access to Dash0 observability via MCP. What does the rollout look like?",
+a:"The Dash0 MCP rollout is unusually simple compared to traditional observability tool adoption:\n\nPhase 1 — Auth setup (Platform team, 1 hour): Create a Dash0 auth token with appropriate dataset permissions (recommend read-only for logs/traces/metrics initially, full permissions for trusted engineers who need dashboard management). Get the regional MCP endpoint URL from Organization Settings → Endpoints → MCP.\n\nPhase 2 — Config distribution: Distribute the .mcp.json config to engineers for their IDE of choice. The Dash0 Integrations Hub (dash0.com/hub/integrations?tag=AI) has copy-paste configs for Claude Code, Cursor, Windsurf, VS Code + GitHub Copilot, Cline, Zed, and more. Engineers add the file to their project root (or globally) and restart their IDE.\n\nPhase 3 — Validation: Each engineer confirms the Dash0 MCP server appears in their IDE's tool list. They can run a simple test: 'List all services in Dash0' — if they see their service catalog, MCP is working.\n\nPhase 4 — Enablement: Share a short guide with example prompts for the most common workflows: log queries, trace investigation, metric comparison, K8s event lookup. The learning curve is minimal — it's just asking questions.\n\nNo per-engineer installs, no SDK dependencies, no version management. One config block, works for the whole team.",
+u:["https://github.com/dash0hq/mcp-dash0","https://www.dash0.com/hub/integrations"]},
+
+// ── Technical Deep-Dive (4) ──
+{q:"An engineer asks: 'How does MCP actually work under the hood when I ask a natural language question?'",
+a:"Here's the technical flow:\n\n1. You type: 'Show me error logs for payment-service in the last hour' in Claude Code.\n\n2. Claude (the LLM) sees this request in the context of a conversation where Dash0 MCP tools are available. It reviews the tool catalog — 23 tools with descriptions and parameter schemas — and determines that get_logs is the right tool.\n\n3. Claude generates a structured tool call: get_logs({service: 'payment-service', timeRange: 'last 1 hour', severity: 'ERROR'})\n\n4. The MCP client (Claude Code) sends this tool call to the Dash0 MCP server via Streamable HTTP — an HTTP request to your regional Dash0 MCP endpoint with your auth token in the Authorization header.\n\n5. The Dash0 MCP server translates this into the appropriate Dash0 API calls (log query API with the specified parameters).\n\n6. The server returns the log results as structured JSON to the MCP client.\n\n7. Claude receives the log data and formats a human-readable response: 'I found 47 errors in payment-service in the last hour. The most common error is...'\n\nKey insight: The LLM never sees raw Dash0 API credentials beyond the tool definition metadata. The MCP layer handles authentication. The LLM only works with the tool inputs/outputs.",
+u:["https://modelcontextprotocol.io/introduction","https://github.com/dash0hq/mcp-dash0"]},
+
+{q:"An engineer wants to write a custom MCP integration that calls Dash0 MCP from a Python script for automated reporting. Is this possible?",
+a:"Yes — because Dash0 MCP is built on the open MCP standard using Streamable HTTP transport, any MCP-compatible client can call it. For Python automation:\n\nOption 1 — Claude API with MCP: Use the Anthropic Python SDK to create an agent with the Dash0 MCP server configured. Pass the agent a prompt like 'Generate a weekly service health report for the following services: ...' — the agent will call the MCP tools and return the report.\n\nOption 2 — Direct HTTP (if you prefer to call MCP tools manually): The Streamable HTTP transport accepts standard HTTP POST requests with the MCP protocol payload. You can call the Dash0 MCP endpoint directly with your auth token and the appropriate tool name + parameters as JSON.\n\nOption 3 — mcp-remote package: For Python/Node clients that implement the stdio MCP transport, use the mcp-remote bridge package to connect to the Dash0 remote HTTP endpoint.\n\nPractical use case: A weekly cron job that runs an AI agent prompt — 'For each service in the production dataset, summarize: error rate trend over 7 days, any SLO breaches, notable K8s events' — and posts the result to a Slack channel or generates a PDF report. No custom dashboard needed.",
+u:["https://github.com/dash0hq/mcp-dash0","https://www.dash0.com/docs/dash0/ai/mcp"]},
+
+// ── Additional Sales Scenario (4th) ──
+{q:"A prospect at a large enterprise says: 'We have 500 engineers. How do we govern who can access observability data through MCP?'",
+a:"Governance at scale is a legitimate concern — here's the answer:\n\nDash0 MCP uses token-based access control, and you have full control over what each token can access. For a 500-engineer organization, the typical approach is:\n\n1. Platform team creates role-based tokens: read-only tokens for developers (logs, traces, metrics queries only), full-permission tokens for SREs and senior engineers (includes dashboard management and synthetic check operations). These map to the standard least-privilege principle.\n\n2. Token distribution: Engineers add the token to their IDE config once. Since the token is in a local config file (not shared), the blast radius of a compromised token is limited to one person's dataset access.\n\n3. Token scoping per environment: Create separate tokens for production and staging datasets. Most developers only need staging access; production data access is restricted to on-call SREs and senior engineers.\n\n4. Auditability: All MCP tool calls go through the Dash0 API with the auth token — Dash0's audit log captures who accessed what data. This is equivalent to any direct API access audit trail.\n\nThe practical answer: MCP has the same governance model as direct API access — because that's what it is under the hood. The MCP layer doesn't bypass any access controls; it calls the same Dash0 APIs with the same token permissions.\n\nFor very strict environments: start with read-only staging access for all engineers and escalate to production access through a standard request process.",
+u:["https://github.com/dash0hq/mcp-dash0","https://www.dash0.com/docs/dash0/ai/mcp"]},
+
+// ── Additional SA/Technical Scenario (4th) ──
+{q:"A solutions architect customer asks: 'Can we embed Dash0 MCP in our custom internal AI tooling — not Claude Code, but our own internal agent framework?'",
+a:"Yes — because Dash0 MCP is built on the open Model Context Protocol standard with Streamable HTTP transport, any MCP-compatible client can connect to it. Here's how this works for a custom agent framework:\n\n1. If your framework supports MCP natively: Add the Dash0 endpoint as a remote MCP server in your framework's MCP client configuration. Use the 'streamableHttp' transport type, the regional endpoint URL, and an Authorization Bearer header. Your agents will automatically discover and call the 23 Dash0 tools.\n\n2. If your framework uses a different protocol: Use the mcp-remote bridge package (npx mcp-remote). It translates stdio or HTTP+SSE transport to the Dash0 Streamable HTTP endpoint. This handles older agent frameworks that predate the Streamable HTTP standard.\n\n3. Direct HTTP calls (without an MCP client library): The Streamable HTTP transport is standard HTTP POST. You can call the Dash0 MCP endpoint directly with the MCP protocol JSON payload, your auth token in the Authorization header, and handle the response. This is useful for lightweight integrations that don't need a full MCP client library.\n\nPractical example: A custom internal 'ops assistant' agent that uses LangChain or a proprietary LLM framework can add Dash0 as a tool provider. The agent then gains natural language access to logs, traces, metrics, and K8s events — integrated into whatever internal workflow the team has built.\n\nKey point: MCP's open protocol design specifically enables this ecosystem use case. Dash0 invested in remote hosting precisely so any agent — not just Claude Code — can access observability data without additional infrastructure.",
+u:["https://github.com/dash0hq/mcp-dash0","https://modelcontextprotocol.io/introduction"]},
+];
+const RAPID=[
+{q:"What does MCP stand for?",a:"Model Context Protocol.",t:6,u:"https://modelcontextprotocol.io/introduction"},
+{q:"How many tools does Dash0 MCP expose?",a:"23 tools.",t:5,u:"https://www.dash0.com/changelog/dash0-mcp-server"},
+{q:"What transport does Dash0 MCP use?",a:"Streamable HTTP (remote hosted).",t:6,u:"https://github.com/dash0hq/mcp-dash0"},
+{q:"Where do you find the Dash0 MCP endpoint URL?",a:"Org Settings → Endpoints → MCP.",t:8,u:"https://github.com/dash0hq/mcp-dash0"},
+{q:"What token permission level does MCP require?",a:"All permissions on the target dataset(s).",t:7,u:"https://github.com/dash0hq/mcp-dash0"},
+{q:"What config key defines MCP servers in Claude Code?",a:"mcpServers",t:6,u:"https://github.com/dash0hq/mcp-dash0"},
+{q:"What MCP tool lists all services in Dash0?",a:"list_services",t:6,u:"https://www.dash0.com/docs/dash0/ai/mcp"},
+{q:"What MCP tool executes PromQL expressions?",a:"query_promql",t:6,u:"https://www.dash0.com/changelog/dash0-mcp-server"},
+{q:"What MCP tool retrieves Kubernetes events?",a:"get_kubernetes_events",t:6,u:"https://www.dash0.com/docs/dash0/ai/mcp"},
+{q:"What MCP tool retrieves logs?",a:"get_logs",t:5,u:"https://www.dash0.com/docs/dash0/ai/mcp"},
+{q:"What MCP tool retrieves distributed traces?",a:"get_traces",t:5,u:"https://www.dash0.com/docs/dash0/ai/mcp"},
+{q:"What MCP tool lists dashboards?",a:"list_dashboards",t:5,u:"https://www.dash0.com/docs/dash0/ai/mcp"},
+{q:"What does RED stand for?",a:"Rate, Errors, Duration.",t:7,u:"https://www.dash0.com/changelog/dash0-mcp-server"},
+{q:"What fallback tool bridges stdio clients to Dash0 remote MCP?",a:"mcp-remote (via npx)",t:8,u:"https://github.com/dash0hq/mcp-dash0"},
+{q:"Name 3 IDEs that support Dash0 MCP natively.",a:"Claude Code, Cursor, Windsurf (also: Cline, Zed, VS Code + Copilot).",t:10,u:"https://www.dash0.com/hub/integrations"},
+];
+// ─── LESSONS ───
+const LESSONS=[
+{id:"lesson-1",title:"What is MCP?",time:"8 min read",week:1,icon:"🧠",
+sources:["https://modelcontextprotocol.io/introduction","https://www.dash0.com/changelog/dash0-mcp-server","https://github.com/dash0hq/mcp-dash0"],
+exercises:[
+{task:"Read the Dash0 MCP changelog entry and list 3 specific use cases mentioned.",hint:"Look for troubleshooting, statistics, implementation planning, and service listing.",url:"https://www.dash0.com/changelog/dash0-mcp-server"},
+{task:"Explain MCP to a colleague in one sentence without using the word 'protocol'.",hint:"Focus on what it enables: natural language → observability data."},
+{task:"Identify which of the 23 Dash0 MCP tools you'd use for each: (a) finding error logs, (b) querying PromQL, (c) listing Kubernetes events.",hint:"Hint: get_logs, query_promql, get_kubernetes_events.",url:"https://www.dash0.com/docs/dash0/ai/mcp"}
+],
+body:`<div class="lesson-section"><h4>What is the Model Context Protocol?</h4><div class="lesson-text"><p>MCP (Model Context Protocol) is an open standard by Anthropic that defines how Large Language Models connect to external tools and data sources. Think of it as USB-C for AI — a universal connector that lets LLMs use tools without custom integration code.</p><p>Before MCP, connecting an LLM to observability data required either: (a) copy-pasting data from monitoring UIs into the chat, (b) writing custom function-calling integrations for each tool, or (c) accepting that the LLM would answer based on outdated training data. MCP solves all three problems with a standardized tool protocol.</p></div></div>
+<div class="lesson-highlight">Key insight: With MCP, the LLM autonomously decides <em>which</em> tool to call and <em>when</em> based on your natural language request. You don't call tools — the AI does.</div>
+<div class="lesson-section"><h4>Dash0 MCP: The AI-Native Observability Interface</h4><div class="lesson-text"><p>The Dash0 MCP server is a remote, hosted implementation of the MCP standard. It exposes <strong>23 tools</strong> covering every observability signal in the Dash0 platform: logs, distributed traces, metrics (including full PromQL), synthetic check results, web vitals, Kubernetes events, and dashboard management.</p><p>Critically: the server is <em>remote</em> — there's nothing to install locally. One config block in your IDE and the full Dash0 observability dataset is available through natural language in every project.</p></div></div>
+<div class="lesson-section"><h4>The 23 Tools at a Glance</h4><div class="lesson-text"><p>The 23 Dash0 MCP tools fall into 7 categories:</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Service Discovery</div>list_services, topology tools, service health</div><div class="lesson-compare-item"><div class="compare-label" style="color:#3b82f6">Logs & Traces</div>get_logs, get_traces, correlation tools</div><div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">Metrics & PromQL</div>get_metrics, query_promql, Query Builder</div><div class="lesson-compare-item"><div class="compare-label" style="color:#8b5cf6">Synthetic & Web</div>synthetic check results, web vitals</div><div class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Kubernetes</div>get_kubernetes_events, pod management</div><div class="lesson-compare-item"><div class="compare-label" style="color:#6b7280">Dashboards</div>list_dashboards, dashboard management</div></div></div>
+<div class="lesson-section"><h4>Four Primary Use Cases</h4><div class="lesson-text"><p>The Dash0 docs highlight four use cases where MCP provides distinct value over the UI or CLI:</p><ol style="padding-left:20px;line-height:2"><li><strong>Troubleshooting</strong> — pull error rates, latency, and service health for contextual issue diagnosis without leaving your IDE</li><li><strong>High-level statistics</strong> — get service availability summaries, request volumes, or error distributions on-demand</li><li><strong>Implementation planning</strong> — query dependencies, endpoints, and baselines before building new features</li><li><strong>Service listing</strong> — retrieve structured service catalogs for architecture discussions or documentation</li></ol></div></div>`},
+
+{id:"lesson-2",title:"Setup & Configuration",time:"10 min read",week:1,icon:"⚙️",
+sources:["https://github.com/dash0hq/mcp-dash0","https://www.dash0.com/hub/integrations","https://www.dash0.com/docs/dash0/ai/mcp/use-mcp"],
+exercises:[
+{task:"Follow the setup guide for your IDE and confirm the Dash0 MCP server appears in your tool list.",hint:"Check the Dash0 Integrations Hub for your specific IDE's instructions.",url:"https://www.dash0.com/hub/integrations"},
+{task:"Test your connection by asking: 'List all services in Dash0.' Verify you see your service catalog.",hint:"If you see a list of your instrumented services, the connection is working."},
+{task:"Try the npx mcp-remote fallback config — understand when you'd need it and what problem it solves.",hint:"Think about IDE clients that implemented the stdio transport before Streamable HTTP was added.",url:"https://github.com/dash0hq/mcp-dash0"}
+],
+body:`<div class="lesson-section"><h4>Step 1: Get Your Credentials</h4><div class="lesson-text"><p>Before configuring any IDE, you need two things from the Dash0 app:</p><ol style="padding-left:20px;line-height:2"><li><strong>MCP Endpoint URL</strong> — Go to Organization Settings → Endpoints → MCP. Copy the URL for your region. Each Dash0 region (US, EU, AP) has a different endpoint.</li><li><strong>Auth Token</strong> — Go to Organization Settings → Auth Tokens. Create a new token or reuse an existing one. The token must have <code class="code-inline">All permissions</code> on the dataset(s) you want to access.</li></ol></div></div>
+<div class="lesson-highlight">Security note: Your auth token scopes access to specific datasets. Only grant permissions on the datasets your IDE needs — typically your production and/or staging observability datasets.</div>
+<div class="lesson-section"><h4>Claude Code Configuration</h4><div class="lesson-text"><p>Create a <code class="code-inline">.mcp.json</code> file in your project root (or <code class="code-inline">~/.claude/mcp.json</code> for global access):</p></div>
+<div class="code-block">{\n  "mcpServers": {\n    "dash0": {\n      "type": "streamableHttp",\n      "url": "https://your-region.mcp.dash0.com",\n      "headers": {\n        "Authorization": "Bearer YOUR_AUTH_TOKEN"\n      }\n    }\n  }\n}</div>
+<div class="lesson-text"><p>Restart Claude Code after adding this file. The Dash0 server will appear in the MCP tools panel.</p></div></div>
+<div class="lesson-section"><h4>Fallback Config (for legacy clients)</h4><div class="lesson-text"><p>Some MCP clients implemented the older stdio transport before Streamable HTTP was standardized. For these, use the <code class="code-inline">mcp-remote</code> bridge:</p></div>
+<div class="code-block">{\n  "mcpServers": {\n    "dash0": {\n      "command": "npx",\n      "args": ["-y", "mcp-remote", "https://your-region.mcp.dash0.com",\n               "--header", "Authorization: Bearer ${DASH0_AUTH_TOKEN}"],\n      "env": {\n        "DASH0_AUTH_TOKEN": "YOUR_AUTH_TOKEN"\n      }\n    }\n  }\n}</div>
+<div class="lesson-text"><p>The <code class="code-inline">mcp-remote</code> package runs locally as a bridge process. It connects your IDE's stdio MCP client to the Dash0 remote HTTP endpoint.</p></div></div>
+<div class="lesson-section"><h4>Other Supported IDEs</h4><div class="lesson-text"><p>The Dash0 Integrations Hub provides copy-paste configs for: <strong>Claude Code, Cline, Cursor, GitHub Copilot (VS Code), Windsurf, Zed, LangChain, OpenCode, OpenLIT, OpenLLMetry, Kiro, Kagent</strong>. Visit <a href="https://www.dash0.com/hub/integrations?tag=AI" target="_blank" class="source-link">dash0.com/hub/integrations</a> and select your tool.</p></div></div>`},
+
+{id:"lesson-3",title:"Service Discovery",time:"9 min read",week:1,icon:"🔍",
+sources:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"],
+exercises:[
+{task:"Ask MCP: 'Which services have the highest error rate in the last hour?' and analyze the response.",hint:"The LLM should call service health tools and return a ranked list."},
+{task:"Ask MCP: 'Show me the dependencies for [one of your services].' Trace the dependency chain.",hint:"Look for upstream and downstream services in the response."},
+{task:"Ask MCP to find a service you've never investigated before and summarize its health metrics.",hint:"This tests the breadth of your service catalog and the LLM's ability to summarize RED metrics.",url:"https://www.dash0.com/changelog/dash0-mcp-server"}
+],
+body:`<div class="lesson-section"><h4>Service Discovery: Your Starting Point for Any Investigation</h4><div class="lesson-text"><p>Before investigating a specific service, you need to understand what's in your environment. The Dash0 MCP server's service discovery tools give you a complete picture of your instrumented service catalog, their relationships, and their current health — all through natural language.</p></div></div>
+<div class="lesson-highlight">Resource-Centric SRE Automation: AI agents can navigate between services, view RED metrics for every operation, and identify resources affected by failed health checks — all through the MCP service discovery tools.</div>
+<div class="lesson-section"><h4>The list_services Tool</h4><div class="lesson-text"><p>The foundational service discovery tool. Use it to:</p><ul style="padding-left:20px;line-height:2"><li>'Show me all services in Dash0' — returns your full service catalog</li><li>'Which services appeared in the last 24 hours?' — surface newly deployed services</li><li>'How many services do we have in production?' — infrastructure sizing questions</li></ul></div></div>
+<div class="lesson-section"><h4>Service Topology & Dependencies</h4><div class="lesson-text"><p>Understanding service dependencies is critical for impact analysis. When checkout-service starts failing, you need to know: which services does it call? Which services call it? The MCP topology tools answer these questions conversationally:</p><ul style="padding-left:20px;line-height:2"><li>'What services does checkout-service depend on?'</li><li>'Which services have upstream dependencies on payment-service?'</li><li>'If database-primary goes down, which services are affected?'</li></ul></div></div>
+<div class="lesson-section"><h4>RED Metrics per Service</h4><div class="lesson-text"><p>RED metrics (Rate, Errors, Duration) are the standard SRE lens for service health. The Dash0 MCP server surfaces these per service and per operation:</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Rate</div>Requests per second — volume and traffic patterns</div><div class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Errors</div>Error rate % — service reliability</div><div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">Duration</div>Latency (p50/p95/p99) — user experience</div></div>
+<div class="lesson-text"><p>Combine these: 'Show me all services with error rate above 0.5% and p99 latency above 2s in the last hour' — the LLM orchestrates multiple metric queries and returns a prioritized list.</p></div></div>`},
+
+{id:"lesson-4",title:"Logs & Traces",time:"11 min read",week:2,icon:"📋",
+sources:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"],
+exercises:[
+{task:"Query error logs for a production service using only natural language. Identify the top 3 error patterns.",hint:"'Show me error logs for [service] in the last 2 hours. What are the most common errors?'"},
+{task:"Find the 5 slowest traces for a service in the last hour. What operation is the bottleneck?",hint:"'Show me the slowest 5 traces for [service] in the last hour. What operation takes the most time?'"},
+{task:"Correlate a specific trace ID with its log lines. Ask MCP to show both together.",hint:"Copy a trace ID from a slow trace result and ask: 'Show me logs and trace details for trace ID [id]'.",url:"https://www.dash0.com/docs/dash0/ai/mcp"}
+],
+body:`<div class="lesson-section"><h4>get_logs: Natural Language Log Queries</h4><div class="lesson-text"><p>The <code class="code-inline">get_logs</code> tool accepts natural language queries and returns structured log records. You don't need to know Dash0's log query syntax, attribute names, or filter operators — describe what you want.</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Traditional approach</div>Learn query syntax, know attribute paths like service.name, severity_text, and time range formats</div><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">MCP approach</div>'Show me error logs for payment-service in the last hour' — the LLM handles the translation</div></div></div>
+<div class="lesson-highlight">The LLM doesn't just retrieve logs — it summarizes patterns, identifies anomalies, compares with previous time windows, and suggests investigation steps, all in one response.</div>
+<div class="lesson-section"><h4>get_traces: Distributed Trace Retrieval</h4><div class="lesson-text"><p>The <code class="code-inline">get_traces</code> tool retrieves distributed trace data — end-to-end request flows across multiple services. Use it to investigate slow requests, identify bottleneck operations, and trace error propagation across service boundaries.</p><p>Key natural language patterns:</p><ul style="padding-left:20px;line-height:2"><li>'Show me the slowest traces for checkout-service in the last 30 minutes'</li><li>'Find all failed traces for payment-service today'</li><li>'Show me the full trace for trace ID abc123 including all service hops'</li><li>'Which operation in order-service takes the most time on average?'</li></ul></div></div>
+<div class="lesson-section"><h4>Log-Trace Correlation</h4><div class="lesson-text"><p>One of MCP's most powerful capabilities: correlating logs and traces in a single query. Traditional observability requires switching between log and trace views in the UI and manually matching trace IDs. MCP handles this orchestration automatically:</p><p>'Show me logs correlated with trace ID abc123' — the LLM calls <code class="code-inline">get_traces</code> for the trace ID, then calls <code class="code-inline">get_logs</code> filtered by the same trace ID, and presents both in a unified view.</p></div></div>`},
+
+{id:"lesson-5",title:"Metrics & PromQL",time:"12 min read",week:2,icon:"📊",
+sources:["https://www.dash0.com/changelog/dash0-mcp-server","https://www.dash0.com/docs/dash0/ai/mcp"],
+exercises:[
+{task:"Ask MCP for the p99 latency of a service over the last 2 hours. Then ask it to compare with yesterday at the same time.",hint:"'What is the p99 latency for [service] in the last 2 hours? How does this compare to yesterday at the same time?'",url:"https://www.dash0.com/changelog/dash0-mcp-server"},
+{task:"Ask MCP to show you the error rate for 3 services side-by-side.",hint:"'Compare the error rate for [service1], [service2], and [service3] over the last hour.'"},
+{task:"Ask MCP to explain a PromQL expression it generated — 'what does this query actually measure?'",hint:"After MCP generates a PromQL query, ask: 'Can you explain what this PromQL expression measures step by step?'"}
+],
+body:`<div class="lesson-section"><h4>Two Ways to Query Metrics with MCP</h4><div class="lesson-text"><p>The Dash0 MCP server provides two complementary tools for metrics:</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">get_metrics</div>Natural language metric retrieval — 'what's the request rate for X?' Returns time series data without requiring PromQL</div><div class="lesson-compare-item"><div class="compare-label" style="color:#3b82f6">query_promql</div>Direct PromQL execution — the LLM generates the expression from natural language, then runs it via this tool</div></div></div>
+<div class="lesson-highlight">PromQL without the learning curve: the LLM generates histogram_quantile expressions, rate() calculations, and multi-label selectors from plain English. You get the full power of PromQL without memorizing the syntax.</div>
+<div class="lesson-section"><h4>Common Metrics Queries via MCP</h4><div class="lesson-text"><p>Example natural language queries and what happens under the hood:</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#a5f3fc">'p99 latency for api-gateway'</div>LLM generates: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))</div><div class="lesson-compare-item"><div class="compare-label" style="color:#a5f3fc">'Error rate for payment-service'</div>LLM generates: rate(http_requests_total{status=~"5..",service="payment-service"}[5m])</div><div class="lesson-compare-item"><div class="compare-label" style="color:#a5f3fc">'Request volume last 24h'</div>LLM generates: sum(increase(http_requests_total[24h])) by (service)</div><div class="lesson-compare-item"><div class="compare-label" style="color:#a5f3fc">'Memory usage by pod'</div>LLM generates: container_memory_usage_bytes grouped by pod</div></div></div>
+<div class="lesson-section"><h4>The Query Builder Capability</h4><div class="lesson-text"><p>The Dash0 changelog describes the Query Builder as an interface for constructing and executing PromQL queries directly through MCP for real-time analysis. This goes beyond simple metric retrieval — it enables iterative query refinement in natural language: 'That query is too broad — can you filter it to only the production namespace?' The LLM refines the PromQL and re-runs it.</p></div></div>`},
+
+{id:"lesson-6",title:"Synthetic & Web Vitals",time:"8 min read",week:2,icon:"🌐",
+sources:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"],
+exercises:[
+{task:"Ask MCP for the current status of all synthetic checks. Identify any that have failed in the last 24 hours.",hint:"'Show me the current status of all synthetic checks. Have any failed in the last 24 hours?'"},
+{task:"Ask MCP about Core Web Vitals for a web property. Specifically: LCP and CLS.",hint:"'What is the current LCP and CLS for [your web app]? How do they compare to the recommended thresholds?'"},
+{task:"Correlate a web vitals degradation with a recent event (deployment, config change).",hint:"'Did LCP for the homepage worsen after [time of recent change]? Show me the trend.'",url:"https://www.dash0.com/docs/dash0/ai/mcp"}
+],
+body:`<div class="lesson-section"><h4>Synthetic Monitoring via MCP</h4><div class="lesson-text"><p>Synthetic checks are automated tests that periodically probe your endpoints — HTTP checks, API tests, multi-step browser flows — to verify availability and performance before real users report problems.</p><p>The Dash0 MCP server exposes synthetic check data, enabling conversational availability monitoring:</p><ul style="padding-left:20px;line-height:2"><li>'Show me the current status of all synthetic checks'</li><li>'Which synthetic checks have been failing intermittently in the last 4 hours?'</li><li>'What is the average response time for the /checkout endpoint synthetic check?'</li><li>'Is the payment gateway URL check passing right now?'</li></ul></div></div>
+<div class="lesson-highlight">The real value of MCP for synthetic monitoring: you get availability status embedded in your IDE workflow — no switching to a monitoring dashboard. And the LLM explains why a check might be failing, not just that it is.</div>
+<div class="lesson-section"><h4>Core Web Vitals</h4><div class="lesson-text"><p>Web Vitals measure the quality of user experience on web pages. Dash0 collects these metrics and the MCP server makes them queryable:</p></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">LCP</div>Largest Contentful Paint — loading performance. Good: &lt;2.5s</div><div class="lesson-compare-item"><div class="compare-label" style="color:#3b82f6">CLS</div>Cumulative Layout Shift — visual stability. Good: &lt;0.1</div><div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">INP</div>Interaction to Next Paint — responsiveness. Good: &lt;200ms</div><div class="lesson-compare-item"><div class="compare-label" style="color:#8b5cf6">TTFB</div>Time to First Byte — server response. Good: &lt;800ms</div></div>
+<div class="lesson-text"><p>Use MCP to correlate web vitals with deployments: 'Did the LCP score for the homepage worsen after the 2pm deployment today?' The LLM queries web vitals time series and correlates with the deployment timestamp automatically.</p></div></div>`},
+
+{id:"lesson-7",title:"K8s & Dashboards",time:"10 min read",week:3,icon:"☸️",
+sources:["https://www.dash0.com/docs/dash0/ai/mcp","https://www.dash0.com/changelog/dash0-mcp-server"],
+exercises:[
+{task:"Ask MCP for recent Kubernetes events across all namespaces. Identify any warning or error events.",hint:"'Show me Kubernetes events from the last 2 hours. Are there any warnings or errors?'"},
+{task:"Investigate an OOMKilled event (real or hypothetical): ask MCP to correlate it with memory metrics.",hint:"'Show me any OOMKilled events in the last 24 hours and correlate with memory usage metrics for those pods.'"},
+{task:"Ask MCP to list all dashboards in your organization. Find one relevant to a service you work with.",hint:"'List all dashboards in Dash0. Which ones are related to [service name]?'",url:"https://www.dash0.com/docs/dash0/ai/mcp"}
+],
+body:`<div class="lesson-section"><h4>get_kubernetes_events: K8s Troubleshooting via Natural Language</h4><div class="lesson-text"><p>Kubernetes events are the first place to look when application behavior is abnormal. CrashLoopBackOff, OOMKilled, ImagePullBackOff, pending pods — these events tell the story of what K8s is doing with your workloads.</p><p>The <code class="code-inline">get_kubernetes_events</code> MCP tool makes K8s event investigation conversational:</p><ul style="padding-left:20px;line-height:2"><li>'Which pods are in CrashLoopBackOff right now?'</li><li>'Show me OOMKilled events from the last hour'</li><li>'Were there any scheduling failures in the production namespace today?'</li><li>'Show me all Kubernetes events for the payment-service pods in the last 30 minutes'</li></ul></div></div>
+<div class="lesson-highlight">K8s + telemetry correlation: Ask MCP to correlate K8s events with application metrics in a single query — 'Did the OOMKill at 3:42pm cause the error spike in checkout-service?' The LLM calls both get_kubernetes_events and get_metrics and connects the dots.</div>
+<div class="lesson-section"><h4>Post-Deploy Health Validation</h4><div class="lesson-text"><p>One of the highest-value automated workflows: after a deployment, ask MCP to validate health. This can run in CI/CD as an AI agent step:</p><p>'The payment-service was just deployed at 14:32. Check for the following in the 15 minutes following deployment: (1) error rate increase above 1%, (2) p99 latency increase above 20%, (3) any Kubernetes restarts. Report HEALTHY or DEGRADED.'</p><p>The LLM autonomously calls query_promql and get_kubernetes_events and returns a structured health assessment — enabling automated deployment gates.</p></div></div>
+<div class="lesson-section"><h4>Dashboard Navigation with list_dashboards</h4><div class="lesson-text"><p>The <code class="code-inline">list_dashboards</code> tool returns all dashboards in your Dash0 organization. Use it for:</p><ul style="padding-left:20px;line-height:2"><li>'Which dashboards do we have for the payment service?'</li><li>'List all dashboards created in the last month'</li><li>'Is there a SLO dashboard for checkout-service?'</li></ul><p>This enables AI agents to navigate to relevant dashboards during investigation or build context for generating new ones.</p></div></div>`},
+
+{id:"lesson-8",title:"Competitive Positioning",time:"9 min read",week:3,icon:"🏆",
+sources:["https://www.dash0.com/changelog/dash0-mcp-server","https://www.dash0.com/docs/dash0/ai/mcp"],
+exercises:[
+{task:"Write a 2-sentence pitch for Dash0 MCP to a customer currently using Datadog's AI assistant.",hint:"Focus on the key differentiators: open protocol, IDE integration, no context switching."},
+{task:"Anticipate and answer the security objection: 'We don't want our AI assistant to have access to production data.'",hint:"Cover: data scope (only Dash0 data), token permissions (you control the scope), no write access to infrastructure."},
+{task:"Compare Dash0 MCP to 'Grafana + ChatGPT' in three specific dimensions.",hint:"Integration (live data vs. copy-paste), context (IDE vs. separate tool), intelligence (interpreted vs. raw data).",url:"https://www.dash0.com/changelog/dash0-mcp-server"}
+],
+body:`<div class="lesson-section"><h4>Why MCP is a Category Shift, Not a Feature</h4><div class="lesson-text"><p>Most observability tools are evolving to add AI features — AI-assisted query builders, natural language search, auto-generated summaries. But these are AI features bolted onto existing tools. MCP is different: it's an open protocol that brings observability data into the AI tools engineers already use.</p><p>The distinction matters: instead of observability tools getting smarter, your AI coding assistant gains observability superpowers. The engineer never leaves their workflow.</p></div></div>
+<div class="lesson-highlight">The key positioning: Dash0 MCP meets engineers where they are — in their IDE, in their development workflow — rather than requiring them to learn and navigate yet another tool.</div>
+<div class="lesson-section"><h4>Competitive Comparisons</h4><div class="lesson-text"></div>
+<div class="lesson-compare"><div class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Datadog AI Assistant</div>Proprietary, UI-locked. Requires switching to Datadog interface. Not available in your IDE.</div><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Dash0 MCP</div>Open protocol. Works in Claude Code, Cursor, Windsurf, and any MCP-compatible tool. Stays in your IDE.</div><div class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Grafana + ChatGPT</div>Disconnected. You manually copy data from Grafana into ChatGPT. No live data access, no real-time answers.</div><div class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Dash0 MCP</div>Integrated. The LLM queries live Dash0 data directly. No copy-paste. Real-time answers with LLM interpretation.</div></div></div>
+<div class="lesson-section"><h4>Handling the Security Objection</h4><div class="lesson-text"><p>Security teams will ask: "What data does the MCP server have access to?" The answer is precise and bounded:</p><ul style="padding-left:20px;line-height:2"><li><strong>In scope:</strong> Your Dash0 observability data — logs, traces, metrics, synthetic checks, web vitals, K8s events, dashboards</li><li><strong>Out of scope:</strong> Your application infrastructure, databases, cloud provider APIs, source code, any system outside Dash0</li><li><strong>Access control:</strong> Scoped to specific datasets via auth token permissions — you control exactly what's accessible</li><li><strong>No infrastructure write access:</strong> The MCP server can only modify Dash0 assets (dashboards, synthetic checks) — not your application infrastructure</li></ul></div></div>
+<div class="lesson-section"><h4>The AI-Native Observability Story</h4><div class="lesson-text"><p>The larger narrative: observability has always been high-friction. You need to learn query languages, navigate complex UIs, and context-switch constantly. This friction means most engineers use observability only when something breaks — not proactively.</p><p>MCP changes this. When observability is as easy as asking a question in your IDE, engineers use it continuously — before writing code, during development, and during incidents. The result is better software, faster debugging, and more resilient systems.</p><p>This is the Dash0 bet: AI-native observability isn't a product feature, it's a platform strategy.</p></div></div>`},
+];
+// ─── DEFAULT SCHEDULE ─── Phase 1: Foundations (Apr 14-16) | Phase 2: Tools (Apr 21-22) | Phase 3: Advanced (Apr 23-24)
+const DEFAULT_SESSIONS=[
+{id:"s1",date:"2026-04-14",time:"09:00",dur:30,title:"What is MCP?",desc:"Lesson 1. MCP fundamentals, 23 tools overview, AI-native observability story. Fundamentals flashcards.",phase:1},
+{id:"s2",date:"2026-04-15",time:"09:00",dur:30,title:"Setup & Service Discovery",desc:"Lessons 2-3. Configure MCP in your IDE, list_services, RED metrics, topology queries.",phase:1},
+{id:"s3",date:"2026-04-16",time:"09:00",dur:45,title:"Phase 1 Flashcards + Quiz",desc:"All Fundamentals + Setup & Config + Service Discovery flashcards. Take a category quiz.",phase:1},
+{id:"s4",date:"2026-04-21",time:"09:00",dur:45,title:"Logs, Traces & Metrics",desc:"Lessons 4-5. get_logs, get_traces, get_metrics, query_promql. Natural language queries.",phase:2},
+{id:"s5",date:"2026-04-22",time:"09:00",dur:45,title:"Synthetics, K8s & Scenarios",desc:"Lessons 6-7. Synthetic checks, web vitals, get_kubernetes_events, list_dashboards. Practice scenarios.",phase:2},
+{id:"s6",date:"2026-04-23",time:"09:00",dur:30,title:"Competitive Positioning + Rapid Fire",desc:"Lesson 8. AI-native pitch, competitive comparisons. Rapid fire round — aim for 85%+.",phase:3},
+{id:"s7",date:"2026-04-24",time:"09:00",dur:45,title:"Final Exam & Review",desc:"All scenarios, rapid fire 85%+, final exam. Review weak categories. Complete all exercises.",phase:3},
+];
+// Metrics: 'bestQuiz','bestRapid','cards','scenarios','exercises'
+const DEFAULT_CHECKPOINTS=[
+{id:"cp1",target:"Score 80%+ on Fundamentals + Setup quiz",by:"2026-04-16",metric:"bestQuiz",threshold:80},
+{id:"cp2",target:"Complete all Phase 1 + 2 exercises (24 total)",by:"2026-04-22",metric:"exercises",threshold:24},
+{id:"cp3",target:"Rapid fire 85%+ (tool name recall)",by:"2026-04-23",metric:"bestRapid",threshold:85},
+{id:"cp4",target:"Score 90%+ on Final Exam",by:"2026-04-24",metric:"bestQuiz",threshold:90},
+];
+// ─── PERSISTENCE ───
+const STORAGE_KEY="dash0-mcp-cc";
+function saveState(){
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}catch(e){}
+debouncedCloudSave();
+}
+function loadState(){
+try{
+const raw=localStorage.getItem(STORAGE_KEY);
+if(!raw)return null;
+return JSON.parse(raw);
+}catch(e){return null}
+}
+function exportState(){
+try{return localStorage.getItem(STORAGE_KEY)||"{}"}catch(e){return"{}"}
+}
+function importState(json){
+try{
+const data=JSON.parse(json);
+if(data.stats){stats={...stats,...data.stats}}
+if(data.history){sessionHistory=data.history}
+saveState();render();return true;
+}catch(e){return false}
+}
+// ─── CLOUD SYNC ENGINE (offline-resilient) ───
+let syncStatus='idle',lastSyncAt=null,syncPending=false;
+function syncEnabled(){return typeof SYNC_SHEET_URL==='string'&&SYNC_SHEET_URL.length>10}
+function getSyncKey(){return SYNC_USER_ID?(SYNC_USER_ID+'/'+STORAGE_KEY):STORAGE_KEY}
+function isOnline(){return typeof navigator!=='undefined'?navigator.onLine:true}
+async function cloudSave(){
+if(!syncEnabled()){syncPending=false;return}
+if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
+syncStatus='syncing';updateSyncUI();
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
+method:'POST',headers:{'Content-Type':'text/plain'},
+body:JSON.stringify({data,savedAt:data.savedAt})
+});
+syncStatus='synced';lastSyncAt=new Date().toISOString();syncPending=false;
+}catch(e){
+syncStatus=isOnline()?'error':'offline';syncPending=true;
+console.warn('Cloud sync save failed:',e);
+}
+updateSyncUI();
+}
+async function cloudLoad(){
+if(!syncEnabled())return null;
+if(!isOnline()){syncStatus='offline';updateSyncUI();return null}
+syncStatus='syncing';updateSyncUI();
+try{
+const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(getSyncKey()));
+const json=await resp.json();
+syncStatus='synced';lastSyncAt=new Date().toISOString();updateSyncUI();
+if(json.ok&&json.data)return json;
+return null;
+}catch(e){syncStatus=isOnline()?'error':'offline';updateSyncUI();console.warn('Cloud sync load failed:',e);return null}
+}
+function updateSyncUI(){
+const el=document.getElementById('sync-badge');
+if(!el)return;
+const icons={idle:'☁️',syncing:'⟳',synced:'✓',error:'✕',offline:'⏸'};
+const colors={idle:'#6b7280',syncing:'#f59e0b',synced:'#10b981',error:'#ef4444',offline:'#6b7280'};
+const titles={idle:'Cloud sync ready',syncing:'Syncing...',synced:'Synced'+(lastSyncAt?' '+new Date(lastSyncAt).toLocaleTimeString():''),error:'Sync error — will retry when online',offline:'Offline — will sync when reconnected'};
+el.textContent=icons[syncStatus]||'☁️';el.style.color=colors[syncStatus]||'#6b7280';el.title=titles[syncStatus]||'';
+}
+let syncTimer=null;
+function debouncedCloudSave(){
+if(!syncEnabled())return;
+if(syncTimer)clearTimeout(syncTimer);
+syncTimer=setTimeout(()=>cloudSave(),2000);
+}
+function saveSyncSettings(url,userId){
+SYNC_SHEET_URL=url.trim();
+SYNC_USER_ID=(userId||'').trim();
+try{
+if(SYNC_SHEET_URL)localStorage.setItem(STORAGE_KEY+'-sync-url',SYNC_SHEET_URL);
+else localStorage.removeItem(STORAGE_KEY+'-sync-url');
+if(SYNC_USER_ID)localStorage.setItem(STORAGE_KEY+'-sync-user',SYNC_USER_ID);
+else localStorage.removeItem(STORAGE_KEY+'-sync-user');
+}catch(e){}
+updateSyncUI();
+if(syncEnabled())cloudLoad().then(cloud=>{
+if(cloud&&cloud.data){
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();
+}
+render();
+}
+});
+}
+// Auto-sync when coming back online
+if(typeof window!=='undefined'){
+window.addEventListener('online',()=>{
+if(syncEnabled()&&syncPending){console.log('☁️ Back online — syncing pending changes');cloudSave()}
+else if(syncEnabled()){syncStatus='idle';updateSyncUI()}
+});
+window.addEventListener('offline',()=>{
+if(syncEnabled()){syncStatus='offline';updateSyncUI()}
+});
+}
+function resetAll(){
+stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;cardRatings={};
+try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
+showConfirm=false;mode="dashboard";render();
+}
+function resetSection(key){
+if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
+else if(key==="cards"){stats.cards=0;cardRatings={}}
+else if(key==="scenarios"){stats.scenarios=0}
+else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
+else if(key==="exercises"){exercisesDone={}}
+sessionHistory=sessionHistory.filter(h=>h.type!==key);
+saveState();render();
+}
+// ─── SESSION HISTORY ───
+let sessionHistory=[];
+function logSession(type,detail){
+sessionHistory.push({type,detail,ts:new Date().toISOString()});
+if(sessionHistory.length>50)sessionHistory=sessionHistory.slice(-50);
+saveState();
+}
+// ─── STATE ───
+let mode="dashboard",fcCat="All",fcDiff="All Levels",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
+let qzQs=[],qzIdx=0,qzSel=null,qzShow=false,qzScore=0,qzDone=false,qzMode=null; // qzMode: null=picker, category string, or "final"
+let scIdx=0,scRevealed=false,scPracticed=new Set();
+let rfState="ready",rfQs=[],rfIdx=0,rfTimer=0,rfResults=[],rfInterval=null;
+let stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}};
+let showConfirm=false,confirmAction=null,confirmMsg="",showExport=false;
+let learnView="list",learnIdx=0,exercisesDone={};
+let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
+let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
+let userRole=null,showRolePicker=false;
+let cardRatings={};
+// ─── LOAD SAVED STATE ───
+(function(){
+const saved=loadState();
+if(saved){
+if(saved.stats){stats={...stats,...saved.stats};if(!stats.quizScores)stats.quizScores={}}
+if(saved.history)sessionHistory=saved.history;
+if(saved.exercisesDone)exercisesDone=saved.exercisesDone;
+if(saved.schedule)schedule=saved.schedule;
+if(saved.checkpoints)checkpoints=saved.checkpoints;
+if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
+if(saved.userRole)userRole=saved.userRole;
+if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
+if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+if(saved.cardRatings)cardRatings=saved.cardRatings;
+}
+if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
+if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
+try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
+try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');const validFs=['fs-s','fs-m','fs-l','fs-xl'];const applyFs=validFs.includes(fs)?fs:'fs-m';document.body.classList.remove(...validFs);document.body.classList.add(applyFs)}catch(e){document.body.classList.add('fs-m')}
+})();
+// ─── CLOUD SYNC ON LOAD ───
+(async function(){
+if(!syncEnabled())return;
+const cloud=await cloudLoad();
+if(!cloud||!cloud.data)return;
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();render();
+console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
+}
+})();
+// ─── ROLE PICKER ───
+function renderRolePickerOverlay(){
+return`<div class="role-overlay">
+<div class="role-picker">
+<h2>What's your focus?</h2>
+<div class="rp-sub">This shapes which content surfaces first. You can still access everything — this just sets your starting point.</div>
+<div class="role-cards">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pickRole('${k}')">
+<div class="rc-icon">${v.icon}</div>
+<div class="rc-title">${v.label}</div>
+<div class="rc-desc">${v.desc}</div>
+</div>`).join('')}
+</div>
+</div>
+</div>`;
+}
+function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
+function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
+function fcRate(rating){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var card=cards[fcIdx%cards.length];
+  cardRatings[card.f]=rating;
+  stats.cards=(stats.cards||0)+1;
+  saveState();
+  fcFlipped=false;
+  // advance to next card
+  var next=fcGetCards();
+  if(next.length>0)fcIdx=(fcIdx+1)%next.length;
+  render();
+}
+
+function fcWeightedShuffle(){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var weighted=[];
+  cards.forEach(function(c,i){
+    var r=cardRatings[c.f];
+    var w=r==='missed'?3:r==='unsure'?2:1;
+    for(var j=0;j<w;j++)weighted.push(i);
+  });
+  fcIdx=weighted[Math.floor(Math.random()*weighted.length)];
+  fcFlipped=false;
+  render();
+}
+
+function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
+function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
+function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
+// ─── RENDER ───
+function render(){
+const app=document.getElementById("app");
+const nav=document.getElementById("nav");
+// Show role picker on first launch
+if(!userRole&&!showRolePicker){showRolePicker=true}
+let overlayHtml='';
+if(showRolePicker)overlayHtml=renderRolePickerOverlay();
+const modes=[["dashboard","🏠","Home"],["learn","📖","Learn"],["flashcards","📃","Cards"],["quiz","📝","Quiz"],["scenarios","💬","Drills"],["rapid","⚡","Rapid"],["manage","⚙️","More"]];
+nav.innerHTML=modes.map(([m,i,l])=>`<button class="${mode===m?'active':''}" onclick="setMode('${m}')"><span>${i}</span>${l}</button>`).join("");
+if(mode==="dashboard")renderDashboard(app);
+else if(mode==="flashcards")renderFlashcards(app);
+else if(mode==="quiz")renderQuiz(app);
+else if(mode==="scenarios")renderScenarios(app);
+else if(mode==="rapid")renderRapid(app);
+else if(mode==="learn")renderLearn(app);
+else if(mode==="manage")renderManage(app);
+// Update header role indicator
+const hdr=document.getElementById('header-role');
+if(hdr)hdr.innerHTML=userRole?`<span class="role-current" onclick="showRolePicker=true;render()">${ROLE_CONFIG[userRole].icon} ${ROLE_CONFIG[userRole].label.split(' ')[0]}</span>`:'';
+const verEl=document.getElementById('app-version');if(verEl)verEl.textContent=APP_VERSION;
+// Append role picker overlay if needed
+if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d.innerHTML=overlayHtml;const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove();document.body.appendChild(d)}else{const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove()}
+}
+function setMode(m){mode=m;render()}
+// ─── DASHBOARD ───
+function renderDashboard(el){
+const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
+const focus=(stats.quizzes||0)===0
+?"Start with Learn mode to build your foundation"
+:(stats.quizzes||0)<3
+?"Keep quizzing to reinforce the material"
+:"Great progress! Use Rapid mode to sharpen your speed";
+el.innerHTML=`
+<div style="text-align:center;margin-bottom:24px">
+<div style="font-size:20px;font-weight:700;color:#e5e7eb">${COURSE_TITLE||'TODO: Course Title'}</div>
+<div style="font-size:14px;color:#6b7280;margin-top:6px">Pick a mode to start &rarr; learn &rarr; quiz &rarr; drills</div>
+</div>
+<div class="stat-grid">
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.quizzes||0}</div><div class="stat-label">Quizzes Taken</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
+<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-num">${stats.cards||0}</div><div class="stat-label">Cards Flipped</div></div>
+<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-num">${stats.scenarios||0}</div><div class="stat-label">Scenarios Done</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.rapid||0}</div><div class="stat-label">Rapid Rounds</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.bestRapid||'—'}</div><div class="stat-label">Best Rapid</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-num">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
+</div>
+<div class="focus-box"><div class="focus-title">Your Focus</div><div class="focus-text">${focus}</div></div>
+${renderDashSchedule()}`;
+}
+function renderDashSchedule(){
+const today=new Date().toISOString().slice(0,10);
+const nextSession=schedule.filter(s=>s.date>=today&&!sessionsDone[s.id]).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))[0];
+const nextCp=checkpoints.filter(cp=>{
+const met=getMetricVal(cp.metric);return met<cp.threshold&&cp.by>=today;
+}).sort((a,b)=>a.by.localeCompare(b.by))[0];
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">`;
+if(nextCp){
+h+=`<div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Next Checkpoint</div><div style="font-size:14px;font-weight:600;color:#fde68a;margin-top:2px">${nextCp.target}</div></div>
+<div style="text-align:right"><div style="font-size:11px;color:#6b7280">by ${fmtDate(nextCp.by)}</div><div style="font-size:13px;font-weight:600;color:#fff">${getMetricVal(nextCp.metric)}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''} / ${nextCp.threshold}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''}</div></div></div>`;
+}
+if(nextSession){
+const isToday=nextSession.date===today;
+h+=`<div style="background:#1f2937;border:1px solid ${isToday?'rgba(16,185,129,.4)':'#374151'};border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">
+<div><div style="font-size:11px;color:${isToday?'#10b981':'#6b7280'};font-weight:600">${isToday?'TODAY':'NEXT UP'} · ${fmtDate(nextSession.date)} · ${nextSession.time}</div><div style="font-size:14px;font-weight:600;color:#e5e7eb;margin-top:2px">${nextSession.title}</div></div>
+<div style="font-size:11px;color:#6b7280;white-space:nowrap">${nextSession.dur} min →</div></div>`;
+}
+h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+<div style="font-size:12px;color:#6b7280">${doneCount}/${schedule.length} sessions done</div>
+<button style="background:none;border:none;color:#10b981;font-size:12px;font-weight:600;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">Full schedule →</button>
+</div></div>`;
+return h;
+}
+function schedItemHtml(s,isToday){
+const done=sessionsDone[s.id];
+return`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button></div>`:`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`}
+function fmtDate(d){const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+function markSessionDone(id){sessionsDone[id]=Date.now();saveState();render()}
+function getMetricVal(m){
+if(m==="bestQuiz")return stats.bestQuiz||0;
+if(m==="bestRapid")return stats.bestRapid||0;
+if(m==="cards")return stats.cards||0;
+if(m==="scenarios")return stats.scenarios||0;
+if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return t?Math.round(Object.keys(exercisesDone).length/t*100):0}
+return 0;
+}
+// ─── FLASHCARDS ───
+function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):fcCat==='⚠ Weak'?FLASHCARDS.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
+function renderFlashcards(el){
+const allCards=FLASHCARDS.filter(function(c){return fcDiff==='All Levels'||DIFF_LABELS[c.d]===fcDiff});
+const weakCount=allCards.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}).length;
+const cards=fcGetCards();
+if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==='⚠ Weak'){
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill='<button class="pill active" onclick="fcSetCat(\'⚠ Weak\')" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Weak ('+weakCount+')</button>';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="text-align:center;padding:40px;color:#9ca3af">No weak cards! Rate flashcards to see them here.</div>';
+return;
+}
+if(fcIdx>=cards.length)fcIdx=0;
+const card=cards[fcIdx];
+const isFav=fcFavs.has(card.f);
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill=weakCount||fcCat==='⚠ Weak'?'<button class="pill '+(fcCat==='⚠ Weak'?'active':'')+'" onclick="fcSetCat(\'⚠ Weak\')" style="'+(fcCat!=='⚠ Weak'?'background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)':'')+'">⚠ Weak ('+weakCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+['All Levels','Beginner','Intermediate','Advanced'].map(function(d){return '<button class="pill'+(fcDiff===d?' pill-active':'')+'" onclick="fcDiff=\''+d+'\';fcIdx=0;render()">'+d+'</button>';}).join('')+'</div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':fcCat==='⚠ Weak'?'Weak cards':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
++'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
++'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
++'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+(card.d?'<span style="background:'+DIFF_COLORS[card.d]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600">'+DIFF_LABELS[card.d]+'</span>':'')+'</div>'
++'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
++(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
++(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
++(fcFlipped?'<div style="display:flex;gap:8px;justify-content:center;margin-top:14px">'
++'<button onclick="event.stopPropagation();fcRate(\'missed\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#ef4444;color:#fff;font-weight:600">Missed</button>'
++'<button onclick="event.stopPropagation();fcRate(\'unsure\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#f59e0b;color:#fff;font-weight:600">Unsure</button>'
++'<button onclick="event.stopPropagation();fcRate(\'known\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#10b981;color:#fff;font-weight:600">Know it</button>'
++'</div>':'')
++'</div>'
++(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
++'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcWeightedShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
+}
+function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
+function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
+function fcNext(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx+1)%cards.length;saveState();render()}
+function fcPrev(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx-1+cards.length)%cards.length;saveState();render()}
+function fcShuffle(){fcFlipped=false;const cards=fcGetCards();fcIdx=Math.floor(Math.random()*cards.length);saveState();render()}
+function fcToggleFav(idx){const cards=fcGetCards();const card=cards[idx];if(!card)return;if(fcFavs.has(card.f))fcFavs.delete(card.f);else fcFavs.add(card.f);if(fcCat==="★ Favorites"&&!fcFavs.has(card.f)){const nc=fcGetCards();if(fcIdx>=nc.length)fcIdx=Math.max(0,nc.length-1)}saveState();render()}
+// ─── QUIZ ───
+const QUIZ_CATS=[...new Set(QUIZ.map(q=>q.cat))];
+function getQuizCatIcon(cat){return{['Category A']:'📗',['Category B']:'📘',['Category C']:'📙'}[cat]||'📝'}
+function startQuiz(catOrFinal){
+if(catOrFinal==='final'){qzMode='final';qzQs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10)}
+else{qzMode=catOrFinal;qzQs=QUIZ.filter(q=>q.cat===catOrFinal).sort(()=>Math.random()-.5)}
+qzIdx=0;qzSel=null;qzShow=false;qzScore=0;qzDone=false;render()}
+function backToQuizPicker(){qzMode=null;qzQs=[];qzDone=false;render()}
+function renderQuiz(el){
+// Quiz picker screen
+if(qzMode===null){
+const cats=QUIZ_CATS.map(cat=>{const cnt=QUIZ.filter(q=>q.cat===cat).length;const best=stats.quizScores[cat];const bestStr=best!=null?`<span style="color:#10b981;font-size:12px">${best}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+return`<div style="background:#1f2937;border:2px solid #374151;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s" onclick="startQuiz('${cat}')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='#374151'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">${getQuizCatIcon(cat)}</span><div><div style="font-weight:600;font-size:15px">${cat}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${cnt} questions</div>${(function(){var qs=QUIZ.filter(q=>q.cat===cat);var counts=[1,2,3].map(function(d){return{d:d,n:qs.filter(function(q){return q.d===d}).length}}).filter(function(x){return x.n>0});return counts.length?'<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+counts.map(function(x){return'<span style="background:'+DIFF_COLORS[x.d]+';color:#fff;font-size:10px;padding:1px 6px;border-radius:8px">'+DIFF_LABELS[x.d]+' '+x.n+'</span>'}).join('')+"</div>":''})()}</div></div></div><div style="text-align:right">${bestStr}</div></div></div>`}).join('');
+const finalBest=stats.quizScores['final'];const finalStr=finalBest!=null?`<span style="color:#10b981;font-size:12px">${finalBest}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+el.innerHTML=`<div style="margin-bottom:20px"><div style="font-size:20px;font-weight:700;margin-bottom:4px">Quizzes</div><div style="color:#6b7280;font-size:13px;margin-bottom:16px">Test yourself by section or take the final exam</div></div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${cats}</div>
+<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(59,130,246,.12));border:2px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s" onclick="startQuiz('final')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16,185,129,.3)'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">🎓</span><div><div style="font-weight:700;font-size:16px">Final Exam</div><div style="color:#9ca3af;font-size:12px;margin-top:2px">10 random questions across all sections</div></div></div><div style="text-align:right">${finalStr}</div></div></div>`;return}
+// Results screen
+if(qzDone){
+const pct=Math.round(qzScore/qzQs.length*100);
+stats.quizzes++;if(pct>stats.bestQuiz)stats.bestQuiz=pct;
+const scoreKey=qzMode==='final'?'final':qzMode;
+if(!stats.quizScores[scoreKey]||pct>stats.quizScores[scoreKey])stats.quizScores[scoreKey]=pct;
+const label=qzMode==='final'?'Final Exam':qzMode;
+logSession("quiz",label+" — Score: "+pct+"%");
+const g=pct>=90?"A":pct>=80?"B":pct>=70?"C":pct>=60?"D":"F";
+const c=pct>=70?"#10b981":pct>=50?"#f59e0b":"#ef4444";
+const m=pct>=90?"You're ready for Next.":pct>=70?"Getting there. Run it again.":"Keep studying. You've got time.";
+el.innerHTML=`<div class="center"><div style="font-size:13px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode}</div><div class="grade" style="color:${c}">${g}</div><div style="font-size:24px;font-weight:600;margin-bottom:4px">${qzScore}/${qzQs.length}</div><div style="color:#6b7280;margin-bottom:24px">${m}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" onclick="startQuiz('${qzMode==='final'?'final':qzMode}')">Try Again</button><button class="btn btn-secondary" onclick="backToQuizPicker()">All Quizzes</button></div></div>`;return}
+// Question screen
+const q=qzQs[qzIdx];
+const headerLabel=qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode;
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:12px;color:#6b7280;cursor:pointer" onclick="backToQuizPicker()">← All Quizzes</span><span style="font-size:12px;color:#9ca3af">${headerLabel}</span></div>
+<div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
+<div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
+${q.o.map((o,i)=>{
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
+${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
+${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
+${qzShow?askClaudeBox('Quiz question: '+q.q):''}
+${qzShow?`<button class="btn btn-primary btn-full" onclick="qzNext()">${qzIdx+1>=qzQs.length?"See Results":"Next Question"}</button>`:''}`;
+}
+function qzSelect(i){if(qzShow)return;qzSel=i;qzShow=true;if(i===qzQs[qzIdx].a)qzScore++;render()}
+function qzNext(){if(qzIdx+1>=qzQs.length){qzDone=true}else{qzIdx++;qzSel=null;qzShow=false}render()}
+// ─── SCENARIOS ───
+function renderScenarios(el){
+const s=SCENARIOS[scIdx];
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Scenarios practiced</span><span>${scPracticed.size}/${SCENARIOS.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${SCENARIOS.length?Math.round(scPracticed.size/SCENARIOS.length*100):0}%"></div></div></div>
+<div class="card-label">Prospect says:</div>
+<div class="scenario-box scenario-q"><div style="color:#fca5a5;font-size:17px;line-height:1.5;font-style:italic">"${s.q}"</div></div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:8px">Think through your answer first, then reveal.</div>
+${!scRevealed?`<div class="scenario-box scenario-reveal" onclick="scReveal()"><div style="color:#9ca3af;font-size:14px">Tap to reveal suggested response</div></div>`
+:`<div class="scenario-box scenario-a"><div class="card-label" style="color:#6ee7b7">Suggested response:</div><div style="color:#d1fae5;font-size:14px;line-height:1.6">${s.a}</div>${s.u?`<div class="source-links">${s.u.map(link=>`<a class="source-link" href="${link}" target="_blank" rel="noopener">📖 ${new URL(link).hostname.replace('www.','')}</a>`).join('')}</div>`:''}</div>`}
+${scRevealed?askClaudeBox('Scenario objection: '+s.q):''}
+<div class="btn-row"><button class="btn btn-secondary" onclick="scPrev()">Prev</button><button class="btn btn-secondary" onclick="scShuf()">Shuffle</button><button class="btn btn-primary" onclick="scNext()">Next</button></div>`;
+}
+function scReveal(){scRevealed=true;stats.scenarios++;scPracticed.add(scIdx);logSession("scenarios","Practiced: "+SCENARIOS[scIdx].q.slice(0,40));render()}
+function scNext(){scRevealed=false;scIdx=(scIdx+1)%SCENARIOS.length;render()}
+function scPrev(){scRevealed=false;scIdx=(scIdx-1+SCENARIOS.length)%SCENARIOS.length;render()}
+function scShuf(){scRevealed=false;scIdx=Math.floor(Math.random()*SCENARIOS.length);render()}
+// ─── RAPID FIRE ───
+function renderRapid(el){
+if(rfState==="ready"){
+el.innerHTML=`<div class="center"><div style="font-size:40px;margin-bottom:16px">⏱</div><div style="font-size:20px;font-weight:600;margin-bottom:8px">Rapid Fire Mode</div><div style="color:#6b7280;max-width:280px;margin-bottom:24px;font-size:14px;line-height:1.5">Question + countdown. Think fast, then rate yourself.</div><button class="btn btn-primary" style="font-size:16px;padding:14px 32px" onclick="rfStart()">Start Round</button></div>`;return}
+if(rfState==="done"){
+const n=rfResults.filter(r=>r.ok).length;const pct=Math.round(n/rfResults.length*100);
+stats.rapid++;if(pct>stats.bestRapid)stats.bestRapid=pct;logSession("rapid","Score: "+pct+"%");
+const c=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+const m=pct>=80?"Fast and confident.":pct>=60?"Decent, drill the weak ones.":"Re-read the material.";
+el.innerHTML=`<div class="center"><div class="grade" style="color:${c}">${n}/${rfResults.length}</div><div style="color:#6b7280;margin-bottom:16px">${m}</div><div style="width:100%;max-width:320px;margin-bottom:24px">${rfResults.map(r=>`<div class="results-item" style="color:${r.ok?'#6ee7b7':'#fca5a5'}">${r.ok?'✔':'✘'} <span style="color:#d1d5db">${r.q}</span></div>`).join("")}</div><button class="btn btn-primary" onclick="rfStart()">Go Again</button></div>`;return}
+const q=rfQs[rfIdx];const tc=rfTimer<=3?"red":rfTimer<=5?"yellow":"green";
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><span style="font-size:12px;color:#6b7280">Q${rfIdx+1}/${rfQs.length}</span><span class="timer ${tc}">${rfState==="revealed"?"—":rfTimer+"s"}</span></div>
+<div class="card question" style="margin-bottom:16px;cursor:default"><div style="font-size:19px;font-weight:500">${q.q}</div></div>
+${rfState==="active"?`<div class="center" style="min-height:30vh"><div style="color:#6b7280;font-size:14px;margin-bottom:16px">Think of your answer...</div><button class="btn btn-secondary" onclick="rfReveal()">I've got my answer</button></div>`
+:`<div class="scenario-box scenario-a" style="margin-bottom:16px"><div class="card-label" style="color:#6ee7b7">Answer:</div><div style="color:#d1fae5;line-height:1.5">${q.a}</div>${q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-top:10px">📖 Read the docs</a>`:''}</div>
+${askClaudeBox('Rapid fire: '+q.q)}
+<div style="text-align:center;font-size:14px;color:#6b7280;margin:12px 0">Did you nail it?</div>
+<div style="display:flex;gap:12px"><button class="btn btn-danger" style="flex:1;padding:14px" onclick="rfRate(false)">Nope</button><button class="btn btn-success" style="flex:1;padding:14px" onclick="rfRate(true)">Nailed it</button></div>`}`;
+}
+function rfStart(){rfQs=[...RAPID].sort(()=>Math.random()-.5);rfIdx=0;rfResults=[];rfState="active";rfTimer=rfQs[0].t;clearInterval(rfInterval);rfInterval=setInterval(rfTick,1000);render()}
+function rfTick(){if(rfState!=="active")return;rfTimer--;if(rfTimer<=0){rfState="revealed";clearInterval(rfInterval)}render()}
+function rfReveal(){clearInterval(rfInterval);rfState="revealed";render()}
+function rfRate(ok){rfResults.push({q:rfQs[rfIdx].q,ok});if(rfIdx+1>=rfQs.length){rfState="done";clearInterval(rfInterval)}else{rfIdx++;rfTimer=rfQs[rfIdx].t;rfState="active";rfInterval=setInterval(rfTick,1000)}render()}
+// ─── LEARN ───
+function renderLearn(el){
+if(learnView==="detail")return renderLessonDetail(el);
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Exercises completed</span><span>${doneEx}/${totalEx}</span></div><div class="progress-track"><div class="progress-fill" style="width:${totalEx?Math.round(doneEx/totalEx*100):0}%"></div></div></div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Week 1 — The Essentials</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===1).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 2 — Going Deeper</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===2).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 3 — Final Prep</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===3).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>`;
+}
+function lessonCard(l,idx){
+const exDone=l.exercises.filter((_,i)=>exercisesDone[l.id+"-"+i]).length;
+const allDone=exDone===l.exercises.length;
+const core=isCoreLesson(l.id);
+return`<div class="lesson-card${allDone?' completed':''}" onclick="openLesson(${idx})"${!core?' style="opacity:.7"':''}>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="lesson-num">${l.icon} Lesson ${idx+1}</div>
+<div style="display:flex;gap:6px;align-items:center">
+${userRole?`<span class="role-badge ${core?'core':'bonus'}">${core?'Core':'Bonus'}</span>`:''}
+${allDone?'<span style="font-size:11px;color:#10b981;font-weight:600">✓</span>':`<span style="font-size:11px;color:#6b7280">${exDone}/${l.exercises.length}</span>`}
+</div>
+</div>
+<div class="lesson-title">${l.title}</div>
+<div class="lesson-meta"><span>${l.time}</span><span>Week ${l.week}</span></div>
+</div>`}
+function openLesson(idx){learnIdx=idx;learnView="detail";render()}
+function backToLessons(){learnView="list";render()}
+function renderLessonDetail(el){
+const l=LESSONS[learnIdx];
+let html=`<button class="back-btn" onclick="backToLessons()">← All Lessons</button>`;
+html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Week ${l.week}</div>`;
+html+=`<div style="font-size:22px;font-weight:700;margin:6px 0 4px">${l.title}</div>`;
+html+=`<div style="font-size:12px;color:#6b7280;margin-bottom:20px">${l.time}</div>`;
+// Body
+html+=`<div class="lesson-section"><div class="lesson-text">${l.body}</div></div>`;
+// Highlights
+if(l.highlights&&l.highlights.length){
+html+=`<div class="lesson-section"><h4>Key Takeaways</h4>`;
+l.highlights.forEach(h=>{html+=`<div class="lesson-highlight">${h}</div>`});
+html+=`</div>`}
+// Comparison table
+if(l.compare){
+html+=`<div class="lesson-section"><h4>${l.compare.left.label} vs ${l.compare.right.label}</h4><div class="lesson-compare">`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#6ee7b7">${l.compare.left.label}</div>${l.compare.left.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">${l.compare.right.label}</div>${l.compare.right.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`</div></div>`}
+// Exercises
+html+=`<div class="lesson-section"><h4>Exercises</h4>`;
+l.exercises.forEach((ex,i)=>{
+const key=l.id+"-"+i;
+const done=!!exercisesDone[key];
+const stepsId='steps-'+l.id+'-'+i;
+html+=`<div class="exercise-box">
+<div class="ex-label">Exercise ${i+1}</div>
+<div class="ex-task">${ex.task}</div>
+${ex.hint?`<div class="ex-hint">💡 ${ex.hint}</div>`:''}
+${ex.url?`<a class="source-link" href="${ex.url}" target="_blank" rel="noopener" style="margin:8px 0 4px">🔗 Open resource</a>`:''}
+${ex.steps&&ex.steps.length?`<button class="ex-steps-toggle" onclick="const s=document.getElementById('${stepsId}');s.classList.toggle('open');this.textContent=s.classList.contains('open')?'Hide steps':'Show steps'">Show steps</button>
+<div class="ex-steps" id="${stepsId}"><ol>${ex.steps.map(s=>'<li>'+s+'</li>').join('')}</ol></div>`:''}
+<div class="exercise-check" onclick="toggleExercise('${key}')">
+<div class="checkbox${done?' checked':''}">${done?'✓':''}</div>
+<div class="ex-text">${done?'Done!':'Mark as done'}</div>
+</div></div>`});
+html+=`</div>`;
+// Sources
+if(l.sources&&l.sources.length){
+html+=`<div class="lesson-section"><h4>Source Material</h4>`;
+l.sources.forEach(s=>{html+=`<a class="res-link" href="${s}" target="_blank" rel="noopener">${s.replace('https://','').split('/').slice(0,2).join('/')}<small>${s}</small></a>`});
+html+=`</div>`}
+// Nav
+html+=askClaudeBox('Lesson: '+l.title);
+html+=`<div class="btn-row" style="margin-top:24px">`;
+if(learnIdx>0)html+=`<button class="btn btn-secondary" onclick="openLesson(${learnIdx-1})">← Prev</button>`;
+if(learnIdx<LESSONS.length-1)html+=`<button class="btn btn-primary" onclick="openLesson(${learnIdx+1})">Next →</button>`;
+html+=`</div>`;
+el.innerHTML=html;
+}
+function toggleExercise(key){
+if(exercisesDone[key])delete exercisesDone[key];
+else exercisesDone[key]=Date.now();
+saveState();render();
+}
+// ─── MANAGEMENT ───
+function renderManage(el){
+if(!schedView)schedView="settings";
+const saved=loadState();
+const lastSaved=saved&&saved.savedAt?new Date(saved.savedAt).toLocaleString():"Never";
+const totalSessions=sessionHistory.length;
+const storageBytes=exportState().length;
+const storageKB=(storageBytes/1024).toFixed(1);
+const tabs=[["settings","Settings"],["schedule","Schedule"],["checkpoints","Checkpoints"],["resources","Resources"]];
+let html=`${showConfirm?`<div class="confirm-overlay" onclick="cancelConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">${confirmMsg}</div><div style="color:#6b7280;font-size:13px;margin-bottom:20px">This can't be undone.</div><div style="display:flex;gap:12px"><button class="btn btn-secondary" style="flex:1" onclick="cancelConfirm()">Cancel</button><button class="btn-danger-solid" style="flex:1" onclick="execConfirm()">Confirm</button></div></div></div>`:''}
+${showForm?renderFormOverlay():''}
+<div class="pills" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="pill ${schedView===k?'active':''}" onclick="schedView='${k}';render()">${l}</button>`).join("")}</div>`;
+if(schedView==="schedule"){html+=renderScheduleTab();el.innerHTML=html;return}
+if(schedView==="checkpoints"){html+=renderCheckpointsTab();el.innerHTML=html;return}
+if(schedView==="resources"){html+=renderResourcesTab();el.innerHTML=html;return}
+html+=`
+<div class="mgmt-section">
+<h3>Font Size</h3>
+<div style="margin-bottom:20px">`
++'<div style="font-size:13px;color:#9ca3af;margin-bottom:8px">Font Size</div>'
++'<div style="display:flex;gap:8px;flex-wrap:wrap">'
++['fs-s','fs-m','fs-l','fs-xl'].map(function(s){
+  var lbl={'fs-s':'S','fs-m':'M','fs-l':'L','fs-xl':'XL'}[s];
+  var active=document.body.className===s;
+  return '<button onclick="setFontSize(\''+s+'\')" style="padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;background:'+(active?'#10b981':'#374151')+';color:'+(active?'#fff':'#9ca3af')+';transition:all .2s">'+lbl+'</button>';
+}).join('')
++'</div></div>'
++`</div>
+<div class="mgmt-section">
+<h3>Focus Level</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Controls which content is highlighted as core vs bonus across the app.</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:2px solid ${userRole===k?'#10b981':'#374151'};background:${userRole===k?'rgba(16,185,129,.06)':'#1f2937'};cursor:pointer;transition:all .2s" onclick="pickRole('${k}')">
+<div style="font-size:24px">${v.icon}</div>
+<div style="flex:1"><div style="font-size:14px;font-weight:600;color:${userRole===k?'#6ee7b7':'#e5e7eb'}">${v.label}</div><div style="font-size:12px;color:#6b7280">${v.desc.split('.')[0]}</div></div>
+${userRole===k?'<div style="color:#10b981;font-size:14px;font-weight:600">✓</div>':''}
+</div>`).join('')}
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Progress Summary</h3>
+<div class="mgmt-row"><span class="label">Quizzes completed</span><span class="value">${stats.quizzes}</span></div>
+<div class="mgmt-row"><span class="label">Best overall score</span><span class="value">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</span></div>
+${QUIZ_CATS.map(cat=>`<div class="mgmt-row"><span class="label" style="padding-left:12px">${getQuizCatIcon(cat)} ${cat}</span><span class="value">${stats.quizScores[cat]?stats.quizScores[cat]+'%':'—'}</span></div>`).join('')}
+<div class="mgmt-row"><span class="label" style="padding-left:12px">🎓 Final Exam</span><span class="value">${stats.quizScores['final']?stats.quizScores['final']+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Cards flipped</span><span class="value">${stats.cards}</span></div>
+<div class="mgmt-row"><span class="label">Scenarios practiced</span><span class="value">${stats.scenarios}</span></div>
+<div class="mgmt-row"><span class="label">Rapid fire rounds</span><span class="value">${stats.rapid}</span></div>
+<div class="mgmt-row"><span class="label">Best rapid score</span><span class="value">${stats.bestRapid?stats.bestRapid+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Exercises completed</span><span class="value">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</span></div>
+<div class="mgmt-row"><span class="label">Total sessions logged</span><span class="value">${totalSessions}</span></div>
+<div class="mgmt-row"><span class="label">Last saved</span><span class="value">${lastSaved}</span></div>
+<div class="mgmt-row"><span class="label">Storage used</span><span class="value">${storageKB} KB</span></div>
+</div>
+<div class="mgmt-section">
+<h3>Reset by Section</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button class="btn-outline" onclick="askResetSection('quiz')">Reset Quizzes</button>
+<button class="btn-outline" onclick="askResetSection('cards')">Reset Cards</button>
+<button class="btn-outline" onclick="askResetSection('scenarios')">Reset Scenarios</button>
+<button class="btn-outline" onclick="askResetSection('rapid')">Reset Rapid Fire</button>
+<button class="btn-outline" onclick="askResetSection('exercises')">Reset Exercises</button>
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Session History (last 20)</h3>
+${sessionHistory.length===0?'<div style="color:#4b5563;font-size:13px;padding:8px 0">No sessions yet. Start studying!</div>'
+:sessionHistory.slice(-20).reverse().map(h=>{
+const d=new Date(h.ts);
+const icon=h.type==="quiz"?"📝":h.type==="cards"?"📃":h.type==="scenarios"?"💬":"⚡";
+return`<div class="history-item"><span>${icon} ${h.detail}</span><span style="color:#4b5563">${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>`}).join("")}
+</div>
+<div class="mgmt-section">
+<h3>☁️ Cloud Sync</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Sync progress across devices via Google Sheets. Paste your Apps Script URL below.</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input id="syncUrlInput" type="text" value="${SYNC_SHEET_URL||''}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;font-family:monospace;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+<input id="syncUserInput" type="text" value="${SYNC_USER_ID||''}" placeholder="Your name (e.g. barry)" style="flex:1;max-width:220px;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+<span style="font-size:11px;color:#6b7280">Optional — keeps your data separate when sharing a sync sheet</span>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncSettings(document.getElementById('syncUrlInput').value,document.getElementById('syncUserInput').value);render()">Save</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncSettings('','');document.getElementById('syncUrlInput').value='';document.getElementById('syncUserInput').value='';render()">Disconnect</button>
+<span style="font-size:12px;color:${syncEnabled()?'#10b981':'#6b7280'}">${syncEnabled()?'✓ Connected'+(lastSyncAt?' — last sync '+new Date(lastSyncAt).toLocaleTimeString():''):'Not connected'}</span>
+</div>
+${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+getSyncKey()+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
+</div>
+<div class="mgmt-section">
+<h3>Export / Import Data</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btn-outline" style="flex:1" onclick="showExportData()">Export</button>
+<button class="btn-outline" style="flex:1" onclick="showImportPrompt()">Import</button>
+</div>
+${showExport?`<div class="export-box" id="exportBox">${exportState()}</div><div style="font-size:11px;color:#4b5563;margin-top:4px">Copy this text to back up or transfer your progress.</div>`:''}
+<div id="importArea"></div>
+</div>
+<div class="mgmt-section" style="border:2px solid rgba(239,68,68,.2)">
+<h3 style="color:#fca5a5">Danger Zone</h3>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div><div style="font-size:13px;font-weight:500;color:#fca5a5">Reset all progress</div><div style="font-size:11px;color:#4b5563">Clears everything and starts fresh</div></div>
+<button class="btn-danger-solid" onclick="askResetAll()">Reset All</button>
+</div>
+</div>`;
+el.innerHTML=html;
+}
+// ─── SCHEDULE TAB ───
+function renderScheduleTab(){
+const today=new Date().toISOString().slice(0,10);
+const sorted=[...schedule].sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const upcoming=sorted.filter(s=>s.date>=today);
+const past=sorted.filter(s=>s.date<today).reverse();
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:14px;font-weight:600">${doneCount}/${schedule.length} sessions completed</div>
+<div style="display:flex;gap:6px">
+<button class="btn-outline" style="padding:6px 10px;font-size:11px" onclick="toggleIcsPanel()">📅 Export</button>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openSessionForm()">+ Add</button>
+</div>
+</div>`;
+h+=renderIcsPanel();
+h+=`<div class="progress-bar"><div class="progress-track"><div class="progress-fill" style="width:${schedule.length?Math.round(doneCount/schedule.length*100):0}%"></div></div></div>`;
+if(upcoming.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Upcoming</div>`;
+upcoming.forEach(s=>{
+const isToday=s.date===today;const done=sessionsDone[s.id];
+h+=`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min${s.phase?' · Phase '+s.phase:''}</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+<div class="si-actions">
+${!done?`<button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button>`:`<button style="background:#374151;color:#6ee7b7" onclick="unmarkSession('${s.id}')">✓ Done</button>`}
+<button style="background:#374151;color:#9ca3af" onclick="openSessionForm('${s.id}')">Edit</button>
+<button style="background:#374151;color:#fca5a5" onclick="deleteSession('${s.id}')">Del</button>
+</div></div>`});
+}
+if(past.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Past</div>`;
+past.slice(0,5).forEach(s=>{
+const done=sessionsDone[s.id];
+h+=`<div class="sched-item past${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Mark Done</button></div>`:
+`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`});
+if(past.length>5)h+=`<div style="text-align:center;color:#4b5563;font-size:12px;padding:8px">+ ${past.length-5} more past sessions</div>`;
+}
+return h;
+}
+function unmarkSession(id){delete sessionsDone[id];saveState();render()}
+function deleteSession(id){schedule=schedule.filter(s=>s.id!==id);delete sessionsDone[id];saveState();render()}
+function openSessionForm(editingId){
+if(editingId){const s=schedule.find(x=>x.id===editingId);if(s)formData={...s};editId=editingId}
+else{formData={id:'s-'+Date.now(),date:new Date().toISOString().slice(0,10),time:'09:00',dur:30,title:'',desc:'',phase:0};editId=null}
+showForm='session';render();
+}
+function closeForm(){showForm=null;editId=null;formData={};render()}
+function saveSessionForm(){
+if(!formData.title){alert('Title required');return}
+if(editId){const idx=schedule.findIndex(s=>s.id===editId);if(idx>=0)schedule[idx]={...formData}}
+else{schedule.push({...formData})}
+saveState();closeForm();
+}
+function renderFormOverlay(){
+if(showForm==='session')return renderSessionFormSheet();
+if(showForm==='checkpoint')return renderCheckpointFormSheet();
+return'';
+}
+function renderSessionFormSheet(){
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Study Session</h3>
+<div class="form-field"><label>Title</label><input type="text" id="sf-title" value="${formData.title||''}" placeholder="e.g., Lesson 5: Competitive Landscape"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Date</label><input type="date" id="sf-date" value="${formData.date||''}"></div>
+<div class="form-field" style="flex:1"><label>Time</label><input type="time" id="sf-time" value="${formData.time||'09:00'}"></div>
+</div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Duration (min)</label><input type="number" id="sf-dur" value="${formData.dur||30}" min="5" step="5"></div>
+<div class="form-field" style="flex:1"><label>Phase</label><select id="sf-phase"><option value="0"${formData.phase==0?' selected':''}>None</option><option value="1"${formData.phase==1?' selected':''}>Phase 1</option><option value="2"${formData.phase==2?' selected':''}>Phase 2</option><option value="3"${formData.phase==3?' selected':''}>Phase 3</option></select></div>
+</div>
+<div class="form-field"><label>Description / Activities</label><textarea id="sf-desc" placeholder="What to do in this session...">${formData.desc||''}</textarea></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabSessionForm();saveSessionForm()">Save</button>
+</div></div></div>`}
+function grabSessionForm(){
+formData.title=document.getElementById('sf-title').value;
+formData.date=document.getElementById('sf-date').value;
+formData.time=document.getElementById('sf-time').value;
+formData.dur=parseInt(document.getElementById('sf-dur').value)||30;
+formData.phase=parseInt(document.getElementById('sf-phase').value)||0;
+formData.desc=document.getElementById('sf-desc').value;
+}
+// ─── CHECKPOINTS TAB ───
+function renderCheckpointsTab(){
+const today=new Date().toISOString().slice(0,10);
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="font-size:14px;font-weight:600">Milestones & Targets</div>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openCheckpointForm()">+ Add Checkpoint</button>
+</div>`;
+const sorted=[...checkpoints].sort((a,b)=>a.by.localeCompare(b.by));
+sorted.forEach(cp=>{
+const val=getMetricVal(cp.metric);
+const hit=val>=cp.threshold;
+const overdue=!hit&&cp.by<today;
+h+=`<div class="cp-item${hit?' hit':''}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="cp-target">${hit?'✓ ':''}${cp.target}</div>
+<div style="display:flex;gap:4px">
+<button style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:12px;padding:4px" onclick="openCheckpointForm('${cp.id}')">Edit</button>
+<button style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:12px;padding:4px" onclick="deleteCheckpoint('${cp.id}')">Del</button>
+</div>
+</div>
+<div class="cp-date">${hit?'Achieved!':'Target by '+fmtDate(cp.by)} · Current: ${val}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''} / ${cp.threshold}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''}</div>
+${!hit?`<div style="margin-top:6px"><div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,Math.round(val/cp.threshold*100))}%;${overdue?'background:#ef4444':''}"></div></div></div>`:''}
+</div>`});
+return h;
+}
+function openCheckpointForm(editingId){
+if(editingId){const c=checkpoints.find(x=>x.id===editingId);if(c)formData={...c};editId=editingId}
+else{formData={id:'cp-'+Date.now(),target:'',by:new Date().toISOString().slice(0,10),metric:'bestQuiz',threshold:80};editId=null}
+showForm='checkpoint';render();
+}
+function renderCheckpointFormSheet(){
+const metrics=[['bestQuiz','Best Quiz Score (%)'],['bestRapid','Best Rapid Score (%)'],['cards','Cards Flipped'],['scenarios','Scenarios Practiced'],['exercises','Exercise Completion (%)']];
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Checkpoint</h3>
+<div class="form-field"><label>Target Description</label><input type="text" id="cf-target" value="${formData.target||''}" placeholder="e.g., Score 80%+ on quiz"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Due By</label><input type="date" id="cf-by" value="${formData.by||''}"></div>
+<div class="form-field" style="flex:1"><label>Threshold</label><input type="number" id="cf-thresh" value="${formData.threshold||80}" min="1"></div>
+</div>
+<div class="form-field"><label>Metric to Track</label><select id="cf-metric">${metrics.map(([v,l])=>`<option value="${v}"${formData.metric===v?' selected':''}>${l}</option>`).join('')}</select></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabCheckpointForm();saveCheckpointForm()">Save</button>
+</div></div></div>`}
+function grabCheckpointForm(){
+formData.target=document.getElementById('cf-target').value;
+formData.by=document.getElementById('cf-by').value;
+formData.threshold=parseInt(document.getElementById('cf-thresh').value)||80;
+formData.metric=document.getElementById('cf-metric').value;
+}
+function saveCheckpointForm(){
+if(!formData.target){alert('Target description required');return}
+if(editId){const idx=checkpoints.findIndex(c=>c.id===editId);if(idx>=0)checkpoints[idx]={...formData}}
+else{checkpoints.push({...formData})}
+saveState();closeForm();
+}
+function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveState();render()}
+// ─── RESOURCES TAB ───
+function renderResourcesTab(){
+return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
+<h3 style="color:#93c5fd">📚 Study Resources</h3>
+${(RELATED_COURSES.length ? '<div class="res-group"><h4>Related Courses</h4>'
+  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank">'+c.icon+' '+c.title+'<small>'+c.desc+'</small></a>'}).join('')
+  +'</div>' : '')}
+<div class="res-group">
+<h4>Official MCP Documentation</h4>
+<a class="res-link" href="https://github.com/dash0hq/mcp-dash0" target="_blank" rel="noopener">Dash0 MCP Server — GitHub<small>Config examples, setup instructions, Streamable HTTP transport details</small></a>
+<a class="res-link" href="https://www.dash0.com/changelog/dash0-mcp-server" target="_blank" rel="noopener">Dash0 MCP Server Changelog<small>Resource-Centric SRE Automation, PromQL support, capability announcements</small></a>
+<a class="res-link" href="https://www.dash0.com/docs/dash0/ai/mcp" target="_blank" rel="noopener">Dash0 MCP Docs<small>Full tool reference, use cases, and integration guides</small></a>
+<a class="res-link" href="https://www.dash0.com/docs/dash0/ai/mcp/use-mcp" target="_blank" rel="noopener">Using the Dash0 MCP Server<small>Hands-on guide: verifying connection, running queries, tool examples</small></a>
+</div>
+<div class="res-group">
+<h4>IDE Setup Guides</h4>
+<a class="res-link" href="https://www.dash0.com/hub/integrations?tag=AI" target="_blank" rel="noopener">Dash0 Integrations Hub — AI Tools<small>Copy-paste configs for Claude Code, Cursor, Windsurf, VS Code, Cline, Zed, and more</small></a>
+<a class="res-link" href="https://modelcontextprotocol.io/introduction" target="_blank" rel="noopener">MCP Protocol Specification<small>Anthropic's open standard — understand how MCP works under the hood</small></a>
+<a class="res-link" href="https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http" target="_blank" rel="noopener">Streamable HTTP Transport Spec<small>The transport Dash0 MCP uses — how remote MCP servers differ from local stdio</small></a>
+</div>
+<div class="res-group">
+<h4>Observability Concepts</h4>
+<a class="res-link" href="https://www.dash0.com/docs/dash0/opentelemetry" target="_blank" rel="noopener">Dash0 OpenTelemetry Docs<small>Understand the telemetry signals MCP exposes: logs, traces, metrics</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/basics/" target="_blank" rel="noopener">PromQL Basics<small>Background on the query language behind query_promql</small></a>
+<a class="res-link" href="https://web.dev/articles/vitals" target="_blank" rel="noopener">Core Web Vitals Reference<small>LCP, CLS, INP, TTFB — the metrics Dash0 MCP can query for frontend performance</small></a>
+</div>
+</div>`;}
+function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
+function askResetSection(key){const names={quiz:"Quiz",cards:"Flashcard",scenarios:"Scenario",rapid:"Rapid Fire",exercises:"Exercise"};confirmMsg="Reset "+names[key]+" progress?";confirmAction=key;showConfirm=true;render()}
+function cancelConfirm(){showConfirm=false;confirmAction=null;render()}
+function execConfirm(){if(confirmAction==="all"){resetAll()}else if(confirmAction){resetSection(confirmAction);showConfirm=false;confirmAction=null;render()}}
+function showExportData(){showExport=!showExport;render()}
+function showImportPrompt(){
+const area=document.getElementById("importArea");
+if(area.innerHTML){area.innerHTML="";return}
+area.innerHTML=`<textarea id="importInput" style="width:100%;height:80px;background:#0d1117;color:#6ee7b7;border:1px solid #374151;border-radius:8px;padding:8px;font-family:monospace;font-size:11px;margin-top:8px" placeholder="Paste exported data here..."></textarea><button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px;font-size:13px" onclick="doImport()">Import Data</button>`;
+}
+function doImport(){
+const input=document.getElementById("importInput");
+if(input&&input.value){
+const ok=importState(input.value);
+if(ok){mode="dashboard";render()}
+else{alert("Invalid data format")}
+}
+}
+// ─── ASK CLAUDE ───
+function askClaudeBox(context){
+return`<div class="ask-box">
+<div class="ask-label">🔍 Go deeper — ask Claude</div>
+<div class="ask-row">
+<input type="text" id="askInput" placeholder="e.g., How does Workload Identity actually work?" onkeydown="if(event.key==='Enter')askClaude('${context.replace(/'/g,"\\'")}')">
+<button onclick="askClaude('${context.replace(/'/g,"\\'")}')">Ask</button>
+</div>
+</div>`}
+function askClaude(context){
+const input=document.getElementById('askInput');
+if(!input||!input.value.trim())return;
+const q=input.value.trim();
+const prompt=`I'm studying the Dash0 MCP crash course (preparing as a Solutions Architect / Engineer at Dash0, an observability company). I'm currently studying: ${context}\n\nMy question: ${q}\n\nPlease give me a clear, practical answer. Include specific details, examples, or comparisons where helpful. If this relates to the Model Context Protocol, Dash0, or observability, include relevant context for my role.`;
+navigator.clipboard.writeText(prompt).then(()=>{
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+}).catch(()=>{
+const ta=document.createElement('textarea');ta.value=prompt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+});
+input.value='';
+}
+function showToast(msg){
+const existing=document.querySelector('.ask-toast');if(existing)existing.remove();
+const t=document.createElement('div');t.className='ask-toast';t.textContent=msg;document.body.appendChild(t);
+setTimeout(()=>t.remove(),3000);
+}
+// ─── ICS EXPORT ───
+function toggleIcsPanel(){
+icsOpen=!icsOpen;
+if(icsOpen){icsSelected=new Set();icsPhaseFilter='all';schedule.forEach(s=>icsSelected.add(s.id))}
+render();
+}
+function icsFilterPhase(p){
+icsPhaseFilter=p;
+icsSelected=new Set();
+const filtered=p==='all'?schedule:schedule.filter(s=>s.phase==p);
+filtered.forEach(s=>icsSelected.add(s.id));
+render();
+}
+function icsToggle(id){if(icsSelected.has(id))icsSelected.delete(id);else icsSelected.add(id);render()}
+function icsSelectAll(){const visible=icsVisibleSessions();visible.forEach(s=>icsSelected.add(s.id));render()}
+function icsSelectNone(){icsSelected.clear();render()}
+function icsVisibleSessions(){return icsPhaseFilter==='all'?[...schedule]:schedule.filter(s=>s.phase==icsPhaseFilter)}
+function renderIcsPanel(){
+if(!icsOpen)return'';
+const visible=icsVisibleSessions().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const phases=[...new Set(schedule.map(s=>s.phase).filter(Boolean))].sort();
+let h=`<div class="ics-panel">
+<h4>📅 Export to Calendar</h4>
+<div class="ics-filters">
+<button class="${icsPhaseFilter==='all'?'active':''}" onclick="icsFilterPhase('all')">All Sessions</button>
+${phases.map(p=>`<button class="${icsPhaseFilter==p?'active':''}" onclick="icsFilterPhase(${p})">Phase ${p}</button>`).join('')}
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button style="background:none;border:none;color:#3b82f6;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectAll()">Select all</button>
+<span style="color:#374151;font-size:12px">|</span>
+<button style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectNone()">Select none</button>
+</div>
+<div class="ics-count">${icsSelected.size} of ${visible.length} session${visible.length!==1?'s':''} selected</div>
+<div class="ics-list">`;
+visible.forEach(s=>{
+const on=icsSelected.has(s.id);
+h+=`<div class="ics-item" onclick="icsToggle('${s.id}')">
+<div class="ics-check${on?' on':''}">${on?'✓':''}</div>
+<div class="ics-item-info"><div class="ics-item-title">${s.title}</div><div class="ics-item-date">${fmtDate(s.date)} · ${s.time} · ${s.dur} min</div></div>
+</div>`});
+h+=`</div>
+<div class="ics-actions">
+<button class="btn btn-secondary" onclick="toggleIcsPanel()">Cancel</button>
+<button class="ics-dl" ${icsSelected.size===0?'disabled style="opacity:.4;cursor:default" ':''}onclick="${icsSelected.size?'downloadIcs()':''}">Download .ics (${icsSelected.size})</button>
+</div></div>`;
+return h;
+}
+function downloadIcs(){
+const selected=schedule.filter(s=>icsSelected.has(s.id)).sort((a,b)=>a.date.localeCompare(b.date));
+if(!selected.length)return;
+const pad=n=>(n<10?'0':'')+n;
+const toIcsDate=(d,t,dur)=>{
+const[y,m,dy]=d.split('-').map(Number);
+const[h,mi]=(t||'09:00').split(':').map(Number);
+const start=new Date(y,m-1,dy,h,mi);
+const end=new Date(start.getTime()+dur*60000);
+const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+return{start:fmt(start),end:fmt(end)};
+};
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Study Sessions\r\n`;
+selected.forEach(s=>{
+const{start,end}=toIcsDate(s.date,s.time,s.dur);
+const desc=(s.desc||'').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+cal+=`BEGIN:VEVENT\r\nUID:${uid()}@crashcourse\r\nDTSTART:${start}\r\nDTEND:${end}\r\nSUMMARY:${s.title.replace(/,/g,'\\,')}\r\nDESCRIPTION:${desc}\r\n`;
+if(s.phase)cal+=`CATEGORIES:Phase ${s.phase}\r\n`;
+cal+=`STATUS:CONFIRMED\r\nBEGIN:VALARM\r\nTRIGGER:-PT10M\r\nACTION:DISPLAY\r\nDESCRIPTION:Study session starting soon\r\nEND:VALARM\r\nEND:VEVENT\r\n`;
+});
+cal+=`END:VCALENDAR`;
+const blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download='study-sessions.ics';a.click();
+URL.revokeObjectURL(url);
+showToast(`Downloaded ${selected.length} session${selected.length!==1?'s':''} as .ics`);
+icsOpen=false;render();
+}
+// ─── INIT ───
+render();
+</script>
+</body>
+</html>
