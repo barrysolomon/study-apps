@@ -277,7 +277,7 @@ const FLASHCARDS=[
 // ║  Search for "TODO" to find all customization points          ║
 // ╚══════════════════════════════════════════════════════════════╝
 const APP_VERSION='v1.0'; // Content version — bump when you update questions/content
-const PLATFORM_VERSION='v3.0'; // Engine version — matches the crash-course-builder skill version
+const PLATFORM_VERSION='v3.1'; // Engine version — matches the crash-course-builder skill version
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
 // TODO: (Optional) Paste your Google Apps Script Web App URL to enable cross-device sync. See google-sheets-sync-setup.md for instructions.
 let SYNC_SHEET_URL='';
@@ -657,32 +657,28 @@ if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d
 function setMode(m){mode=m;render()}
 // ─── DASHBOARD ───
 function renderDashboard(el){
-const now=new Date(),evt=new Date(2026,3,22);
-const days=Math.max(0,Math.ceil((evt-now)/(864e5)));
-const wk=days>12?1:days>5?2:days>0?3:0;
-const wkL=wk===0?"Event time!":`Week ${wk}`;
-const wkD=wk===1?"The Essentials":wk===2?"Going Deeper":wk===3?"Final Prep":"You're at Google Next!";
-const focus=wk===1?"Master the basics: GKE vs EKS, Autopilot, Dash0 partnership, competitive positioning. Hit flashcards and take a quiz."
-:wk===2?"Go hands-on: GCP console, dev cluster, vocabulary. Practice scenario drills for objection fluency."
-:wk===3?"Speed and polish: rapid fire until 80%+, every scenario, elevator pitch out loud."
-:"Trust your prep. Be curious, ask questions, take notes.";
+const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
+const focus=(stats.quizzes||0)===0
+?"Start with Learn mode to build your foundation"
+:(stats.quizzes||0)<3
+?"Keep quizzing to reinforce the material"
+:"Great progress! Use Rapid mode to sharpen your speed";
 el.innerHTML=`
 <div style="text-align:center;margin-bottom:24px">
-<div style="font-size:48px;font-weight:700">${days}</div>
-<div style="font-size:14px;color:#6b7280">days until Google Cloud Next</div>
-<div class="badge" style="margin-top:8px;display:inline-block">${wkL}: ${wkD}</div>
+<div style="font-size:20px;font-weight:700;color:#e5e7eb">${COURSE_TITLE||'TODO: Course Title'}</div>
+<div style="font-size:14px;color:#6b7280;margin-top:6px">Pick a mode to start &rarr; learn &rarr; quiz &rarr; drills</div>
 </div>
 <div class="stat-grid">
-<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">📝</div><div class="stat-val">${stats.quizzes}</div><div class="stat-label">Quizzes</div></div>
-<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">🏆</div><div class="stat-val">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
-<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-icon">📃</div><div class="stat-val">${stats.cards}</div><div class="stat-label">Cards Flipped</div></div>
-<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-icon">💬</div><div class="stat-val">${stats.scenarios}</div><div class="stat-label">Scenarios</div></div>
-<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">⚡</div><div class="stat-val">${stats.rapid}</div><div class="stat-label">Rapid Rounds</div></div>
-<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">🌟</div><div class="stat-val">${stats.bestRapid?stats.bestRapid+'%':'—'}</div><div class="stat-label">Best Rapid</div></div>
-<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
-<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length}</div><div class="stat-label">Weak Cards</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.quizzes||0}</div><div class="stat-label">Quizzes Taken</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
+<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-num">${stats.cards||0}</div><div class="stat-label">Cards Flipped</div></div>
+<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-num">${stats.scenarios||0}</div><div class="stat-label">Scenarios Done</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.rapid||0}</div><div class="stat-label">Rapid Rounds</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.bestRapid||'—'}</div><div class="stat-label">Best Rapid</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-num">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
 </div>
-<div class="focus-box"><div class="focus-title">Today's Focus</div><div class="focus-text">${focus}</div></div>
+<div class="focus-box"><div class="focus-title">Your Focus</div><div class="focus-text">${focus}</div></div>
 ${renderDashSchedule()}`;
 }
 function renderDashSchedule(){
