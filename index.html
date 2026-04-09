@@ -135,9 +135,13 @@ async function loadCourses() {
     console.warn('Dynamic load failed, using fallback:', err);
     el.textContent = '';
     const fallback = [
+      { name: 'dash0-api-crash-course.html', title: 'Dash0 API', desc: 'REST API, OTLP ingestion, PromQL queries', guide: 'dash0-api-study-guide.md' },
+      { name: 'dash0-cli-crash-course.html', title: 'Dash0 CLI', desc: 'Terminal commands, GitOps, asset management', guide: 'dash0-cli-study-guide.md' },
+      { name: 'dash0-mcp-crash-course.html', title: 'Dash0 MCP', desc: 'AI-native observability via Model Context Protocol', guide: 'dash0-mcp-study-guide.md' },
       { name: 'dash0-terraform-crash-course.html', title: 'Dash0 Terraform', desc: 'Terraform provider for observability-as-code', guide: 'dash0-terraform-study-guide.md' },
       { name: 'gke-study-app.html', title: 'Google Kubernetes Engine (GKE)', desc: 'Cloud-native Kubernetes on Google Cloud', guide: null },
-      { name: 'otca-study-app.html', title: 'OpenTelemetry Certified Associate (OTCA)', desc: 'Observability & distributed tracing certification', guide: null },
+      { name: 'otca-study-app.html', title: 'OpenTelemetry Certified Associate (OTCA)', desc: 'Observability and distributed tracing certification', guide: null },
+      { name: 'pca-crash-course.html', title: 'Prometheus Certified Associate (PCA)', desc: 'Prometheus monitoring and PromQL certification', guide: 'pca-study-guide.md' },
     ];
     for (const c of fallback) {
       el.appendChild(buildCard(BASE + c.name, c.title, c.desc, c.guide));
