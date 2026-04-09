@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dash0 Value Framework Trainer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+#root{min-height:100vh}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:800;color:#e5e7eb}
+.header .ver{font-size:9px;color:#6b7280;letter-spacing:.3px}
+.header .sync-badge{font-size:11px;cursor:default}
+.content{padding:16px;padding-bottom:100px;min-height:calc(100vh - 130px)}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:960px;margin:0 auto;background:rgba(10,10,15,.95);border-top:1px solid #1f2937;padding:8px;display:flex;justify-content:space-around;gap:4px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:200}
+.nav button{display:flex;flex-direction:column;align-items:center;padding:6px 6px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;min-width:46px;flex:1}
+.nav button:hover{background:#374151}
+.nav button.active{background:#10b981;color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.nav button span{font-size:18px;margin-bottom:2px}
+h2.sec-title{font-size:1.3rem;font-weight:700;margin-bottom:6px;color:#e5e7eb}
+.sec-sub{color:#9ca3af;font-size:.82rem;margin-bottom:16px}
+.sec-label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:5px}
+.card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;margin-bottom:12px;transition:all .2s}
+.card:hover{border-color:#4b5563}
+.card-fc{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-align:center;user-select:none;-webkit-user-select:none}
+.card-fc:hover{border-color:rgba(16,185,129,.4)}
+.fav-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.4;transition:all .2s;padding:4px;line-height:1}
+.fav-btn:hover{opacity:.7;transform:scale(1.2)}
+.fav-btn.active{opacity:1}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:#1f2937;border-radius:12px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;border:2px solid transparent}
+.stat-card:hover{border-color:#374151;background:#263040}
+.stat-icon{font-size:24px;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:700}
+.stat-label{font-size:11px;color:#6b7280}
+.btn-primary{padding:10px 20px;border-radius:10px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;background:#10b981;color:#fff;transition:all .2s}
+.btn-primary:hover{background:#059669;transform:translateY(-1px)}
+.btn-secondary{padding:10px 20px;border-radius:10px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;background:#374151;color:#9ca3af;transition:all .2s}
+.btn-secondary:hover{background:#4b5563;color:#d1d5db}
+.btn-danger{padding:10px 20px;border-radius:10px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;background:#ef4444;color:#fff;transition:all .2s}
+.btn-danger:hover{background:#dc2626}
+.btn-full{width:100%;padding:14px;font-size:15px}
+.btn-outline{background:transparent;border:1px solid #4b5563;color:#9ca3af;padding:10px 20px;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:#6b7280;color:#d1d5db}
+.pill{white-space:nowrap;padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+.pill.active{background:#10b981;color:#fff}
+.pill:not(.active){background:#1f2937;color:#9ca3af}
+.pill:hover:not(.active){background:#374151}
+.pills{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.progress-bar{width:100%;height:5px;background:#374151;border-radius:999px;overflow:hidden;margin-bottom:14px}
+.progress-fill{height:100%;border-radius:999px;transition:width .3s}
+.quiz-opt{width:100%;text-align:left;padding:14px 16px;border-radius:12px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:.88rem;font-weight:500;cursor:pointer;margin-bottom:8px;transition:all .2s}
+.quiz-opt:hover:not(.correct):not(.wrong):not(.dimmed){border-color:#4b5563;background:#263040}
+.quiz-opt.correct{background:rgba(16,185,129,.12);border-color:#10b981;color:#6ee7b7}
+.quiz-opt.wrong{background:rgba(239,68,68,.12);border-color:#ef4444;color:#fca5a5}
+.quiz-opt.dimmed{background:rgba(31,41,55,.5);border-color:#1f2937;color:#4b5563;cursor:default;opacity:.45}
+.ibox{padding:13px;border-radius:12px;font-size:.85rem;line-height:1.5;margin-bottom:12px}
+.ibox-green{border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#bbf7d0}
+.ibox-red{border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fecaca}
+.ibox-amber{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#fde68a}
+.ibox-label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.source-link{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;background:rgba(147,197,253,.08);border:1px solid rgba(147,197,253,.25);color:#93c5fd;font-size:.75rem;font-weight:500;text-decoration:none;transition:all .2s;margin-right:6px;margin-bottom:4px}
+.source-link:hover{background:rgba(147,197,253,.18);border-color:rgba(147,197,253,.4)}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:4px}
+.lesson-card{background:#1f2937;border-radius:16px;padding:16px;cursor:pointer;border:2px solid #374151;transition:all .2s;display:flex;align-items:center;gap:12px}
+.lesson-card:hover{border-color:#4b5563}
+.lesson-card.completed{border-color:rgba(16,185,129,.3)}
+.lesson-highlight{padding:12px 14px;border-radius:10px;border-left:3px solid #10b981;background:rgba(16,185,129,.08);font-size:.85rem;color:#bbf7d0;margin-bottom:10px;line-height:1.5}
+.exercise-box{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);margin-bottom:8px;transition:all .2s}
+.exercise-box:hover{background:rgba(167,139,250,.12)}
+.mgmt-section{background:#1f2937;border-radius:16px;padding:16px;margin-bottom:16px}
+.mgmt-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#d1d5db}
+.form-input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;font-size:.82rem;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:#10b981}
+.form-input.mono{font-family:monospace}
+.timer{font-size:2.5rem;font-weight:800;margin-bottom:12px}
+.grade{font-size:3.5rem;font-weight:800;text-align:center}
+.glossary-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
+.glossary-card{max-width:400px;width:100%;background:#1f2937;border:1px solid #4b5563;border-radius:14px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.reset-confirm{background:rgba(239,68,68,.08);border:1px solid #ef4444;border-radius:10px;padding:16px}
+.badge-cat{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.68rem;font-weight:600;background:rgba(16,185,129,.1);color:#10b981}
+.res-link{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;background:rgba(147,197,253,.08);border:1px solid rgba(147,197,253,.25);color:#93c5fd;font-size:.75rem;font-weight:500;text-decoration:none;transition:all .2s;margin-right:6px;margin-bottom:4px}
+.res-link:hover{background:rgba(147,197,253,.18);border-color:rgba(147,197,253,.4)}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500}
+.role-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.role-picker{max-width:520px;width:92%;padding:28px 20px;text-align:center}
+.role-picker h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.role-picker .rp-sub{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5}
+.role-cards{display:flex;flex-direction:column;gap:12px}
+.role-card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left}
+.role-card:hover{border-color:#10b981;background:#263040}
+.role-card .rc-icon{font-size:28px;margin-bottom:8px}
+.role-card .rc-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.role-card .rc-desc{font-size:13px;color:#9ca3af;line-height:1.4}
+.role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
+.role-current:hover{border-color:#10b981;background:#263040}
+.focus-box{background:#1f2937;border-radius:16px;padding:16px;margin-top:20px}
+.focus-title{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.focus-text{font-size:14px;color:#d1d5db;line-height:1.6}
+@media(min-width:600px){
+  body{max-width:960px;padding:0 24px}
+  .header{padding:20px 0 12px}
+  .header h1{font-size:22px}
+  .content{padding:20px 0 100px}
+  .nav{padding:10px 16px;gap:8px;border-radius:16px 16px 0 0}
+  .nav button{min-width:auto;padding:8px 14px;font-size:12px;flex-direction:row;gap:6px;border-radius:10px}
+  .nav button span{font-size:16px;margin-bottom:0}
+  .stat-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+  .stat-card{padding:16px}
+  .stat-val{font-size:22px}
+  .card{max-width:640px;margin:0 auto;min-height:240px;padding:28px}
+  .card-fc{min-height:280px;padding:32px}
+  .quiz-opt{font-size:15px;padding:16px 20px}
+  .mgmt-section{max-width:700px}
+  .lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .focus-box{max-width:700px}
+  .pills{flex-wrap:wrap}
+}
+@media(min-width:800px){
+  body{max-width:1100px}
+  .nav{max-width:1100px}
+  .stat-grid{grid-template-columns:repeat(4,1fr)}
+  .lesson-grid{grid-template-columns:repeat(3,1fr)}
+  .card{max-width:700px}
+}
+.fs-s .card-text,.fs-s .lesson-text,.fs-s .quiz-opt,.fs-s .focus-text{font-size:13px}
+.fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-opt,.fs-m .focus-text{font-size:15px}
+.fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-opt,.fs-l .focus-text{font-size:17px}
+.fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-opt,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const APP_VERSION = "v3.1";
+const PLATFORM_VERSION = "v3.1";
+
+const STORAGE_KEY = "vf-trainer-progress";
+
+const RELATED_COURSES=[]; // internal-only
+const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
+const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
+
+// ─── GLOBAL UTILITY FUNCTIONS (non-React, no state needed) ───
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
+function applyFontSize(size){
+  document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');
+  document.body.classList.add(size);
+  try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){}
+}
+
+// ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
+let SYNC_SHEET_URL = '';
+let SYNC_USER_ID = '';
+try {
+  const su = localStorage.getItem(STORAGE_KEY + '-sync-url');
+  if (su) SYNC_SHEET_URL = su;
+  const uid = localStorage.getItem(STORAGE_KEY + '-sync-user');
+  if (uid) SYNC_USER_ID = uid;
+} catch(e) {}
+
+function syncEnabled() { return typeof SYNC_SHEET_URL === 'string' && SYNC_SHEET_URL.length > 10; }
+function getSyncKey() { return SYNC_USER_ID ? (SYNC_USER_ID + '/' + STORAGE_KEY) : STORAGE_KEY; }
+function isOnline() { return typeof navigator !== 'undefined' ? navigator.onLine : true; }
+
+let syncStatus = 'idle', lastSyncAt = null, syncPending = false;
+let syncTimer = null;
+
+async function cloudSave() {
+  if (!syncEnabled()) { syncPending = false; return; }
+  if (!isOnline()) { syncStatus = 'offline'; syncPending = true; return; }
+  syncStatus = 'syncing';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : {};
+    data.savedAt = new Date().toISOString();
+    await fetch(SYNC_SHEET_URL + '?action=save&key=' + encodeURIComponent(getSyncKey()), {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ data, savedAt: data.savedAt })
+    });
+    syncStatus = 'synced'; lastSyncAt = new Date().toISOString(); syncPending = false;
+  } catch(e) {
+    syncStatus = isOnline() ? 'error' : 'offline'; syncPending = true;
+    console.warn('Cloud sync save failed:', e);
+  }
+}
+
+async function cloudLoad() {
+  if (!syncEnabled()) return null;
+  if (!isOnline()) { syncStatus = 'offline'; return null; }
+  syncStatus = 'syncing';
+  try {
+    const resp = await fetch(SYNC_SHEET_URL + '?action=load&key=' + encodeURIComponent(getSyncKey()));
+    const json = await resp.json();
+    syncStatus = 'synced'; lastSyncAt = new Date().toISOString();
+    if (json.ok && json.data) return json;
+    return null;
+  } catch(e) { syncStatus = isOnline() ? 'error' : 'offline'; console.warn('Cloud sync load failed:', e); return null; }
+}
+
+function debouncedCloudSave() {
+  if (!syncEnabled()) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => cloudSave(), 2000);
+}
+
+function saveSyncSettings(url, userId) {
+  SYNC_SHEET_URL = url.trim();
+  SYNC_USER_ID = (userId || '').trim();
+  try {
+    if (SYNC_SHEET_URL) localStorage.setItem(STORAGE_KEY + '-sync-url', SYNC_SHEET_URL);
+    else localStorage.removeItem(STORAGE_KEY + '-sync-url');
+    if (SYNC_USER_ID) localStorage.setItem(STORAGE_KEY + '-sync-user', SYNC_USER_ID);
+    else localStorage.removeItem(STORAGE_KEY + '-sync-user');
+  } catch(e) {}
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    if (syncEnabled() && syncPending) { console.log('☁️ Back online — syncing'); cloudSave(); }
+    else if (syncEnabled()) { syncStatus = 'idle'; }
+  });
+  window.addEventListener('offline', () => {
+    if (syncEnabled()) { syncStatus = 'offline'; }
+  });
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveProgress(data) {
+  try {
+    data.savedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    debouncedCloudSave();
+  } catch (e) { console.error("Storage save failed:", e); }
+}
+
+function clearProgress() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) { console.error("Storage clear failed:", e); }
+}
+const ROLE_CONFIG = {
+  ae: { label: "Account Executive", icon: "💼", desc: "Competitive positioning, discovery, objections, proof points.", coreCats: ["Pillars","Competitors","Objections","Proof Points"], coreLessons: ["pillars","vd","traps","objections","proof","discovery"], catOrder: ["All","Pillars","Value Drivers","Competitors","Objections","Proof Points","Discovery"] },
+  se: { label: "Solutions Engineer", icon: "🔧", desc: "Technical depth, demo-ready knowledge, architecture.", coreCats: ["Pillars","Value Drivers","Competitors","Discovery"], coreLessons: ["pillars","otel","agent0","vd","traps","discovery"], catOrder: ["All","Pillars","Value Drivers","Discovery","Competitors","Objections","Proof Points"] },
+  leadership: { label: "Leadership", icon: "📊", desc: "Strategic framing, proof points, market positioning.", coreCats: ["Pillars","Proof Points","Value Drivers"], coreLessons: ["pillars","vd","proof","traps"], catOrder: ["All","Pillars","Value Drivers","Proof Points","Competitors","Objections","Discovery"] }
+};
+
+const GLOSSARY = {
+  "VD1":{ title:"Value Driver 1: Protect Revenue", def:"Reduce MTTR via Agent0 triage + resource-centric navigation. Every minute of downtime = lost revenue." },
+  "VD2":{ title:"Value Driver 2: Radical Cost Control", def:"Eliminate bill shock, sampling anxiety, custom metric fees. SIFT framework: pay for data, not infrastructure." },
+  "VD3":{ title:"Value Driver 3: Eliminate Lock-In", def:"Full data portability via OTel-native architecture. Proprietary agents trap data; OTel lets you switch backends in minutes." },
+  "Agent0":{ title:"Agent0 — AI SRE Guild", def:"5 specialized AI agents: Seeker (root cause), Oracle (query generation), Threadweaver (trace narratives), Pathfinder (onboarding), Artist (dashboards). Not a chatbot — a guild." },
+  "SIFT":{ title:"SIFT — Smart Ingestion & Filtering", def:"AI-powered spam filter that drops low-value telemetry (health checks, debug logs) before storage/billing. Filters 30-40% of log volume." },
+  "MTTR":{ title:"Mean Time To Resolution", def:"How long from first alert to full resolution. The #1 metric for VD1 (Protect Revenue). Agent0 reduces this dramatically." },
+  "OTel":{ title:"OpenTelemetry", def:"CNCF open-source observability framework. Vendor-neutral SDKs and collectors for metrics, logs, and traces. The industry standard Dash0 is built on." },
+  "OTLP":{ title:"OpenTelemetry Protocol", def:"The native wire format for OTel data. Dash0 stores data as OTLP with zero translation. Competitors convert to proprietary schemas, losing attributes." },
+  "PromQL":{ title:"Prometheus Query Language", def:"Industry-standard query language for metrics. Dash0 uses it for ALL signals (metrics, logs, traces). Grafana requires 3 different languages." },
+  "LogQL":{ title:"LogQL — Grafana's Log Query Language", def:"Proprietary query language for Loki (Grafana logs). One of 3 languages Grafana users must learn. Not portable." },
+  "TraceQL":{ title:"TraceQL — Grafana's Trace Query Language", def:"Proprietary query language for Tempo (Grafana traces). Yet another language on top of PromQL and LogQL." },
+  "RUM":{ title:"Real User Monitoring", def:"Tracks actual user experience in browsers/apps — page loads, clicks, errors. Datadog charges per view/click, making it expensive at scale." },
+  "NRQL":{ title:"New Relic Query Language", def:"New Relic's proprietary query language. Skills don't transfer. Dash0 uses industry-standard PromQL instead." },
+  "DQL":{ title:"Dynatrace Query Language", def:"Dynatrace's proprietary query language. Another vendor lock-in vector — skills don't transfer." },
+  "Perses":{ title:"Perses — CNCF Dashboard Standard", def:"Open-source CNCF project for dashboards-as-code. Version-controlled in git, no vendor lock-in on visualization." },
+  "GitOps":{ title:"GitOps", def:"Managing infrastructure and config via git repos. Perses dashboards are GitOps-ready — unlike Grafana's proprietary JSON." },
+  "IaC":{ title:"Infrastructure as Code", def:"Defining infrastructure in code (Terraform, Terragrunt). Enables automation, version control, and reproducibility." },
+  "FinOps":{ title:"FinOps — Cloud Financial Operations", def:"Practice of bringing financial accountability to cloud spend. Observability is often the #2 cloud cost." },
+};
+
+const FC = [
+  {f:"OTel-Native Architecture",b:"Built on OTel data model — no proprietary schema mapping. service.name, k8s.pod.uid preserved across all signals. Zero translation loss.",c:"Pillars",u:"https://dash0.com/docs/dash0"},
+  {f:"Agent0 — AI That Works",b:"Guild of specialized AI agents: Seeker (root cause), Oracle (queries), Threadweaver (traces), Pathfinder (onboarding), Artist (dashboards). AI on clean data > AI on broken data.",c:"Pillars",u:"https://dash0.com/ai-sre-agent"},
+  {f:"Predictable Pricing",b:"$0.60/M logs & spans. $0.20/M metrics. Zero fees for hosts, seats, services. No custom metric premium.",c:"Pillars",u:"https://dash0.com/pricing"},
+  {f:"Zero Vendor Lock-In",b:"OTel for data, PromQL for queries, Perses for dashboards. Switching = changing one URL in your OTel Collector config.",c:"Pillars",u:"https://dash0.com/docs/dash0"},
+  {f:"Why competitors can't copy OTel-Native",b:"10+ years of proprietary data model code. Re-architecting means rebuilding the entire backend.",c:"Pillars"},
+  {f:"Why competitors can't copy pricing",b:"Incumbents rely on overage fees, SKU stacking, seat licensing. Volume-based pricing would destroy their unit economics.",c:"Pillars",u:"https://dash0.com/pricing"},
+  {f:"Agent0's guild architecture",b:"5+ specialized agents, not one chatbot. Seeker, Oracle, Threadweaver, Pathfinder, Artist. Fully explainable — shows every query it ran.",c:"Pillars",u:"https://dash0.com/ai-sre-agent"},
+  {f:"The Lock-In Litmus Test",b:"'If you left tomorrow, what would migration look like?' Dash0: change one URL. Competitors: months-long project.",c:"Pillars"},
+  {f:"VD1: Protect Revenue",b:"Maps to REVENUE. Reduce MTTR via Agent0 triage + resource-centric navigation. Every minute of downtime = lost revenue.",c:"Value Drivers"},
+  {f:"VD2: Radical Cost Control",b:"Maps to COST. Bill shock, sampling, custom metric fears. SIFT framework: pay for data not infrastructure.",c:"Value Drivers",u:"https://dash0.com/pricing"},
+  {f:"VD3: Eliminate Lock-In",b:"Maps to RISK. Proprietary agents trap data. Full portability via OTel-native. Switch backends in minutes.",c:"Value Drivers",u:"https://dash0.com/docs/dash0"},
+  {f:"The Priority Question",b:"'Leaders focus on uptime, costs, and vendor dependency — which is most urgent?' Lets prospect self-select their pain.",c:"Value Drivers"},
+  {f:"Revenue Signal Words",b:"Outages, downtime costs, SLA breaches, churn, slow APIs, NPS erosion → VD1.",c:"Value Drivers"},
+  {f:"Cost Signal Words",b:"Bill shock, budget overruns, sampling, FinOps pressure, custom metric fears → VD2.",c:"Value Drivers",u:"https://dash0.com/pricing"},
+  {f:"Risk Signal Words",b:"Vendor contracts, proprietary agents, OTel adoption, migration concerns → VD3.",c:"Value Drivers",u:"https://dash0.com/docs/dash0"},
+  {f:"DD Trap: Custom Metric Tax",b:"'How do you decide which attributes to tag? Tags you'd like to add but haven't?' → Dash0 flat rate, high-cardinality tags encouraged.",c:"Competitors",u:"https://dash0.com/datadog-alternative"},
+  {f:"DD Trap: Host Penalty",b:"'When infra scales during a spike, how does your bill change?' → Dash0 has no host fees.",c:"Competitors",u:"https://dash0.com/datadog-alternative"},
+  {f:"DD Trap: OTel Translation Loss",b:"'Sending OTel to Datadog — noticed attributes dropped or renamed?' → Dash0 stores as native OTLP.",c:"Competitors",u:"https://dash0.com/datadog-alternative"},
+  {f:"NR Trap: Seat Tax",b:"'Is everyone who needs access able to get in?' → Dash0 has no seat limits. Intern to CEO, free.",c:"Competitors",u:"https://dash0.com/newrelic-alternative"},
+  {f:"NR Trap: Data Silo",b:"'How easy to export data to a warehouse?' → Dash0 is built on open standards.",c:"Competitors",u:"https://dash0.com/newrelic-alternative"},
+  {f:"Grafana Trap: Query Fragmentation",b:"'How many query languages from metric alert → logs → trace?' → Dash0 uses single PromQL.",c:"Competitors",u:"https://dash0.com/grafana-alternative"},
+  {f:"Grafana Trap: Operational Burden",b:"'How much eng time maintaining the stack?' → Dash0 is fully managed.",c:"Competitors",u:"https://dash0.com/grafana-alternative"},
+  {f:"Grafana Trap: Correlation Gap",b:"'When jumping dashboard → logs → trace, how seamless?' → Dash0 resource-centric nav preserves context.",c:"Competitors",u:"https://dash0.com/grafana-alternative"},
+  {f:"DT Trap: AI Black Box",b:"'When Davis flags an anomaly, can you trace its reasoning?' → Agent0 is fully explainable.",c:"Competitors",u:"https://dash0.com/dynatrace-alternative"},
+  {f:"DT Trap: OneAgent Weight",b:"'How well does OneAgent work for ephemeral/serverless?' → OTel-native is lightweight.",c:"Competitors",u:"https://dash0.com/dynatrace-alternative"},
+  {f:"DT Trap: Lock-In Depth",b:"'How deeply is OneAgent embedded in your pipelines?' → Dash0 switching is a config change.",c:"Competitors",u:"https://dash0.com/dynatrace-alternative"},
+  {f:"Obj: 'Locked into a contract'",b:"Run parallel POC via second OTel Collector exporter. By contract end, real production data proves value.",c:"Objections"},
+  {f:"Obj: 'Already using OTel'",b:"What happens after ingestion? Most vendors convert to proprietary. Dash0 stores natively as OTLP.",c:"Objections",u:"https://dash0.com/docs/dash0"},
+  {f:"Obj: 'No bandwidth for migration'",b:"Not a migration — a config change. Add second exporter. Zero code changes.",c:"Objections"},
+  {f:"Obj: 'Grafana is free'",b:"Dashboard is free. Running Loki+Tempo+Mimir in production is NOT. Plus 3 query languages.",c:"Objections",u:"https://dash0.com/grafana-alternative"},
+  {f:"Obj: 'Need to see it at scale'",b:"Run in parallel with real production telemetry. No synthetic benchmarks.",c:"Objections"},
+  {f:"Obj: 'Happy with current tool'",b:"When did you last benchmark per-event cost? Often 3-5x more than expected.",c:"Objections",u:"https://dash0.com/pricing"},
+  {f:"Obj: 'AI is just a buzzword'",b:"Valid. Most vendor AI IS a chatbot on broken data. Agent0: specialized guild on clean OTel data. Fully explainable. Demo it.",c:"Objections",u:"https://dash0.com/ai-sre-agent"},
+  {f:"Proof: Zalando",b:"€14B+ e-commerce. Largest customer. 'Mindblowing' query performance. Expanding.",c:"Proof Points"},
+  {f:"Proof: Digibee",b:"Full Datadog migration in <1 month. $600K+ spend cut by 2/3. Agent0 for migration.",c:"Proof Points"},
+  {f:"Proof: Starling Bank",b:"UK digital bank, 4M+ customers. AWS PrivateLink. Regulated finance.",c:"Proof Points"},
+  {f:"Proof: Vercel",b:"60-80% faster bug-to-fix. Tracing isolated issues invisible in high-volume traffic.",c:"Proof Points"},
+  {f:"Discovery: Last Outage",b:"'Walk me through your last outage — first alert to resolution.' Probes MTTR → VD1.",c:"Discovery"},
+  {f:"Discovery: Bill Breakdown",b:"'How does your bill break down? Main cost drivers?' Surfaces hidden costs → VD2.",c:"Discovery",u:"https://dash0.com/pricing"},
+  {f:"Discovery: Migration Fear",b:"'If you left tomorrow, what would migration look like?' Exposes lock-in → VD3.",c:"Discovery",u:"https://dash0.com/docs/dash0"},
+  {f:"Discovery: Missing Telemetry",b:"'If money were no object, what telemetry would you add?' The Observability Dilemma → VD2.",c:"Discovery",u:"https://dash0.com/pricing"},
+  {f:"Discovery: On-Call Ramp",b:"'How do new on-call engineers ramp up?' Expert Dependency → Agent0.",c:"Discovery",u:"https://dash0.com/ai-sre-agent"},
+  {f:"Discovery: Query Languages",b:"'How many query languages from metric alert → logs → trace?' Fragmentation → unified PromQL.",c:"Discovery"}
+];
+const CATS = [...new Set(FC.map(c=>c.c))];
+
+const QUIZ = [
+  {q:"Dash0's core architectural differentiator?",o:["Proprietary agent with AI","OTel-native data model, zero translation","Custom query language","Dashboard federation"],a:1,cat:"Pillars",u:"https://dash0.com/docs/dash0",e:"Stores data natively as OTLP. Competitors convert OTel data to proprietary schemas, losing semantic context."},
+  {q:"NOT one of Agent0's agents?",o:["The Seeker","The Oracle","The Conductor","The Threadweaver"],a:2,cat:"Pillars",u:"https://dash0.com/ai-sre-agent",e:"The guild: Seeker, Oracle, Threadweaver, Pathfinder, Artist. 'Conductor' doesn't exist."},
+  {q:"Cost per million metric data points?",o:["$0.10","$0.20","$0.60","$1.00"],a:1,cat:"Pillars",u:"https://dash0.com/pricing",e:"$0.20/M metrics, $0.60/M logs & spans. No host/seat fees. Compare: DD custom metrics cost $5-8/metric/month."},
+  {q:"Query language across ALL signals?",o:["DQL","NRQL","PromQL","LogQL"],a:2,cat:"Pillars",e:"Vanilla PromQL for metrics, logs, and traces. Grafana needs 3 languages (PromQL+LogQL+TraceQL)."},
+  {q:"What happens to OTel semantic conventions on ingestion?",o:["Mapped to internal schema","Preserved 100% as OTLP","Indexed by tier","Converted to KV pairs"],a:1,cat:"Pillars",u:"https://dash0.com/docs/dash0",e:"100% preserved. Attributes like service.name and k8s.pod.uid are never renamed or dropped."},
+  {q:"Open-source dashboard project Dash0 uses?",o:["Grafana","Kibana","Perses","Chronograf"],a:2,cat:"Pillars",e:"Perses (CNCF) — dashboards version-controlled in git, no vendor lock-in on visualization."},
+  {q:"'DD bill up 40%' — which Value Driver?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:1,cat:"Value Drivers",u:"https://dash0.com/pricing",e:"Bill shock = VD2 (Cost). Lead with predictable pricing, no hidden penalties."},
+  {q:"'Outage took 4hrs, lost $200K' — which VD?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:0,cat:"Value Drivers",e:"Revenue loss from MTTR = VD1. Agent0 triage + resource-centric navigation."},
+  {q:"'Want OTel but fear ripping out DD agents' — VD?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:2,cat:"Value Drivers",u:"https://dash0.com/docs/dash0",e:"Migration fear = VD3. Add second exporter, zero disruption."},
+  {q:"'Juniors can't debug without a senior' — VD?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:0,cat:"Value Drivers",u:"https://dash0.com/ai-sre-agent",e:"Expert Dependency = VD1. Agent0 enables independent resolution."},
+  {q:"'Sampling 99% of traces to save money' — VD?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:1,cat:"Value Drivers",u:"https://dash0.com/pricing",e:"Observability Dilemma = VD2. Flat pricing: stop sampling, see everything."},
+  {q:"'Procurement has zero leverage at renewal' — VD?",o:["VD1: Revenue","VD2: Cost","VD3: Lock-In"],a:2,cat:"Value Drivers",e:"Switching cost = VD3. OTel-native means migration in minutes."},
+  {q:"Datadog's biggest pricing vulnerability?",o:["Slow queries","Custom metric tax + host pricing","No AI","No K8s"],a:1,cat:"Competitors",u:"https://dash0.com/datadog-alternative",e:"Per custom metric ($5-8/mo) + per host. Teams avoid useful tags to save money."},
+  {q:"New Relic's query language lock-in?",o:["PromQL","SQL","NRQL (proprietary)","GraphQL"],a:2,cat:"Competitors",u:"https://dash0.com/newrelic-alternative",e:"NRQL doesn't transfer. Dash0 uses industry-standard PromQL."},
+  {q:"Grafana stack requires how many query languages?",o:["1","2","3","4"],a:2,cat:"Competitors",u:"https://dash0.com/grafana-alternative",e:"PromQL + LogQL + TraceQL = 3. Dash0 uses PromQL for everything."},
+  {q:"Main criticism of Dynatrace Davis AI?",o:["Too slow","Black box — no reasoning","Metrics only","Manual config"],a:1,cat:"Competitors",u:"https://dash0.com/dynatrace-alternative",e:"Davis shows conclusions without work. Agent0 shows every query and data point."},
+  {q:"OneAgent problem in cloud-native?",o:["No containers","Overhead on ephemeral workloads","Linux only","Root required"],a:1,cat:"Competitors",u:"https://dash0.com/dynatrace-alternative",e:"Designed for long-lived VMs. Adds complexity in ephemeral/containerized environments."},
+  {q:"Biggest cost of self-hosted Grafana?",o:["License","Eng time on Loki+Tempo+Mimir+Grafana","Dashboard design","Plugins"],a:1,cat:"Competitors",u:"https://dash0.com/grafana-alternative",e:"Many teams need a full-time maintainer for the observability stack."},
+  {q:"'Happy with current tool' — best response?",o:["Explain why inferior","Ask when they benchmarked per-event cost","Free trial","Testimonials"],a:1,cat:"Objections",u:"https://dash0.com/pricing",e:"Don't attack. Diagnostic question reveals hidden costs without being adversarial."},
+  {q:"'AI is a buzzword' — best approach?",o:["Impressive demo","Validate skepticism, differentiate Agent0","Argue essential","Analyst reports"],a:1,cat:"Objections",u:"https://dash0.com/ai-sre-agent",e:"Validate: 'Most AI IS a chatbot on broken data.' Then differentiate on data quality + explainability."},
+  {q:"Fastest 'no bandwidth' overcome?",o:["Pro services","Second OTel Collector exporter","Wait for release","Do it for them"],a:1,cat:"Objections",e:"Config change, not migration. Zero code changes. Reframes 'migration' as 'addition.'"},
+  {q:"Customer who migrated DD in <1 month?",o:["Zalando","Vercel","Digibee","Starling"],a:2,cat:"Proof Points",e:"Digibee: full DD migration, $600K+ cut by 2/3. Used Agent0."},
+  {q:"'Mindblowing' query performance?",o:["Vercel","Porsche","Starling","Zalando"],a:3,cat:"Proof Points",e:"Zalando: €14B+ e-commerce, largest customer, actively expanding."},
+  {q:"Cut bug-to-fix by 60-80%?",o:["Digibee","Zalando","Vercel","Telegraph"],a:2,cat:"Proof Points",e:"Vercel: tracing isolated issues invisible in high-volume traffic."},
+  {q:"Validates regulated finance?",o:["Porsche","meinestadt","Starling Bank","Digibee"],a:2,cat:"Proof Points",e:"Starling: UK, 4M+ customers, AWS PrivateLink, regulated environment."},
+  {q:"Best opening discovery question?",o:["'What tools?'","'Uptime, costs, vendor dependency — which most urgent?'","'Team size?'","'Budget?'"],a:1,cat:"Discovery",e:"Priority question frames around business outcomes. Prospect self-selects pain."},
+  {q:"'How do you decide what to tag?' surfaces what?",o:["Team size","Custom Metric Tax","Maturity","Budget"],a:1,cat:"Discovery",u:"https://dash0.com/datadog-alternative",e:"Teams on DD self-censor tagging ($5-8/custom metric). Dash0 flat pricing removes the constraint."}
+];
+const QUIZ_CATS = [...new Set(QUIZ.map(q=>q.cat))];
+
+const SCENARIOS = [
+  {q:"'Our Datadog bill went up 40% and nobody can explain why.'",a:"Lead with VD2. Ask for bill breakdown — host fees + custom metric penalties. Dash0: $0.60/M logs, $0.20/M metrics. No hosts, seats, surprises.",u:["https://dash0.com/pricing","https://dash0.com/datadog-alternative"]},
+  {q:"'Last outage took 4 hours, lost $200K.'",a:"Lead with VD1. How many tools during triage? Agent0 Seeker does root cause automatically. Resource-centric nav connects signals without switching.",u:["https://dash0.com/ai-sre-agent"]},
+  {q:"'Want OTel but worried about ripping out DD agents.'",a:"Lead with VD3. Don't rip out anything. OTel Collectors support multiple exporters. Add Dash0 as second backend, run parallel. Zero disruption.",u:["https://dash0.com/docs/dash0","https://dash0.com/datadog-alternative"]},
+  {q:"'Junior engineers can't debug without a senior.'",a:"Lead with VD1 + Agent0. Expert Dependency bottleneck. Seeker finds root cause, Threadweaver explains traces in plain English. Juniors resolve independently.",u:["https://dash0.com/ai-sre-agent"]},
+  {q:"'Sampling 99% of traces to keep costs down.'",a:"Lead with VD2: Observability Dilemma. That 1% might miss the $200K bug. Flat pricing = stop sampling, see everything.",u:["https://dash0.com/pricing"]},
+  {q:"'Procurement has zero leverage at renewal.'",a:"Lead with VD3. Proprietary agents = artificial switching costs. With OTel-native, migration is a config change. Procurement always has leverage.",u:["https://dash0.com/docs/dash0"]},
+  {q:"'5 tools, constant context-switching during incidents.'",a:"Lead with VD1. Tool sprawl kills MTTR. One platform, one PromQL, seamless metric→trace→log. Agent0 correlates across signals.",u:[]},
+  {q:"'Grafana stack needs 3 languages and a full-time maintainer.'",a:"Lead with VD3+VD2. 3 languages = fragmented skills. Maintainer = $150K+/yr. Dash0: single PromQL + fully managed.",u:["https://dash0.com/grafana-alternative"]},
+  {q:"'Need customer_id tags but vendor charges too much.'",a:"Lead with VD2: Custom Metric Trap. DD charges $5-8/metric/month. Dash0: flat per data point. Tag whatever creates debugging value.",u:["https://dash0.com/pricing","https://dash0.com/datadog-alternative"]},
+  {q:"'Rolled back a launch — couldn't trace the regression.'",a:"Lead with VD1. Agent0 correlates regression signals in seconds. Resource-centric nav shows which deployment introduced the issue.",u:["https://dash0.com/ai-sre-agent"]}
+];
+
+const RAPID = [
+  {q:"Name the 4 Pillars.",a:"OTel-Native, Agent0, Predictable Pricing, Zero Lock-In.",t:15},
+  {q:"The 3 Value Drivers?",a:"1) Protect Revenue 2) Radical Cost Control 3) Eliminate Lock-In",t:10},
+  {q:"Cost per million logs/spans?",a:"$0.60",t:8},
+  {q:"Cost per million metric data points?",a:"$0.20",t:8},
+  {q:"3 things Dash0 does NOT charge for?",a:"Hosts, user seats, services.",t:10},
+  {q:"3 Agent0 specialists?",a:"Seeker (root cause), Oracle (queries), Threadweaver (traces), Pathfinder (onboarding), Artist (dashboards).",t:12},
+  {q:"DD Custom Metric Tax trap question?",a:"'How do you decide which attributes to tag? Tags you'd like but haven't added?'",t:15},
+  {q:"Response to 'No bandwidth for migration'?",a:"Second OTel Collector exporter. Both tools get data. Zero code changes.",t:12},
+  {q:"Who cut $600K+ DD spend by 2/3?",a:"Digibee — full migration in <1 month.",t:10},
+  {q:"Grafana query language for logs?",a:"LogQL (separate from PromQL and TraceQL — 3 total).",t:10},
+  {q:"The Priority Question?",a:"'Uptime, costs, vendor dependency — which most urgent?'",t:15},
+  {q:"2 proof-point customers + metrics?",a:"Zalando: 'mindblowing' queries. Vercel: 60-80% faster fixes. Digibee: 2/3 cost cut.",t:15}
+];
+
+const LESSONS = [
+  {id:"pillars",title:"The 4 Pillars",time:"6 min",week:1,icon:"🏛",body:"4 architectural pillars competitors can't replicate. OTel-Native → 'What happens to my data?' Agent0 → 'What can AI do with clean data?' Predictable Pricing → 'Can I predict my bill?' Zero Lock-In → 'What does leaving look like?' They work as a system: clean data enables AI, flat pricing removes sampling anxiety, open standards remove switching fear.",
+    highlights:["Each pillar answers a customer fear","Architectural — can't be added as features","OTel-Native is the foundation"],
+    exercises:["Write 4 pillar names + one-liners from memory","Explain why competitors can't copy each","60-second pillar pitch aloud (15s each)"]},
+  {id:"otel",title:"OTel-Native Deep Dive",time:"5 min",week:1,icon:"📡",body:"Stores data as OTLP — same format SDKs emit. Zero translation. Competitors convert to proprietary schemas, losing attributes. Matters for AI: Agent0 on clean OTLP > chatbot on converted data. Trap: 'When you send OTel data to your vendor, is it stored as OTLP or converted?'",
+    highlights:["OTLP = no translation loss","Clean data → better Agent0","Can't fix without backend rebuild"],
+    exercises:["List 3 OTel semantic conventions + their debugging context","Explain 'translation loss' with an analogy"]},
+  {id:"agent0",title:"Agent0 — The AI Guild",time:"5 min",week:1,icon:"🤖",body:"Not a chatbot — 5 specialized agents. Seeker: root cause. Oracle: query generation. Threadweaver: trace narratives. Pathfinder: onboarding. Artist: dashboards/alerts. Works because data is clean. Fully explainable: shows queries + data + reasoning. Opposite of Dynatrace Davis (black box).",
+    highlights:["5 specialists, not one chatbot","Data quality is the foundation","Fully explainable reasoning"],
+    exercises:["Name all 5 agents + specialties from memory","Role-play: 'We have AI in Datadog' — differentiate"]},
+  {id:"vd",title:"The 3 Value Drivers",time:"7 min",week:1,icon:"🎯",body:"VD1: Protect Revenue — reduce MTTR via Agent0 + unified nav. VD2: Radical Cost Control — pay for data not infrastructure. VD3: Eliminate Lock-In — full portability via OTel-native. Priority Question: 'Uptime, costs, vendor dependency — which most urgent?' Let prospect self-select.",
+    highlights:["VD1 = Revenue, VD2 = Cost, VD3 = Risk","Priority Question lets prospect self-select","Match signal words to the right VD"],
+    exercises:["3 signal words per VD","2 discovery questions per VD from memory","Practice Priority Question + follow-ups aloud"]},
+  {id:"traps",title:"Competitor Trap-Setting",time:"8 min",week:2,icon:"🪤",body:"Innocent questions that expose structural weaknesses. DD: Custom Metric Tax, Host Penalty, OTel Translation. NR: Seat Tax, Data Silo. Grafana: Query Fragmentation, Ops Burden, Correlation Gap. DT: AI Black Box, OneAgent Weight, Lock-In Depth. Pattern: innocent question → self-realization → Dash0 pivot.",
+    highlights:["Discovery, not attacks","Each competitor: 2-3 key traps","Pattern: question → realization → pivot"],
+    exercises:["DD Custom Metric Tax trap from memory","One trap per competitor from memory","Natural trap question in casual conversation"]},
+  {id:"objections",title:"Objection Handling",time:"6 min",week:2,icon:"🛡",body:"Never argue — redirect. 'Locked in' → parallel POC (VD3). 'Using OTel' → what happens after ingestion? (VD3). 'No bandwidth' → config change (VD3). 'Grafana free' → production stack isn't (VD2). 'Happy' → benchmark cost (VD2). 'AI buzzword' → validate, differentiate, demo (VD1). Meta: Validate → Reframe → Evidence → CTA.",
+    highlights:["Redirect, don't argue","Each objection maps to a VD","Validate → Reframe → Evidence → CTA"],
+    exercises:["Map each objection to its VD","Role-play 'Happy with Datadog' response","Write meta-pattern from memory"]},
+  {id:"proof",title:"Proof Points",time:"4 min",week:2,icon:"📋",body:"Zalando: €14B+ e-commerce, 'mindblowing' queries. Digibee: DD migration <1mo, $600K+ cut 2/3. Starling Bank: regulated finance, PrivateLink. Vercel: 60-80% faster fixes. iSpot: migrating DD with Agent0. Telegraph: 150yr UK media. meinestadt.de: from Instana. Porsche Digital: beta adopter. Confirm with account owner before external reference.",
+    highlights:["Zalando = scale. Digibee = migration + cost","Vercel = speed. Starling = regulated","Always confirm before referencing"],
+    exercises:["Match proof points to Value Drivers","Answer 'customers in finance?' with proof"]},
+  {id:"discovery",title:"Discovery Mastery",time:"5 min",week:2,icon:"🔍",body:"Revenue: 'Last outage timeline?' (MTTR), 'New on-call ramp?' (Expert Dep), 'Tools during incidents?' (switching), 'Who lacks access?' (Seat Tax). Cost: 'Bill breakdown?' (hidden costs), 'Tagging decisions?' (Custom Metric Tax), 'Scale→bill?' (Host Penalty), 'Free telemetry wish?' (Dilemma). Risk: 'OTel vs proprietary split?' (migration), 'Leaving look like?' (lock-in), 'Query languages?' (fragmentation), 'Procurement leverage?' (negotiation).",
+    highlights:["Each question targets a specific pain + VD","Revenue: MTTR, access, tool sprawl","Cost: hidden fees, self-censored tagging","Risk: lock-in depth, procurement weakness"],
+    exercises:["2 questions per VD from memory (6 total)","Practice 3 aloud as in a real meeting","Write follow-up + Dash0 pivot for each"]}
+];
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function SrcLink({url,label}){
+  if(!url)return null;
+  return <a href={url} target="_blank" rel="noopener" className="source-link">📖 {label||"Docs"}</a>;
+}
+
+function IBox({type="green",label,children}){
+  const lbColors={green:"#10b981",red:"#ef4444",amber:"#f59e0b"};
+  return <div className={`ibox ibox-${type}`}>{label&&<div className="ibox-label" style={{color:lbColors[type]}}>{label}</div>}{children}</div>;
+}
+
+function App(){
+  const [tab,setTab]=useState("home");
+  const [role,setRole]=useState(null);
+  const [stats,setStats]=useState({quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}});
+  const [moreTab,setMoreTab]=useState("settings");
+  const [fcIdx,setFcIdx]=useState(0);
+  const [fcFlip,setFcFlip]=useState(false);
+  const [fcCat,setFcCat]=useState("All");
+  const [fcFavs,setFcFavs]=useState(new Set());
+  const [fcDiff,setFcDiff]=useState("All Levels");
+  const [qMode,setQMode]=useState("picker");
+  const [qCat,setQCat]=useState("");
+  const [qQs,setQQs]=useState([]);
+  const [qIdx,setQIdx]=useState(0);
+  const [qScore,setQScore]=useState(0);
+  const [qSel,setQSel]=useState(null);
+  const [dIdx,setDIdx]=useState(0);
+  const [dRev,setDRev]=useState(false);
+  const [dOrd]=useState(()=>shuffle([...Array(SCENARIOS.length).keys()]));
+  const [rState,setRState]=useState("ready");
+  const [rQs,setRQs]=useState([]);
+  const [rIdx,setRIdx]=useState(0);
+  const [rScore,setRScore]=useState(0);
+  const [rRev,setRRev]=useState(false);
+  const [rRes,setRRes]=useState([]);
+  const [rTime,setRTime]=useState(0);
+  const rTimer=useRef(null);
+  const [lessonId,setLessonId]=useState(null);
+  const [exDone,setExDone]=useState({});
+  const [storageReady,setStorageReady]=useState(false);
+  const [showResetConfirm,setShowResetConfirm]=useState(false);
+  const [fontSize,setFontSize]=useState(()=>{try{const v=localStorage.getItem(STORAGE_KEY+'-fontsize');return v?parseInt(v):16}catch(e){return 16}});
+  const [glossTerm,setGlossTerm]=useState(null);
+  const [cardRatings,setCardRatings]=React.useState({});
+
+  const glossRe = new RegExp("\\b("+Object.keys(GLOSSARY).join("|")+")\\b","g");
+  const gt=(text)=>{
+    if(!text) return null;
+    const p=[];let last=0;let m;
+    const re=new RegExp(glossRe.source,"g");
+    while((m=re.exec(text))!==null){
+      if(m.index>last) p.push(text.slice(last,m.index));
+      const t=m[1],idx=m.index;
+      p.push(<span key={idx} onClick={(e)=>{e.stopPropagation();setGlossTerm({key:t,...GLOSSARY[t]})}} style={{color:"#93c5fd",borderBottom:"1px dashed rgba(147,197,253,.4)",cursor:"pointer",fontWeight:500}}>{m[0]}</span>);
+      last=re.lastIndex;
+    }
+    if(last<text.length) p.push(text.slice(last));
+    return p;
+  };
+
+  const [syncSt, setSyncSt] = useState(syncEnabled() ? 'idle' : 'off');
+
+  // Load progress from persistent storage on mount, then try cloud
+  useEffect(()=>{
+    // Apply saved font size class
+    try{
+      const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');
+      const validFs=['fs-s','fs-m','fs-l','fs-xl'];
+      const applyFs=validFs.includes(fs)?fs:'fs-m';
+      document.body.classList.remove(...validFs);
+      document.body.classList.add(applyFs);
+    }catch(e){document.body.classList.add('fs-m')}
+    const data = loadProgress();
+    if(data){
+      if(data.stats) setStats(data.stats);
+      if(data.role) setRole(data.role);
+      if(data.exDone) setExDone(data.exDone);
+      if(data.fcFavs) setFcFavs(new Set(data.fcFavs));
+      if(data.lastCard){setFcCat(data.lastCard.cat||"All");setFcIdx(data.lastCard.idx||0)}
+      if(data.cardRatings) setCardRatings(data.cardRatings);
+    }
+    setStorageReady(true);
+    // Cloud sync on load
+    if(syncEnabled()){
+      setSyncSt('syncing');
+      cloudLoad().then(cloud=>{
+        if(cloud&&cloud.data){
+          const local=loadProgress();
+          const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+          const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+          if(cloudTime>localTime){
+            const d=cloud.data;
+            if(d.stats) setStats(s=>({...s,...d.stats}));
+            if(d.role) setRole(d.role);
+            if(d.exDone) setExDone(d.exDone);
+            if(d.fcFavs) setFcFavs(new Set(d.fcFavs));
+            if(d.lastCard){setFcCat(d.lastCard.cat||"All");setFcIdx(d.lastCard.idx||0)}
+            if(d.cardRatings) setCardRatings(d.cardRatings);
+          }
+        }
+        setSyncSt(syncEnabled()?'synced':'off');
+      }).catch(()=>setSyncSt('error'));
+    }
+  },[]);
+
+  // Save progress whenever stats, role, exDone, or cardRatings change
+  useEffect(()=>{
+    if(!storageReady) return;
+    saveProgress({stats,role,exDone,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings,version:8});
+  },[stats,role,exDone,fcFavs,fcCat,fcIdx,cardRatings,storageReady]);
+
+  // Persist font size (pixel value stored for state; CSS class applied via setFontSize global)
+  useEffect(()=>{
+    try{localStorage.setItem(STORAGE_KEY+'-fontsize',String(fontSize))}catch(e){}
+    document.documentElement.style.fontSize=fontSize+'px';
+  },[fontSize]);
+
+  const resetAllProgress=()=>{
+    clearProgress();
+    setStats({quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}});
+    setExDone({});
+    setFcFavs(new Set());
+    setRole(null);
+    setTab("home");
+    setShowResetConfirm(false);
+  };
+
+  const fcRate=(rating)=>{
+    if(!filtered.length)return;
+    const card=filtered[Math.min(fcIdx,filtered.length-1)];
+    setCardRatings(prev=>({...prev,[card.f]:rating}));
+    setStats(s=>({...s,cards:(s.cards||0)+1}));
+    setFcFlip(false);
+    setFcIdx(i=>Math.min(i+1,filtered.length-1));
+  };
+  const fcWeightedShuffle=()=>{
+    if(!filtered.length)return;
+    const weighted=[];
+    filtered.forEach((c,i)=>{
+      const r=cardRatings[c.f];
+      const w=r==='missed'?3:r==='unsure'?2:1;
+      for(let j=0;j<w;j++)weighted.push(i);
+    });
+    setFcIdx(weighted[Math.floor(Math.random()*weighted.length)]);
+    setFcFlip(false);
+  };
+
+  const isCoreCat=c=>!role?true:ROLE_CONFIG[role].coreCats.includes(c);
+  const isCoreLes=id=>!role?true:ROLE_CONFIG[role].coreLessons.includes(id);
+  const getCats=()=>!role?["All",...CATS]:ROLE_CONFIG[role].catOrder;
+  const filtered=(()=>{
+    let cards=fcCat==="★ Favorites"?FC.filter(c=>fcFavs.has(c.f)):fcCat==="⚠ Weak"?FC.filter(c=>cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'):(fcCat==="All"?FC:FC.filter(c=>c.c===fcCat));
+    if(fcDiff!=="All Levels")cards=cards.filter(c=>DIFF_LABELS[c.d]===fcDiff);
+    return cards;
+  })();
+  const weakCount=FC.filter(c=>cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure').length;
+  const toggleFav=(cardF)=>{setFcFavs(prev=>{const n=new Set(prev);if(n.has(cardF))n.delete(cardF);else n.add(cardF);return n})};
+
+  useEffect(()=>()=>clearInterval(rTimer.current),[]);
+
+  const startQuiz=cat=>{const qs=cat==="final"?shuffle(QUIZ).slice(0,10):shuffle(QUIZ.filter(q=>q.cat===cat));setQCat(cat);setQQs(qs);setQIdx(0);setQScore(0);setQSel(null);setQMode("active")};
+  const startRapid=()=>{const qs=shuffle(RAPID);setRQs(qs);setRIdx(0);setRScore(0);setRRev(false);setRRes([]);setRTime(qs[0].t);setRState("active");clearInterval(rTimer.current);rTimer.current=setInterval(()=>setRTime(t=>{if(t<=1){clearInterval(rTimer.current);setRRev(true);return 0}return t-1}),1000)};
+
+  // Style helpers (minimal — most styling via CSS classes now)
+  const cn = (...c) => c.filter(Boolean).join(' ');
+
+  const PB=({pct,c="#10b981"})=><div className="progress-bar"><div className="progress-fill" style={{width:`${pct}%`,background:c}}/></div>;
+
+  const TABS=[{id:"home",i:"🏠",l:"Home"},{id:"learn",i:"📚",l:"Learn"},{id:"cards",i:"🃏",l:"Cards"},{id:"quiz",i:"✅",l:"Quiz"},{id:"drills",i:"🎯",l:"Drills"},{id:"rapid",i:"⚡",l:"Rapid"},{id:"more",i:"⚙️",l:"More"}];
+
+  // HOME
+  const Home=()=><div>
+    <h2 className="sec-title">Value Framework Trainer</h2>
+    <p className="sec-sub">Master the 4 Pillars, 3 Value Drivers, and competitive positioning.</p>
+    <div className="stat-grid">
+      {[{n:stats.quizzes,l:"Quizzes",c:"#10b981",i:"📝",t:"quiz"},{n:stats.bestQuiz?stats.bestQuiz+"%":"—",l:"Best Quiz",c:"#34d399",i:"🏆",t:"quiz"},{n:stats.cards,l:"Cards Flipped",c:"#93c5fd",i:"🃏",t:"cards"},{n:stats.scenarios,l:"Drills",c:"#f59e0b",i:"🎯",t:"drills"},{n:stats.rapid,l:"Rapid Rounds",c:"#fb923c",i:"⚡",t:"rapid"},{n:stats.bestRapid?stats.bestRapid+"%":"—",l:"Best Rapid",c:"#f472b6",i:"🌟",t:"rapid"},{n:weakCount,l:"Weak Cards",c:"#f59e0b",i:"⚠️",t:"cards"}].map((s,idx)=>
+        <div key={idx} className="stat-card" onClick={()=>{setTab(s.t);if(s.l==="Weak Cards"){setFcCat("⚠ Weak");setFcIdx(0);setFcFlip(false)}}}><div className="stat-icon">{s.i}</div><div className="stat-val" style={{color:s.c}}>{s.n}</div><div className="stat-label">{s.l}</div></div>
+      )}
+    </div>
+    <div className="focus-box"><div className="focus-title">Quick Start</div><div className="focus-text">{role?`Role: ${ROLE_CONFIG[role].label}. Start with Learn for fundamentals, then drill with Cards and Quizzes. Scenario Drills build real conversation fluency.`:"Pick a role above to get a tailored learning path. AEs focus on competitive positioning, SEs on technical depth, Leadership on strategic framing."}</div></div>
+  </div>;
+
+  // LEARN
+  const Learn=()=>{
+    if(lessonId){
+      const l=LESSONS.find(x=>x.id===lessonId);if(!l)return <p>Not found</p>;
+      const idx=LESSONS.indexOf(l);
+      return <div>
+        <button className="btn-secondary" onClick={()=>setLessonId(null)} style={{marginBottom:16,padding:"8px 14px",fontSize:".82rem"}}>← All Lessons</button>
+        <h2 className="sec-title">{l.icon} {l.title}</h2>
+        <p className="sec-sub">{l.time} · Week {l.week}</p>
+        <div className="card"><p style={{fontSize:".88rem",lineHeight:1.7,color:"#d1d5db"}}>{gt(l.body)}</p></div>
+        {l.highlights?.map((h,i)=><div key={i} className="lesson-highlight">{h}</div>)}
+        {l.exercises?.length>0&&<><div className="sec-label">Exercises</div>{l.exercises.map((ex,i)=>{const k=`${l.id}-${i}`;return <div key={i} className="exercise-box"><input type="checkbox" checked={!!exDone[k]} onChange={()=>setExDone(d=>{const n={...d};if(n[k])delete n[k];else n[k]=true;return n})} style={{marginTop:3,accentColor:"#a78bfa",width:18,height:18}}/><span style={{fontSize:".85rem",color:"#e5e7eb"}}>{ex}</span></div>})}</>}
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:16}}>
+          {idx>0?<button className="btn-secondary" onClick={()=>setLessonId(LESSONS[idx-1].id)}>← Prev</button>:<span/>}
+          {idx<LESSONS.length-1?<button className="btn-secondary" onClick={()=>setLessonId(LESSONS[idx+1].id)}>Next →</button>:<span/>}
+        </div>
+      </div>;
+    }
+    return <div>
+      <h2 className="sec-title">Training Material</h2><p className="sec-sub">Read, practice, master.</p>
+      {[1,2].map(w=><div key={w}><div className="sec-label" style={{marginBottom:8}}>Week {w}</div><div className="lesson-grid" style={{marginBottom:16}}>
+        {LESSONS.filter(l=>l.week===w).map(l=>{const core=isCoreLes(l.id);const ed=l.exercises.filter((_,i)=>exDone[`${l.id}-${i}`]).length;
+          return <div key={l.id} onClick={()=>setLessonId(l.id)} className="lesson-card" style={{opacity:core?1:.7}}>
+            <span style={{fontSize:"1.6rem"}}>{l.icon}</span>
+            <div style={{flex:1}}><div style={{fontWeight:600,fontSize:".9rem"}}>{l.title}<span style={{display:"inline-block",padding:"2px 8px",borderRadius:99,fontSize:".6rem",fontWeight:700,marginLeft:8,background:core?"rgba(16,185,129,.1)":"#374151",color:core?"#10b981":"#6b7280",border:`1px solid ${core?"rgba(16,185,129,.3)":"#4b5563"}`}}>{core?"Core":"Bonus"}</span></div>
+            <div style={{fontSize:".72rem",color:"#6b7280",marginTop:2}}>{l.time} · {ed}/{l.exercises.length} exercises</div></div>
+          </div>})}
+      </div></div>)}
+    </div>;
+  };
+
+  // CARDS
+  const Cards=()=>{
+    const cats=getCats();
+    const isFavMode=fcCat==="★ Favorites";
+    const isWeakMode=fcCat==="⚠ Weak";
+    if(isFavMode&&!filtered.length) return <div style={{textAlign:"center",padding:"40px 20px"}}>
+      <div style={{fontSize:40,marginBottom:16}}>⭐</div>
+      <div style={{fontSize:17,fontWeight:600,marginBottom:8}}>No favorites yet</div>
+      <div style={{fontSize:14,color:"#6b7280",lineHeight:1.5}}>Tap the ★ on any flashcard to save it here for focused review.</div>
+      <button className="btn-primary" style={{marginTop:20}} onClick={()=>{setFcCat("All");setFcIdx(0);setFcFlip(false)}}>Browse All Cards</button>
+    </div>;
+    if(isWeakMode&&!filtered.length) return <div>
+      <div className="pills">
+        {weakCount>0&&<button className={cn("pill",isWeakMode&&"active")} onClick={()=>{setFcCat("⚠ Weak");setFcIdx(0);setFcFlip(false)}} style={!isWeakMode?{background:"rgba(245,158,11,.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,.25)"}:{}}>⚠ Weak ({weakCount})</button>}
+        {cats.map(c=><button key={c} className={cn("pill",fcCat===c&&"active")} onClick={()=>{setFcCat(c);setFcIdx(0);setFcFlip(false)}}>{c}</button>)}
+      </div>
+      <div style={{textAlign:"center",padding:"40px 20px",color:"#9ca3af"}}>No weak cards! Rate flashcards to see them here.</div>
+    </div>;
+    const card=filtered[fcIdx]||filtered[0];if(!card)return <p>No cards.</p>;const si=Math.min(fcIdx,filtered.length-1);
+    const isFav=fcFavs.has(card.f);
+    const currentRating=cardRatings[card.f];
+    return <div>
+      <h2 className="sec-title">Flashcards</h2><p className="sec-sub">Seen: {stats.cards} · {si+1}/{filtered.length}</p>
+      <div className="pills">
+        {fcFavs.size>0&&<button className={cn("pill",isFavMode&&"active")} onClick={()=>{setFcCat("★ Favorites");setFcIdx(0);setFcFlip(false)}} style={!isFavMode?{background:"rgba(251,191,36,.1)",color:"#fbbf24",border:"1px solid rgba(251,191,36,.25)"}:{}}>★ Favorites ({fcFavs.size})</button>}
+        {weakCount>0&&<button className={cn("pill",isWeakMode&&"active")} onClick={()=>{setFcCat("⚠ Weak");setFcIdx(0);setFcFlip(false)}} style={!isWeakMode?{background:"rgba(245,158,11,.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,.25)"}:{}}>⚠ Weak ({weakCount})</button>}
+        {cats.map(c=><button key={c} className={cn("pill",fcCat===c&&"active")} onClick={()=>{setFcCat(c);setFcIdx(0);setFcFlip(false)}}>{isCoreCat(c)&&c!=="All"&&<span style={{color:"#f59e0b",marginRight:2}}>★</span>}{c}</button>)}
+      </div>
+      <div className="pills" style={{marginTop:0}}>
+        {["All Levels","Beginner","Intermediate","Advanced"].map(d=><button key={d} className={cn("pill",fcDiff===d&&"active")} onClick={()=>{setFcDiff(d);setFcIdx(0);setFcFlip(false)}}>{d}</button>)}
+      </div>
+      <PB pct={(si+1)/filtered.length*100}/>
+      {!fcFlip?
+        <div className="card card-fc" onClick={()=>{setFcFlip(true);setStats(s=>({...s,cards:s.cards+1}))}} style={{position:"relative"}}>
+          <button className={cn("fav-btn",isFav&&"active")} onClick={(e)=>{e.stopPropagation();toggleFav(card.f)}} title={isFav?"Remove from favorites":"Add to favorites"}>{isFav?"★":"☆"}</button>
+          <span className="badge-cat">{card.c}{card.d&&<span style={{background:DIFF_COLORS[card.d],color:"#fff",fontSize:"10px",padding:"2px 7px",borderRadius:10,marginLeft:6,fontWeight:600}}>{DIFF_LABELS[card.d]}</span>}</span>
+          <div style={{fontSize:"1.3rem",fontWeight:700,marginBottom:8,marginTop:12}}>{card.f}</div>
+          {currentRating&&<div style={{fontSize:".72rem",color:currentRating==='missed'?"#ef4444":currentRating==='unsure'?"#f59e0b":"#10b981",marginBottom:4}}>Last: {currentRating}</div>}
+          <div style={{fontSize:".8rem",color:"#6b7280"}}>Tap to flip</div>
+        </div>:
+        <div className="card" style={{minHeight:260,position:"relative"}}>
+          <button className={cn("fav-btn",isFav&&"active")} onClick={(e)=>{e.stopPropagation();toggleFav(card.f)}} title={isFav?"Remove from favorites":"Add to favorites"}>{isFav?"★":"☆"}</button>
+          <span className="badge-cat" style={{marginBottom:8}}>{card.c}{card.d&&<span style={{background:DIFF_COLORS[card.d],color:"#fff",fontSize:"10px",padding:"2px 7px",borderRadius:10,marginLeft:6,fontWeight:600}}>{DIFF_LABELS[card.d]}</span>}</span>
+          <div style={{fontSize:".95rem",fontWeight:600,marginBottom:8,color:"#34d399"}}>{card.f}</div>
+          <p style={{fontSize:".88rem",color:"#d1d5db",lineHeight:1.6,marginBottom:12}}>{gt(card.b)}</p>
+          {card.u&&<SrcLink url={card.u} label="Read the docs"/>}
+          <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:14}}>
+            <button onClick={(e)=>{e.stopPropagation();fcRate('missed')}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:"#ef4444",color:"#fff",fontWeight:600}}>Missed</button>
+            <button onClick={(e)=>{e.stopPropagation();fcRate('unsure')}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:"#f59e0b",color:"#fff",fontWeight:600}}>Unsure</button>
+            <button onClick={(e)=>{e.stopPropagation();fcRate('known')}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:"#10b981",color:"#fff",fontWeight:600}}>Know it</button>
+          </div>
+        </div>}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:12}}>
+        <button className="btn-secondary" disabled={si===0} onClick={()=>{setFcIdx(i=>i-1);setFcFlip(false)}}>← Prev</button>
+        <button className="btn-secondary" onClick={fcWeightedShuffle}>🔀 Shuffle</button>
+        <button className="btn-secondary" disabled={si>=filtered.length-1} onClick={()=>{setFcIdx(i=>i+1);setFcFlip(false)}}>Next →</button>
+      </div>
+    </div>;
+  };
+
+  // QUIZ
+  const Quiz=()=>{
+    if(qMode==="picker") return <div>
+      <h2 className="sec-title">Quizzes</h2><p className="sec-sub">Section quizzes + Final Exam.</p>
+      {QUIZ_CATS.map(cat=>{const qs=QUIZ.filter(q=>q.cat===cat);const best=stats.quizScores[cat];
+        return <div key={cat} className="card" style={{cursor:"pointer",marginBottom:10}} onClick={()=>startQuiz(cat)}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontWeight:600,fontSize:".9rem"}}>{cat}</div><div style={{fontSize:".72rem",color:"#6b7280"}}>{qs.length} questions</div></div>
+            <div style={{textAlign:"right"}}>{best!=null?<><div style={{fontWeight:700,color:"#10b981"}}>{best}%</div><div style={{fontSize:".65rem",color:"#6b7280"}}>BEST</div></>:<div style={{fontSize:".78rem",color:"#6b7280"}}>Not taken</div>}</div>
+          </div>
+        </div>})}
+      <div className="card" style={{cursor:"pointer",background:"linear-gradient(135deg,rgba(16,185,129,.12),rgba(99,102,241,.12))",borderColor:"#10b981"}} onClick={()=>startQuiz("final")}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{fontSize:"1.1rem",fontWeight:700}}>🎓 Final Exam</div><div style={{fontSize:".75rem",color:"#d1d5db"}}>10 random from all sections</div></div>
+          <div style={{textAlign:"right"}}>{stats.quizScores.final!=null?<><div style={{fontWeight:700,color:"#10b981"}}>{stats.quizScores.final}%</div></>:<div style={{fontSize:".78rem",color:"#6b7280"}}>Not taken</div>}</div>
+        </div>
+      </div>
+    </div>;
+    if(qMode==="results"){const pct=Math.round(qScore/qQs.length*100);const grade=pct>=90?"A":pct>=80?"B":pct>=70?"C":pct>=60?"D":"F";const clr=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+      return <div className="card" style={{textAlign:"center",padding:30}}>
+        <div style={{fontSize:".82rem",color:"#6b7280",marginBottom:8}}>{qCat==="final"?"🎓 Final Exam":qCat}</div>
+        <div className="grade" style={{color:clr}}>{grade}</div>
+        <div style={{fontSize:"1.1rem",color:"#9ca3af",marginTop:8}}>{qScore}/{qQs.length} ({pct}%)</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:20}}>
+          <button className="btn-primary" onClick={()=>startQuiz(qCat)}>Try Again</button>
+          <button className="btn-secondary" onClick={()=>setQMode("picker")}>All Quizzes</button>
+        </div>
+      </div>}
+    const q=qQs[qIdx];
+    return <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <button className="btn-secondary" onClick={()=>setQMode("picker")} style={{padding:"6px 12px",fontSize:".82rem"}}>← All Quizzes</button>
+        <span style={{fontSize:".75rem",color:"#6b7280"}}>{qCat==="final"?"🎓 Final":qCat} · {qIdx+1}/{qQs.length}</span>
+      </div>
+      <PB pct={qIdx/qQs.length*100}/>
+      <div className="card">
+        <p style={{fontSize:"1.05rem",fontWeight:500,marginBottom:14}}>{q.q}</p>
+        {q.o.map((o,i)=>{let st="";let prefix=String.fromCharCode(65+i)+'. ';if(qSel!==null){if(i===q.a){st="correct";prefix='✓ '}else if(i===qSel){st="wrong";prefix='✗ '}else st="dimmed"}
+          return <button key={i} className={cn("quiz-opt",st)} onClick={()=>{if(qSel!==null)return;setQSel(i);if(i===q.a)setQScore(s=>s+1)}}>{prefix}{o}</button>})}
+        {qSel!==null&&<>
+          <IBox type={qSel===q.a?"green":"red"} label={qSel===q.a?"✓ Why this is correct":"✗ Explanation"}><p style={{fontSize:".82rem"}}>{gt(q.e)}</p></IBox>
+          {q.u&&<SrcLink url={q.u} label="Learn more"/>}
+          <button className="btn-primary btn-full" style={{marginTop:12}} onClick={()=>{
+            if(qIdx+1>=qQs.length){const pct=Math.round((qScore)/qQs.length*100);setStats(s=>{const ns={...s,quizzes:s.quizzes+1};if(pct>s.bestQuiz)ns.bestQuiz=pct;const key=qCat==="final"?"final":qCat;ns.quizScores={...s.quizScores,[key]:Math.max(s.quizScores[key]||0,pct)};return ns});setQMode("results")}
+            else{setQIdx(i=>i+1);setQSel(null)}
+          }}>{qIdx+1<qQs.length?"Next →":"See Results"}</button>
+        </>}
+      </div>
+    </div>;
+  };
+
+  // DRILLS
+  const Drills=()=>{
+    const s=SCENARIOS[dOrd[dIdx]];
+    return <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <h2 className="sec-title">Scenario Drills</h2><span style={{fontSize:".75rem",color:"#6b7280"}}>{dIdx+1}/{SCENARIOS.length}</span>
+      </div>
+      <p className="sec-sub">Read the objection. Think first. Then reveal.</p>
+      <PB pct={(dIdx+1)/SCENARIOS.length*100} c="#f59e0b"/>
+      <IBox type="red" label="Prospect Says"><p style={{fontSize:"1.05rem",fontWeight:500}}>{s.q}</p></IBox>
+      {!dRev?<button className="btn-primary btn-full" onClick={()=>{setDRev(true);setStats(st=>({...st,scenarios:st.scenarios+1}))}}>Reveal Response</button>:
+        <><IBox type="green" label="Suggested Response"><p style={{fontSize:".88rem"}}>{gt(s.a)}</p></IBox>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{s.u.filter(Boolean).map((u,i)=><SrcLink key={i} url={u}/>)}</div></>}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:14}}>
+        <button className="btn-secondary" disabled={dIdx===0} onClick={()=>{setDIdx(i=>i-1);setDRev(false)}}>← Prev</button>
+        <button className="btn-secondary" disabled={dIdx>=SCENARIOS.length-1} onClick={()=>{setDIdx(i=>i+1);setDRev(false)}}>Next →</button>
+      </div>
+    </div>;
+  };
+
+  // RAPID
+  const Rapid=()=>{
+    if(rState==="ready") return <div>
+      <h2 className="sec-title">Rapid Fire</h2><p className="sec-sub">Timed pressure drill.</p>
+      <div className="card" style={{textAlign:"center",padding:30}}>
+        <div style={{fontSize:"3rem",marginBottom:12}}>⚡</div><h3 style={{color:"#e5e7eb"}}>Ready?</h3>
+        <p style={{fontSize:".85rem",color:"#9ca3af",margin:"10px 0 20px"}}>{RAPID.length} questions. Timer per question.</p>
+        <button className="btn-primary btn-full" onClick={startRapid}>Start Rapid Fire</button>
+      </div>
+    </div>;
+    if(rState==="results"){const pct=Math.round(rScore/rQs.length*100);const clr=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+      return <div>
+        <h2 className="sec-title">Rapid Fire — Results</h2>
+        <div className="card" style={{textAlign:"center",padding:24}}><div className="grade" style={{color:clr}}>{pct}%</div><div style={{fontSize:"1rem",color:"#9ca3af",marginTop:8}}>{rScore}/{rQs.length}</div></div>
+        <div className="sec-label">Breakdown</div>
+        {rQs.map((q,i)=><div key={i} className="card" style={{padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:"1.1rem"}}>{rRes[i]?"✅":"❌"}</span><span style={{fontSize:".82rem",color:"#9ca3af"}}>{q.q}</span></div>)}
+        <button className="btn-primary btn-full" style={{marginTop:14}} onClick={()=>setRState("ready")}>Try Again</button>
+      </div>}
+    const q=rQs[rIdx];const tc=rTime>q.t*.5?"#10b981":rTime>q.t*.25?"#f59e0b":"#ef4444";
+    return <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <h2 className="sec-title">Rapid Fire</h2><span style={{fontSize:".75rem",color:"#6b7280"}}>{rIdx+1}/{rQs.length}</span>
+      </div>
+      <PB pct={rIdx/rQs.length*100}/>
+      {!rRev?<div className="card" style={{textAlign:"center",padding:24}}>
+        <div className="timer" style={{color:tc}}>{rTime}</div>
+        <div style={{fontSize:".72rem",color:"#6b7280",textTransform:"uppercase",marginBottom:16}}>seconds</div>
+        <p style={{fontSize:"1.1rem",fontWeight:600,marginBottom:20}}>{q.q}</p>
+        <button className="btn-primary" onClick={()=>{clearInterval(rTimer.current);setRRev(true)}}>I've got my answer</button>
+      </div>:
+      <div className="card">
+        <p style={{fontSize:"1rem",fontWeight:600,marginBottom:12}}>{q.q}</p>
+        <IBox type="green" label="Answer"><p style={{fontSize:".88rem"}}>{q.a}</p></IBox>
+        <div style={{display:"flex",gap:10,marginTop:14}}>
+          <button className="btn-primary" style={{flex:1}} onClick={()=>{
+            const nr=[...rRes,true];setRRes(nr);const ns=rScore+1;setRScore(ns);
+            if(rIdx+1>=rQs.length){setStats(s=>({...s,rapid:s.rapid+1,bestRapid:Math.max(s.bestRapid,Math.round(ns/rQs.length*100))}));setRState("results")}
+            else{const ni=rIdx+1;setRIdx(ni);setRRev(false);setRTime(rQs[ni].t);clearInterval(rTimer.current);rTimer.current=setInterval(()=>setRTime(t=>{if(t<=1){clearInterval(rTimer.current);setRRev(true);return 0}return t-1}),1000)}
+          }}>✓ Nailed it</button>
+          <button className="btn-danger" style={{flex:1}} onClick={()=>{
+            const nr=[...rRes,false];setRRes(nr);
+            if(rIdx+1>=rQs.length){setStats(s=>({...s,rapid:s.rapid+1,bestRapid:Math.max(s.bestRapid,Math.round(rScore/rQs.length*100))}));setRState("results")}
+            else{const ni=rIdx+1;setRIdx(ni);setRRev(false);setRTime(rQs[ni].t);clearInterval(rTimer.current);rTimer.current=setInterval(()=>setRTime(t=>{if(t<=1){clearInterval(rTimer.current);setRRev(true);return 0}return t-1}),1000)}
+          }}>✗ Nope</button>
+        </div>
+      </div>}
+    </div>;
+  };
+
+  // MORE
+  const More=()=><div>
+    <div className="pills" style={{marginBottom:16}}>
+      {["settings","resources"].map(t=><button key={t} className={cn("pill",moreTab===t&&"active")} onClick={()=>setMoreTab(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+    </div>
+    {moreTab==="settings"&&<>
+      <div className="sec-label">Progress</div>
+      <div className="card"><div style={{fontSize:".82rem",color:"#9ca3af",lineHeight:1.8}}>
+        Quizzes: {stats.quizzes} · Best: {stats.bestQuiz}%<br/>Cards: {stats.cards} · Drills: {stats.scenarios}<br/>Rapid: {stats.rapid} · Best: {stats.bestRapid}%<br/>Exercises: {Object.keys(exDone).length}/{LESSONS.reduce((s,l)=>s+l.exercises.length,0)}
+      </div></div>
+      <p style={{fontSize:".72rem",color:"#10b981",marginTop:10}}>✓ Progress saves automatically across sessions.</p>
+
+      <div style={{marginTop:18}}>
+        <div className="sec-label">Font Size</div>
+        <div className="card">
+          <label style={{display:"block",fontSize:".78rem",color:"#9ca3af",marginBottom:8}}>Adjust text size across all screens</label>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {[{v:"fs-s",l:"S"},{v:"fs-m",l:"M"},{v:"fs-l",l:"L"},{v:"fs-xl",l:"XL"}].map(s=>
+              <button key={s.v} className="pill" onClick={()=>applyFontSize(s.v)} style={{minWidth:40,textAlign:"center"}}>{s.l}</button>
+            )}
+          </div>
+          <p style={{fontSize:".68rem",color:"#6b7280",marginTop:6}}>Setting saved per device. Applies immediately.</p>
+        </div>
+      </div>
+
+      <div style={{marginTop:18}}>
+        <div className="sec-label">Cloud Sync</div>
+        <div className="card">
+          <p style={{fontSize:".75rem",color:"#9ca3af",marginBottom:10}}>Sync progress across devices via a Google Sheet. <a href="https://barrysolomon.github.io/study-apps/google-sheets-sync-setup.md" target="_blank" rel="noopener" style={{color:"#10b981"}}>Setup guide</a></p>
+          <label style={{display:"block",fontSize:".72rem",color:"#6b7280",marginBottom:3}}>Sync URL</label>
+          <input id="syncUrlInput" className="form-input mono" defaultValue={SYNC_SHEET_URL} placeholder="https://script.google.com/macros/s/.../exec" style={{marginBottom:10}}/>
+          <label style={{display:"block",fontSize:".72rem",color:"#6b7280",marginBottom:3}}>Your name</label>
+          <input id="syncUserInput" className="form-input" defaultValue={SYNC_USER_ID} placeholder="e.g. barry" maxLength={40} style={{maxWidth:220,marginBottom:4}}/>
+          <p style={{fontSize:".68rem",color:"#6b7280",marginBottom:10}}>Optional — keeps your data separate when sharing a sync sheet.</p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button className="btn-primary" style={{fontSize:".8rem",padding:"8px 18px"}} onClick={()=>{
+              const url=document.getElementById("syncUrlInput").value;
+              const user=document.getElementById("syncUserInput").value;
+              saveSyncSettings(url,user);
+              setSyncSt(syncEnabled()?"idle":"off");
+              if(syncEnabled()) cloudSave().then(()=>setSyncSt("synced")).catch(()=>setSyncSt("error"));
+            }}>Save</button>
+            <button className="btn-outline" style={{fontSize:".8rem",padding:"8px 18px"}} onClick={()=>{
+              saveSyncSettings("","");
+              document.getElementById("syncUrlInput").value="";
+              document.getElementById("syncUserInput").value="";
+              setSyncSt("off");
+            }}>Disconnect</button>
+          </div>
+          <div style={{marginTop:10,fontSize:".72rem"}}>
+            {syncSt==="synced"&&<span style={{color:"#10b981"}}>✓ Connected{lastSyncAt&&" · Last sync: "+new Date(lastSyncAt).toLocaleTimeString()}</span>}
+            {syncSt==="syncing"&&<span style={{color:"#facc15"}}>⏳ Syncing…</span>}
+            {syncSt==="error"&&<span style={{color:"#ef4444"}}>⚠ Sync error — check URL</span>}
+            {syncSt==="offline"&&<span style={{color:"#f59e0b"}}>📴 Offline — will sync when reconnected</span>}
+            {syncSt==="off"&&<span style={{color:"#6b7280"}}>Not connected</span>}
+            {syncSt==="idle"&&syncEnabled()&&<span style={{color:"#6b7280"}}>Ready</span>}
+          </div>
+          {syncEnabled()&&<p style={{fontSize:".68rem",color:"#4b5563",marginTop:6}}>Sync key: <code style={{color:"#6b7280"}}>{getSyncKey()}</code></p>}
+        </div>
+      </div>
+
+      <div style={{marginTop:18}}>
+        <div className="sec-label">Danger Zone</div>
+        {!showResetConfirm?<button className="btn-outline" style={{width:"100%",borderColor:"#ef4444",color:"#ef4444"}} onClick={()=>setShowResetConfirm(true)}>🗑 Reset All Progress</button>
+        :<div className="reset-confirm">
+          <p style={{color:"#fca5a5",fontSize:".85rem",fontWeight:600,marginBottom:4}}>Are you sure?</p>
+          <p style={{color:"#9ca3af",fontSize:".78rem",marginBottom:12}}>This will erase all quiz scores, exercise completions, and drill progress. Can't be undone.</p>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn-danger" style={{flex:1}} onClick={resetAllProgress}>Yes, Reset Everything</button>
+            <button className="btn-outline" style={{flex:1}} onClick={()=>setShowResetConfirm(false)}>Cancel</button>
+          </div>
+        </div>}
+      </div>
+    </>}
+    {moreTab==="resources"&&<>
+      {[["Dash0 Core",[["Homepage","https://dash0.com"],["Pricing","https://dash0.com/pricing"],["Agent0","https://dash0.com/ai-sre-agent"],["Docs","https://dash0.com/docs/dash0"]]],
+        ["Competitors",[["vs Datadog","https://dash0.com/datadog-alternative"],["vs New Relic","https://dash0.com/newrelic-alternative"],["vs Grafana","https://dash0.com/grafana-alternative"],["vs Dynatrace","https://dash0.com/dynatrace-alternative"]]],
+        ["OpenTelemetry",[["OTel Docs","https://opentelemetry.io/docs/"],["OTelBin","https://otelbin.io"]]]
+      ].map(([g,links])=><div key={g}><div className="sec-label" style={{marginBottom:8}}>{g}</div><div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>{links.map(([t,u])=><SrcLink key={u} url={u} label={t}/>)}</div></div>)}
+    </>}
+  </div>;
+
+  return <div>
+    <div className="header">
+      <div><h1>Value Framework Trainer</h1><small style={{fontSize:12,color:"#6b7280"}}>Dash0 Sales Enablement</small></div>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        {role&&<button className="role-current" onClick={()=>setRole(null)}>{ROLE_CONFIG[role].icon} {ROLE_CONFIG[role].label}</button>}
+        <div className="badge">v3.1</div>
+        {syncSt!=="off"&&<span className="sync-badge" title={syncSt==="synced"?"Cloud synced":"Sync: "+syncSt}>{syncSt==="syncing"?"⏳":syncSt==="synced"?"☁️":syncSt==="error"?"⚠️":syncSt==="offline"?"📴":"☁️"}</span>}
+        <span className="ver">{PLATFORM_VERSION}</span>
+      </div>
+    </div>
+    <div className="content">
+      {tab==="home"&&<Home/>}{tab==="learn"&&<Learn/>}{tab==="cards"&&<Cards/>}{tab==="quiz"&&<Quiz/>}{tab==="drills"&&<Drills/>}{tab==="rapid"&&<Rapid/>}{tab==="more"&&<More/>}
+    </div>
+    <div className="nav">{TABS.map(t=><button key={t.id} className={cn(tab===t.id&&"active")} onClick={()=>setTab(t.id)}><span>{t.i}</span>{t.l}</button>)}</div>
+    {!role&&<div className="role-overlay">
+      <div className="role-picker">
+        <h2>Choose Your Track</h2>
+        <p className="rp-sub">Pick a learning path tailored to your role. You can switch anytime.</p>
+        <div className="role-cards">
+          {Object.entries(ROLE_CONFIG).map(([key,cfg])=>
+            <div key={key} className="role-card" onClick={()=>setRole(key)}>
+              <div className="rc-icon">{cfg.icon}</div>
+              <div className="rc-title">{cfg.label}</div>
+              <div className="rc-desc">{cfg.desc}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>}
+    {glossTerm&&<div className="glossary-overlay" onClick={()=>setGlossTerm(null)}>
+      <div className="glossary-card" onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",color:"#93c5fd",marginBottom:6}}>{glossTerm.key}</div>
+        <div style={{fontSize:"1.05rem",fontWeight:700,color:"#e5e7eb",marginBottom:10}}>{glossTerm.title}</div>
+        <p style={{fontSize:".88rem",color:"#d1d5db",lineHeight:1.65,margin:0}}>{glossTerm.def}</p>
+        <button className="btn-outline btn-full" style={{marginTop:16}} onClick={()=>setGlossTerm(null)}>Got it</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
