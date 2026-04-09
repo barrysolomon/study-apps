@@ -1,9 +1,32 @@
+<!--
+  CRASH COURSE TEMPLATE — Search for "TODO" (~16 places to customize)
+
+  Built from the full-featured crash course engine. All code is working.
+  Just replace the placeholder content with your topic-specific material.
+
+  FEATURES: Dashboard (drilldown stats), Learn (lessons+exercises), Cards (flashcards),
+  Quiz (per-section + Final Exam), Drills (scenarios), Rapid Fire (timed),
+  More (settings/schedule/checkpoints/resources/ICS export),
+  Google Sheets cloud sync (optional — set SYNC_SHEET_URL to enable)
+
+  Role selector, session history, persistent progress, cross-device sync, responsive dark theme.
+  
+  DATA STRUCTURES:
+  FLASHCARDS: {f, b, c, u}
+  QUIZ: {q, o:[], a, cat, u, e}  — e: field can include "🟢 Dash0 angle: ..." for product positioning
+  SCENARIOS: {q, a, u:[]}
+  RAPID: {q, a, t, u}
+  LESSONS: {id, title, time, week, icon, body, sources:[], exercises:[{task,hint,url}]}
+  SCHEDULE: {id, date, time, dur, title, desc, phase}
+  CHECKPOINTS: {id, target, by, metric, threshold}
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>GKE Crash Course</title>
+<title>Pairwise Testing Crash Course</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
@@ -225,10 +248,10 @@ body{max-width:1100px}
 </head>
 <body>
 <div class="header">
-<div><h1>GKE Crash Course</h1><small>Google Next Prep</small></div>
+<div><h1>Pairwise Testing</h1><small>Deep Technical Crash Course · Combinatorial Test Design</small></div>
 <div style="display:flex;align-items:center;gap:8px">
 <div id="header-role"></div>
-<div class="badge">Apr 22-24</div>
+<div class="badge">Self-Paced</div>
 <span id="app-version" style="font-size:9px;color:#6b7280;font-weight:400;letter-spacing:.3px"></span><span id="sync-badge" style="font-size:11px;color:#6b7280;margin-left:8px;cursor:help"></span>
 </div>
 </div>
@@ -237,371 +260,267 @@ body{max-width:1100px}
 <script>
 // ─── DATA ───
 const FLASHCARDS=[
-{f:"What is GKE?",b:"Google Kubernetes Engine — Google's managed K8s service. Google invented Kubernetes (from internal 'Borg'). Released 2015, before EKS or AKS.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview"},
-{f:"GKE Standard vs Autopilot",b:"Standard: you manage nodes, pick machine types, handle node pools. Autopilot: Google manages everything, per-pod billing, no node management.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview"},
-{f:"Why is Autopilot a big deal?",b:"Eliminates node management, bills per-pod (no idle capacity cost), Google handles security hardening & scaling. Lowest ops overhead of any cloud.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview#benefits"},
-{f:"GKE control plane cost",b:"FREE for one zonal cluster. EKS charges ~$73/mo per cluster.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/pricing"},
-{f:"GKE networking advantage",b:"VPC-native by default with global load balancing. AWS EKS uses VPC CNI and is regional by default.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips"},
-{f:"GKE auto-scaling advantage",b:"Node Auto-Provisioning + Autopilot. EKS has Karpenter which is newer and catching up.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/node-auto-provisioning"},
-{f:"GKE Gateway API",b:"Replaces deprecated Ingress. Fully managed traffic routing with HTTP routing, traffic splitting, and multi-cluster ingress. More flexible than Ingress resources.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/gateway-api"},
-{f:"GKE release channels",b:"Rapid (4-8 wks after K8s release), Regular (8-12 wks, default), Stable (12-16 wks). Versions auto-progress Rapid → Regular → Stable.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels"},
-{f:"GKE Enterprise vs Standard tier",b:"Standard: flat $0.10/cluster/hour. Enterprise: ~$0.00822/hr per vCPU, includes multi-team ops, advanced security, service mesh, unified console.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/pricing"},
-{f:"GKE Fleet management",b:"Logical grouping of K8s clusters managed as one unit. Unified policy, centralized observability, Config Sync and Policy Controller across all clusters.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/fleets-overview"},
-{f:"Autopilot cost optimization",b:"Flex CUDs: 28% off (1-yr) or 46% off (3-yr). Spot Pods: 60-91% savings for fault-tolerant workloads. Can save up to 57% overall.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview"},
-{f:"Backup for GKE",b:"Fully managed backup of cluster state (manifests) + persistent volumes. Cross-project restore, zone-redundant replication, point-in-time recovery.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/add-on/backup-for-gke/concepts/backup-for-gke"},
-{f:"GKE Security Posture Dashboard",b:"Scans workloads for OS/app vulnerabilities (NIST CVE database) and misconfigurations. Shows risk at a glance across all clusters.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/about-security-posture-dashboard"},
-{f:"Multi-cluster Services (MCS)",b:"Extends K8s Service discovery across GKE clusters. Export a Service via ServiceExport → Cloud DNS + firewall auto-configured. Pod-to-pod cross-cluster.",c:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/multi-cluster-services"},
-{f:"Why can't any o11y tool run on Autopilot?",b:"Autopilot restricts privileged workloads for security. Most agents need DaemonSets, host network. Blocked unless you're an approved partner.",c:"Dash0+GKE",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security#privileged-workloads"},
-{f:"Dash0's Autopilot partnership",b:"Since operator 0.86.0, Dash0 runs as a privileged workload in Autopilot. Auto-instruments all workloads, OTel collector out of the box.",c:"Dash0+GKE",u:"https://www.dash0.com/changelog/dash0-operator-gke-autopilot-support"},
-{f:"Dash0 GKE install story",b:"helm install dash0-operator → auto-instruments workloads → OTel collector deployed → telemetry flows to Dash0. 5 minutes.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"Who else is on the Autopilot partners list?",b:"27 verified partners including Datadog, Dynatrace, Elastic, CrowdStrike, Sysdig, Splunk, Wiz, and others. Dash0 is one of 19 with allowlist support (privileged workloads). Dash0's edge: OTel-native, no proprietary agents, transparent pricing.",c:"Dash0+GKE",u:"https://cloud.google.com/kubernetes-engine/docs/resources/autopilot-partners"},
-{f:"Dash0 key numbers",b:"600+ customers (Zalando, Taco Bell, The Telegraph). Autopilot saves up to 57% with CUDs. GKE free, EKS $73/mo.",c:"Dash0+GKE",u:"https://www.dash0.com/pricing"},
-{f:"Who drove the Autopilot partnership?",b:"Bastian Krol. Marcel Birkner = GCP infra/access. Michele Mancioppi = product.",c:"Dash0+GKE",u:"https://www.dash0.com/kubernetes-monitoring"},
-{f:"Dash0 operator vs manual OTel setup",b:"Dash0 operator auto-instruments all workloads in enabled namespaces — no code changes. Manual OTel requires SDK integration + K8s attribute config per app.",c:"Dash0+GKE",u:"https://www.dash0.com/guides/kubernetes-observability-opentelemetry-operator"},
-{f:"What is OTLP?",b:"OpenTelemetry Protocol — vendor-neutral protocol for transmitting traces, metrics, logs. Uses gRPC or HTTP with Protocol Buffers. Supports backpressure signaling.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/specs/otlp/"},
-{f:"What is the OTel Collector?",b:"Vendor-agnostic pipeline that receives, processes, and exports telemetry. Decouples apps from backends, filters sensitive data, batches for throughput, supports multiple backends.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/collector/"},
-{f:"OTel auto-instrumentation in K8s",b:"OTel Operator uses K8s admission webhooks to inject instrumentation at pod creation. Adds init-container with SDK config. No app code changes needed.",c:"Dash0+GKE",u:"https://opentelemetry.io/docs/platforms/kubernetes/operator/automatic/"},
-{f:"Why OTel-native matters on GKE",b:"Google is a core OTel contributor. GKE workloads increasingly emit OTel signals natively. Dash0 consumes them directly — no translation layer, no lock-in on collection. Datadog puts its own agent in front of OTel, adding cost + complexity.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"Dash0 Operator = zero-touch observability",b:"Deploy once via Helm. Automatically instruments all workloads in the GKE cluster — no code changes, no sidecar sprawl. For platform/SRE teams: 'you instrument once at the cluster level, everything inside gets observed.'",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"Dash0 cost model on GKE",b:"Datadog charges per host/node. On GKE with autoscaling, node count spikes = surprise bills. Dash0's usage-based pricing follows actual signal volume, not node count. You're not penalized for scaling out.",c:"Dash0+GKE",u:"https://www.dash0.com/transparent-cost"},
-{f:"No lock-in on the way in or out",b:"Because everything is OTel-native, if a customer has existing OTel Collectors in GKE, Dash0 just becomes the backend. Low adoption friction. If they leave, instrumentation goes with them. Trust message for platform engineers who've been burned.",c:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"SA talking track (30 sec)",b:"'Running workloads on GKE? Deploy our operator, and within minutes you've got traces, metrics, and logs — without touching a single service. We're built entirely on OpenTelemetry, so there's no proprietary agent, your instrumentation is portable, and you're not paying Datadog's per-node tax every time GKE autoscales. It's observability that fits how GKE actually works.'",c:"Event Prep",u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
-{f:"Objection: 'We're OTel-first already'",b:"Then Dash0 is the natural backend. No friction, no re-instrumentation. Your existing OTel Collectors just point to Dash0 — one config change. We store data as native OTLP, so nothing gets lost in translation.",c:"Event Prep",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{f:"Objection: 'We're evaluating Datadog'",b:"Datadog works. The question is cost at scale and OTel compatibility. On GKE with autoscaling, per-host pricing gets unpredictable fast. Dash0 is usage-based — you pay for signal volume, not node count.",c:"Event Prep",u:"https://www.dash0.com/datadog-alternative"},
-{f:"What was Stackdriver?",b:"Google's original observability brand → now 'Google Cloud Observability' / 'Cloud Operations Suite'. Cloud Monitoring, Logging, Trace, Profiler, Error Reporting.",c:"Competition",u:"https://cloud.google.com/products/operations"},
-{f:"Gemini Cloud Assist",b:"Google's AI on top of observability. Summarizes logs, explains errors, 'AI-powered Investigations' for root cause. Their answer to Agent0.",c:"Competition",u:"https://cloud.google.com/gemini/docs/cloud-assist/overview"},
-{f:"Managed OpenTelemetry for GKE",b:"Google's managed OTLP endpoint in GKE clusters. Routes to Cloud Operations. It's plumbing — sends to separate stores, not unified observability.",c:"Competition",u:"https://cloud.google.com/products/observability"},
-{f:"Dash0 vs Google Cloud Monitoring",b:"GCM is siloed (separate tools), GCP-locked, no correlation. Dash0: unified, multi-cloud, OTel-native, Agent0 for autonomous investigation.",c:"Competition",u:"https://www.dash0.com/docs/integrations"},
-{f:"Dash0 vs Datadog on GKE",b:"Both Autopilot partners. DD uses proprietary agents, unpredictable pricing. Dash0: OTel-native (portable), transparent pricing. Can migrate DD dashboards.",c:"Competition",u:"https://www.dash0.com/datadog-alternative"},
-{f:"Dash0 vs Dynatrace on GKE",b:"Dynatrace uses proprietary OneAgent — heavy, vendor-locked. Dash0: lightweight OTel-native operator, no proprietary agents, portable telemetry.",c:"Competition",u:"https://www.dash0.com/dynatrace-alternative"},
-{f:"Cloud Service Mesh on GKE",b:"Google's managed Istio-based mesh. Provides mTLS, traffic management, observability dashboards in Console. No control plane management needed.",c:"Competition",u:"https://cloud.google.com/service-mesh/docs/overview"},
-{f:"DORA metrics — what are they?",b:"Deployment Frequency, Lead Time for Changes, Change Failure Rate, Mean Time to Recovery. Google-backed research showing these predict org performance.",c:"Competition",u:"https://cloud.google.com/blog/products/devops-sre/using-the-four-keys-to-measure-your-devops-performance"},
-{f:"GCP Project",b:"Fundamental organizational unit. All resources live in a project. Like an AWS account but lighter weight.",c:"GCP Vocab",u:"https://cloud.google.com/resource-manager/docs/creating-managing-projects"},
-{f:"GCP VPC vs AWS VPC",b:"Same concept, but GCP VPCs are GLOBAL (not regional like AWS).",c:"GCP Vocab",u:"https://cloud.google.com/vpc/docs/overview"},
-{f:"Cloud Run",b:"Serverless containers (like Fargate but simpler). Rapidly growing at Google.",c:"GCP Vocab",u:"https://cloud.google.com/run/docs/overview/what-is-cloud-run"},
-{f:"Workload Identity",b:"GKE pods auth to GCP services without static creds. Maps K8s service accounts to GCP IAM. Like AWS IRSA/Pod Identity.",c:"GCP Vocab",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity"},
-{f:"Binary Authorization",b:"Policy: only trusted container images can deploy. Supply chain security.",c:"GCP Vocab",u:"https://cloud.google.com/binary-authorization/docs/overview"},
-{f:"Compute Engine",b:"GCP's VM service. The EC2 equivalent.",c:"GCP Vocab",u:"https://cloud.google.com/compute/docs/overview"},
-{f:"Artifact Registry",b:"Container image registry. The ECR equivalent.",c:"GCP Vocab",u:"https://cloud.google.com/artifact-registry/docs/overview"},
-{f:"Cloud Armor",b:"WAF/DDoS protection. AWS Shield + WAF combined.",c:"GCP Vocab",u:"https://cloud.google.com/armor/docs/cloud-armor-overview"},
-{f:"Vertex AI",b:"Google's ML platform. Big push at Next. SageMaker equivalent.",c:"GCP Vocab",u:"https://cloud.google.com/vertex-ai/docs/start/introduction-unified-platform"},
-{f:"Anthos",b:"Google's hybrid/multi-cloud K8s platform. Being repositioned — ask carefully.",c:"GCP Vocab",u:"https://cloud.google.com/kubernetes-engine/enterprise/docs"},
-{f:"BigQuery",b:"Serverless data warehouse. Auto-scales for ad-hoc queries. Redshift equivalent but no cluster management. Supports 10K columns vs Redshift's 1,600.",c:"GCP Vocab",u:"https://cloud.google.com/bigquery/docs/introduction"},
-{f:"Cloud Pub/Sub",b:"Messaging service combining SNS + SQS in one. Topics + subscriptions. At-least-once delivery, dead-letter queues, 7-day message retention.",c:"GCP Vocab",u:"https://cloud.google.com/pubsub/docs/overview"},
-{f:"AlloyDB",b:"PostgreSQL-compatible managed DB. 4x faster for transactions, 100x faster for analytics via built-in columnar engine. HTAP workloads.",c:"GCP Vocab",u:"https://cloud.google.com/alloydb/docs/overview"},
-{f:"Cloud Deploy",b:"Managed CD service for GKE. Works with Cloud Build, orchestrates deployments across environments, release tracking, rollback. Like ArgoCD managed.",c:"GCP Vocab",u:"https://cloud.google.com/deploy/docs/overview"},
-{f:"Config Connector",b:"Manage 150+ GCP resources as K8s Custom Resources. Define Cloud SQL, Storage, IAM in YAML manifests. GitOps-friendly infrastructure-as-code.",c:"GCP Vocab",u:"https://cloud.google.com/config-connector/docs/overview"},
-{f:"Gemini Code Assist",b:"AI coding assistant (was Duet AI). Powered by Gemini 2.5. Inline code gen, conversational help, source citations. Free for individuals. VS Code + JetBrains.",c:"GCP Vocab",u:"https://developers.google.com/gemini-code-assist/docs/overview"},
-{f:"Cloud Functions vs Cloud Run",b:"Cloud Functions = Lambda equivalent (event-driven, sub-9-min timeout). Cloud Run = containerized workloads (like Fargate). Functions now run ON Cloud Run.",c:"GCP Vocab",u:"https://cloud.google.com/functions/docs/concepts/overview"},
-{f:"Google Next 2026 likely themes",b:"Gemini everywhere, Managed OTel expansion, Autopilot as default, Cloud Run+GKE convergence, multi-cloud, supply chain security.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
-{f:"Booth networking strategy",b:"Lead with questions, not pitches. 'What's your observability stack?' → listen → connect to pain. Collect context not just badges. Follow up within 48 hrs.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
-{f:"Session picking strategy",b:"Prioritize hands-on labs and deep dives over keynotes (watch keynotes later). Target GKE, observability, and platform engineering tracks. Leave gaps for hallway conversations.",c:"Event Prep",u:"https://cloud.withgoogle.com/next"},
-{f:"Dash0 elevator pitch (30 sec)",b:"Dash0 is the only observability platform built OTel-native from the ground up — on GKE, you get full-stack visibility (metrics, logs, traces) with zero proprietary agents, auto-instrumentation via the Dash0 operator, and no per-host pricing surprises.",c:"Event Prep",u:"https://www.dash0.com/docs/dash0/ai/agent0"},
-{f:"Objection: 'We already use Datadog'",b:"Totally valid. Ask: are you happy with pricing predictability? Vendor lock-in concerns? We're OTel-native — your telemetry stays portable. We can even migrate your DD dashboards.",c:"Event Prep",u:"https://www.dash0.com/datadog-alternative"},
-{f:"Objection: 'Google Cloud Monitoring is free'",b:"It's included, not free (you pay via resource costs). It's siloed — separate tools for metrics, logs, traces. No correlation, no AI investigation. Works for basic, breaks at scale.",c:"Event Prep",u:"https://cloud.google.com/products/operations"},
+{f:"What is pairwise testing?",b:"A test design technique that generates test cases covering every combination of values between every pair of parameters. Also called all-pairs or 2-way combinatorial testing.",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What percentage of bugs does pairwise (2-way) testing detect per NIST studies?",b:"~93% — most bugs are triggered by interactions of 1-2 parameters, with progressively fewer by 3+",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What is a covering array?",b:"A mathematical structure CA(N; t, k, v) where N=rows, t=strength, k=parameters, v=values per parameter. Every t-way combination of values appears in at least one row.",c:"Fundamentals",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{f:"What does t=2 mean in a covering array?",b:"Pairwise strength — every pair of values between any two parameters is covered at least once.",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What is the combinatorial explosion problem?",b:"With k parameters of v values each, exhaustive testing requires v^k cases. 6 params of 3 values = 729 tests. Pairwise reduces this to ~15-20.",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"How does test count grow with more parameters in pairwise?",b:"Logarithmically — O(v² × log k). Going from 10 to 100 parameters roughly doubles the test count, not 10x.",c:"Fundamentals",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{f:"What is PICT?",b:"Pairwise Independent Combinatorial Testing tool — open-source CLI from Microsoft. The most widely used pairwise test generator.",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"How do you install PICT on macOS?",b:"brew install pict",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"What is a PICT model file?",b:"A text file listing parameters and their values. Format: ParameterName: Value1, Value2, Value3 (one parameter per line).",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"How do you generate 3-way tests with PICT?",b:"pict model.txt /o:3 — the /o flag sets interaction strength (default is 2 for pairwise).",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"How do you add constraints in PICT?",b:'IF [Param1] = "Value" THEN [Param2] <> "Value"; — added at the bottom of the model file.',c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"What are PICT sub-models?",b:"Mixed-strength groups: {A, B, C} @ 3 tests those 3 params at 3-way while the rest stay at 2-way. Gives higher assurance where it matters.",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"What are PICT weights?",b:"Bias toward certain values: Chrome (5), Firefox (1). Higher weight = appears in more test cases. Useful for popular configurations.",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"What is ACTS?",b:"NIST's covering array generator — implements IPOG algorithm. Free (public domain), supports 2-way through 6-way. Java GUI/CLI. Email acts-info@nist.gov to download.",c:"Tools",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What is allpairspy?",b:"A Python library for pairwise test generation. pip install allpairspy. Returns test cases as Python lists — easy to integrate with pytest.",c:"Tools",u:"https://github.com/thombashi/allpairspy"},
+{f:"What is CTWedge?",b:"A web-based combinatorial testing tool — no install needed. Good for quick generation and academic use.",c:"Tools",u:"https://foselab.unibg.it/ctwedge/"},
+{f:"What is the IPOG algorithm?",b:"In-Parameter-Order-General — extends a covering array one parameter at a time via horizontal growth (fill existing rows) then vertical growth (add new rows). Used in ACTS.",c:"Algorithms",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{f:"How does the greedy algorithm for pairwise work?",b:"Generate all required pairs. Repeatedly pick the test case that covers the most uncovered pairs. Simple but not optimal.",c:"Algorithms",u:"https://www.pairwise.org/tools.html"},
+{f:"What is simulated annealing in pairwise context?",b:"Start with a random test suite, make small random changes, keep improvements and sometimes keep worse changes (to escape local optima). Produces very compact arrays but is slow and non-deterministic.",c:"Algorithms",u:"https://www.pairwise.org/tools.html"},
+{f:"What is a mixed covering array?",b:"A covering array where parameters have different numbers of values — e.g., one param has 2 values, another has 5. Written MCA(N; t, k, (v1, v2, ..., vk)). This is the real-world case.",c:"Algorithms",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{f:"What is the lower bound for a CA(N; 2, k, v)?",b:"N ≥ v² — you need at least v² rows to cover all pairs of any two v-valued parameters.",c:"Algorithms",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{f:"What cumulative bug detection does 3-way testing achieve?",b:"~98% per NIST studies (vs ~93% for 2-way).",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What cumulative bug detection does 6-way testing achieve?",b:"~100% — virtually all bugs are caused by interactions of 6 or fewer parameters.",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"When is pairwise testing NOT a good fit?",b:"Sequential/workflow testing (order matters more than combos), very few params (just test exhaustively), or when specific 3+ way interactions are known critical (use higher t).",c:"Practice",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"How do you handle constraints in pairwise testing?",b:"Exclude invalid combinations (e.g., Safari only on macOS). In PICT: IF/THEN constraints. Reduces test count but ensures no impossible test cases.",c:"Practice",u:"https://github.com/microsoft/pict"},
+{f:"How do you integrate pairwise output with test automation?",b:"Generate CSV with PICT (pict model.txt > tests.csv), then use data-driven/parameterized tests in your framework (pytest, JUnit, TestNG) to read and execute each row.",c:"Practice",u:"https://github.com/microsoft/pict"},
+{f:"What is pair coverage?",b:"The percentage of all valid parameter-value pairs covered by your test suite. Formula: covered_pairs / total_valid_pairs × 100%.",c:"Practice",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"How do you measure coverage of an existing test suite?",b:"Map each test to parameter values, enumerate all valid pairs, check which are covered. PICT /c flag or CAMetrics web tool can help.",c:"Practice",u:"https://www.pairwise.org/tools.html"},
+{f:"What is boundary value analysis (BVA) combined with pairwise?",b:"Use boundary values as the parameter values in your pairwise model — e.g., for a 1-999 range, use {1, 500, 999} as values. Combines two powerful techniques.",c:"Practice",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What is equivalence partitioning combined with pairwise?",b:"Group parameter values into equivalence classes, pick one representative from each class as your pairwise parameter values. Keeps value count low for practical test suites.",c:"Practice",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"What is the NIST publication on combinatorial testing?",b:"SP 800-142 'Practical Combinatorial Testing' (2010) — the best overview/tutorial. By Kuhn, Kacker, and Lei.",c:"Fundamentals",u:"https://csrc.nist.gov/pubs/sp/800/142/final"},
+{f:"What was the foundational empirical study for pairwise testing?",b:"Kuhn, Wallace, Gallo (2004) 'Software Fault Interactions and Implications for Software Testing' — analyzed FDA recalls, browser bugs, server failures.",c:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{f:"How do you identify parameters for a pairwise model?",b:"List all: config values, UI controls, API params, environment factors (OS/browser), user states (role/locale), feature flags. Then enumerate values for each.",c:"Practice",u:"https://github.com/microsoft/pict"},
+{f:"What is the PICT /r flag for?",b:"Sets a random seed for reproducible output. pict model.txt /r:42 always produces the same test suite.",c:"Tools",u:"https://github.com/microsoft/pict"},
+{f:"What is the PICT /e flag for?",b:"Seeding file — forces specific rows to appear in the output. Useful when certain configurations must always be tested.",c:"Tools",u:"https://github.com/microsoft/pict"},
 ];
-const APP_VERSION='v2.1';
-const PLATFORM_VERSION='v3.1';
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CRASH COURSE CONFIGURATION                                 ║
+// ║  Search for "TODO" to find all customization points          ║
+// ╚══════════════════════════════════════════════════════════════╝
+const APP_VERSION='v1.0'; // Content version — bump when you update questions/content
+const PLATFORM_VERSION='v3.1'; // Engine version — matches the crash-course-builder skill version
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
-let SYNC_SHEET_URL=''; // Set via Settings page or paste URL here
+// TODO: (Optional) Paste your Google Apps Script Web App URL to enable cross-device sync. See google-sheets-sync-setup.md for instructions.
+let SYNC_SHEET_URL='';
 let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
-const CATEGORIES=["All","GKE Basics","Dash0+GKE","Competition","GCP Vocab","Event Prep"];
+// TODO: Define your content categories (first must be "All")
+const CATEGORIES=["All","Fundamentals","Tools","Algorithms","Practice"];
+// TODO: Define 3 learner roles with coreCategories, coreLessons, categoryOrder
 const ROLE_CONFIG={
-sales:{label:'Sales & Marketing',icon:'💼',desc:'Competitive positioning, elevator pitches, objection handling. Focuses on what matters at the booth.',
-coreCategories:['Competition','Event Prep','Dash0+GKE','GKE Basics'],coreLessons:['gke-101','dash0-gke','competition','event-prep'],
-categoryOrder:['All','Competition','Event Prep','Dash0+GKE','GKE Basics','GCP Vocab']},
-se:{label:'Solutions Engineering',icon:'🔧',desc:'Technical depth plus demo-ready knowledge for customer conversations. The full picture.',
-coreCategories:['GKE Basics','Dash0+GKE','Competition','GCP Vocab','Event Prep'],coreLessons:['gke-101','autopilot-deep','dash0-gke','competition','otel-101','event-prep'],
-categoryOrder:['All','GKE Basics','Dash0+GKE','Competition','GCP Vocab','Event Prep']},
-technical:{label:'Technical Deep Dive',icon:'⚙️',desc:'Architecture, internals, hands-on GCP and OTel mastery. Build real understanding.',
-coreCategories:['GKE Basics','GCP Vocab','Dash0+GKE'],coreLessons:['gke-101','autopilot-deep','dash0-gke','gcp-vocab','otel-101','hands-on'],
-categoryOrder:['All','GKE Basics','GCP Vocab','Dash0+GKE','Competition','Event Prep']}
+role1:{label:'Test Engineer',icon:'⚙️',desc:'Deep technical: algorithms, tools, automation integration, coverage metrics.',
+coreCategories:['Fundamentals','Tools','Algorithms','Practice'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-7'],
+categoryOrder:['All','Fundamentals','Tools','Algorithms','Practice']},
+role2:{label:'QA Lead / Manager',icon:'📋',desc:'Strategy focus: when to use it, ROI, tooling decisions, team adoption.',
+coreCategories:['Fundamentals','Practice','Tools'],
+coreLessons:['lesson-1','lesson-2','lesson-5','lesson-6','lesson-7'],
+categoryOrder:['All','Fundamentals','Practice','Tools','Algorithms']},
+role3:{label:'Developer',icon:'💻',desc:'Practical: generate test cases, integrate with CI, write parameterized tests.',
+coreCategories:['Fundamentals','Tools','Practice'],
+coreLessons:['lesson-1','lesson-3','lesson-5','lesson-6'],
+categoryOrder:['All','Tools','Practice','Fundamentals','Algorithms']}
 };
 const RELATED_COURSES=[];
 const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
 const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
+// TODO: Add 30-50 quiz questions. Each: {q:"question", o:["A","B","C","D"], a:correctIndex, cat:"Category", u:"url", e:"explanation"}
+// Distribute proportionally across categories. The quiz picker auto-generates from cat values.
+// PRODUCT POSITIONING: Where relevant, append " 🟢 Dash0 angle: [1-2 sentences]" to the e: field.
+// This helps learners connect technical facts to product positioning. Skip for questions with no natural connection.
 const QUIZ=[
-// ── GKE Basics (7 questions) ──
-{q:"What year was GKE released?",o:["2013","2014","2015","2017"],a:2,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview",
-e:"GKE launched in 2015 as the first managed K8s service — before EKS (2018) or AKS (2018). Google built K8s from their internal 'Borg' system. 2013 is too early (K8s didn't exist yet), and 2017 is when competitors were still catching up. 🟢 Dash0 angle: Google invented K8s and Dash0 is an official GKE partner — this heritage story reinforces the credibility of the Dash0+GKE combination."},
-{q:"GKE Autopilot bills per-___",o:["Node","Pod","Cluster","Namespace"],a:1,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/pricing#autopilot_mode",
-e:"Autopilot charges per pod resource request (CPU, memory, ephemeral storage) — you never pay for idle node capacity. Standard GKE bills per node. Cluster-level fees exist ($0.10/hr) but that's the management fee, not the compute model. 🟢 Dash0 angle: Dash0 monitors pod-level resource consumption — aligning perfectly with Autopilot's per-pod billing. Help customers see what they're paying for."},
-{q:"GKE control plane for one zonal cluster?",o:["$0.10/hr","$36/mo","Free","$10/mo"],a:2,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/pricing",
-e:"GKE provides $74.40 in monthly free tier credits, covering the $0.10/hr management fee for your first zonal or Autopilot cluster — effectively free. EKS charges the same rate with no free tier. 🟢 Dash0 angle: Dash0 also has a free tier — the 'free + free' story (free GKE control plane + free Dash0 tier) is a strong entry point for POCs."},
-{q:"GKE auto-scaling edge over EKS?",o:["Spot instances","Node Auto-Provisioning + Autopilot","Fargate","Manual scaling"],a:1,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/node-auto-provisioning",
-e:"GKE's advantage is Node Auto-Provisioning (auto-creates node pools from pod requirements) plus Autopilot (fully managed per-pod scaling). EKS has Karpenter catching up, but GKE's integration is more mature. Fargate is AWS, not GKE. 🟢 Dash0 angle: Dash0 observes scaling events in real time — when NAP creates new node pools or Autopilot scales pods, you see it in traces and metrics instantly."},
-{q:"GKE Standard vs Autopilot — who manages nodes?",o:["You in both","Google in both","You in Standard, Google in Autopilot","Google in Standard, you in Autopilot"],a:2,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview",
-e:"In Standard mode, you create and manage node pools, pick machine types, handle upgrades. In Autopilot, Google manages the entire node layer — you only define pods. This is the core distinction that drives Autopilot's lower ops overhead. 🟢 Dash0 angle: Dash0 works on both, but Autopilot is the partnership story. Standard clusters don't need partner approval — Autopilot's restrictions are where Dash0's partner status shines."},
-{q:"What internal Google system did Kubernetes evolve from?",o:["MapReduce","Borg","Colossus","Omega"],a:1,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview",
-e:"Kubernetes evolved from Google's internal system called Borg, which ran production workloads for over a decade. Omega was a research successor to Borg but K8s draws directly from Borg's design. MapReduce is for batch processing, Colossus is Google's filesystem. 🟢 Dash0 angle: Heritage matters in sales — 'Google built K8s from Borg, and Dash0 is their chosen observability partner' connects the origin story to partnership credibility."},
-{q:"GKE release channels control what?",o:["Pricing tiers","Kubernetes version auto-upgrade cadence","Network policies","Storage classes"],a:1,cat:"GKE Basics",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels",
-e:"Release channels (Rapid, Regular, Stable) control how quickly your cluster gets Kubernetes version upgrades. Rapid gets new versions first, Stable waits longest. This lets you balance new features vs stability. They don't affect pricing, networking, or storage. 🟢 Dash0 angle: Dash0's operator is tested against all release channels. Knowing which channel a prospect uses helps scope compatibility conversations."},
-
-// ── Dash0+GKE (7 questions) ──
-{q:"Dash0 Autopilot support started at operator version?",o:["0.80.0","0.84.0","0.86.0","1.0.0"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/changelog/dash0-operator-gke-autopilot-support",
-e:"Operator 0.86.0 added full GKE Autopilot support, making Dash0 an official privileged workload partner. This is documented in the Dash0 changelog. The other versions are not real milestones for this feature. 🟢 Dash0 angle: This is the partnership proof point — cite this version number when prospects ask 'how official is this partnership?'"},
-{q:"Dash0 install on Autopilot takes?",o:["30 min","15 min","5 min","1 hour"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes",
-e:"The Dash0 operator installs via a single Helm chart and auto-instruments workloads in about 5 minutes. Helm install, create a monitoring resource, and telemetry flows — no manual SDK integration or per-app config required. 🟢 Dash0 angle: The 5-minute install is Dash0's #1 demo story. At a booth, offer to show it live — nothing sells like seeing telemetry flow in real time."},
-{q:"Who drove Dash0's GKE partnership?",o:["Michele Mancioppi","Marcel Birkner","Bastian Krol","Peter Juentgen"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/kubernetes-monitoring",
-e:"Bastian Krol drove the GKE Autopilot partnership on the Dash0 side. Marcel Birkner handles GCP infrastructure. Michele Mancioppi leads product. Knowing who did what helps you reference the right person at Next. 🟢 Dash0 angle: Knowing the people behind the partnership lets you make warm introductions and shows organizational depth."},
-{q:"Dash0 customer count?",o:["200+","400+","600+","1000+"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/pricing",
-e:"Dash0 has 600+ customers including Zalando, Taco Bell, and The Telegraph. Verify this is still current before the event — customer counts change. 🟢 Dash0 angle: Social proof matters. Drop customer names that match the prospect's industry — Zalando for e-commerce, Taco Bell for enterprise."},
-{q:"Dash0's AI investigation copilot is called?",o:["Dash0 AI","Agent0","GeminiOps","AutoInvestigate"],a:1,cat:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/ai/agent0",
-e:"Agent0 is Dash0's AI copilot that autonomously investigates incidents, correlates signals across metrics/logs/traces, and explains root causes. It's a key differentiator — Google has Gemini Cloud Assist, but Agent0 works across all your telemetry in one unified platform. 🟢 Dash0 angle: Agent0 is Dash0's top differentiator vs Google's Gemini Cloud Assist — it works across all signals in one platform, not siloed tools."},
-{q:"How does Dash0's operator instrument workloads?",o:["Manual SDK integration per app","Sidecar container injection","Auto-instrumentation via webhook","eBPF kernel probes"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes",
-e:"The Dash0 operator uses a Kubernetes mutating admission webhook to auto-instrument workloads — no code changes or sidecars needed. This is the standard OTel operator approach. eBPF is a different paradigm (kernel-level), and manual SDK defeats the purpose of operator-based install. 🟢 Dash0 angle: This is the zero-code-change story. Prospects hate re-instrumenting — 'no code changes, no sidecars' removes the biggest adoption blocker."},
-{q:"Dash0 pricing model is?",o:["Per-host","Per-metric","Consumption-based transparent","Per-seat"],a:2,cat:"Dash0+GKE",u:"https://www.dash0.com/transparent-cost",
-e:"Dash0 uses consumption-based transparent pricing — you pay for what you ingest, with no hidden fees per host or per metric. This contrasts with Datadog's per-host model and surprise bills. The transparent-cost page shows exactly how pricing works. 🟢 Dash0 angle: Lead with 'no surprise bills' — Datadog horror stories about unexpected invoices are common at conferences. Dash0's transparent model is a trust builder."},
-
-// ── Competition (7 questions) ──
-{q:"EKS control plane cost per month?",o:["Free","~$37/mo","~$73/mo","~$150/mo"],a:2,cat:"Competition",u:"https://aws.amazon.com/eks/pricing/",
-e:"EKS charges $0.10/hr per cluster ($73/mo). It's not free — that's a GKE advantage. $37 and $150 are not standard EKS pricing tiers. 🟢 Dash0 angle: Use this in competitive positioning — GKE is cheaper AND Dash0 has a free tier. The total cost story favors the GKE+Dash0 stack."},
-{q:"Dash0 vs Datadog on GKE?",o:["Lower price only","OTel-native, portable, transparent pricing","More features","Better UI"],a:1,cat:"Competition",u:"https://www.dash0.com/datadog-alternative",
-e:"Dash0's key differentiators: OTel-native (portable, no vendor lock-in), transparent consumption-based pricing (vs DD's unpredictable per-host billing), and no proprietary agents. It's about portability and standards, not just price. 🟢 Dash0 angle: This is the core competitive pitch. Memorize: OTel-native (portable), transparent pricing, no proprietary agents. Three beats."},
-{q:"Managed OTel for GKE is?",o:["Full o11y platform","Plumbing routing OTLP to Google's tools","Dash0 competitor","Open-source project"],a:1,cat:"Competition",u:"https://cloud.google.com/products/observability",
-e:"Google's Managed OTel for GKE is a managed OTLP endpoint routing telemetry to Cloud Monitoring, Logging, and Trace — plumbing, not a platform. Data still lands in separate siloed tools. 🟢 Dash0 angle: Position Dash0 as the platform that sits on top of Google's plumbing — 'we're complementary, not competing with Google.'"},
-{q:"Google's AI observability feature?",o:["Gemini Assist","Gemini Cloud Assist","Cloud AI Ops","Vertex Observability"],a:1,cat:"Competition",u:"https://cloud.google.com/gemini/docs/cloud-assist/overview",
-e:"The full product name is Gemini Cloud Assist — it summarizes logs, explains errors, and does AI-powered investigations. 'Gemini Assist' is missing the 'Cloud' qualifier. Vertex is ML, not observability. 🟢 Dash0 angle: Acknowledge Gemini's strengths, then differentiate: Agent0 works across all signals in one unified platform, not siloed Google tools."},
-{q:"Google's observability was formerly called?",o:["CloudWatch","Stackdriver","Prometheus","Cloud Monitor"],a:1,cat:"Competition",u:"https://cloud.google.com/products/operations",
-e:"Stackdriver was Google's original observability brand, rebranded to Cloud Operations Suite / Cloud Observability. CloudWatch is AWS. Prometheus is open-source. 'Cloud Monitor' isn't the official name. 🟢 Dash0 angle: When prospects mention Stackdriver, they're revealing legacy thinking. Gently update them and introduce the modern alternative (Dash0)."},
-{q:"Dynatrace's main vendor lock-in risk is?",o:["Pricing","OneAgent proprietary instrumentation","Dashboard format","Alert syntax"],a:1,cat:"Competition",u:"https://www.dash0.com/dynatrace-alternative",
-e:"Dynatrace relies on proprietary OneAgent for instrumentation — if you switch backends or go multi-cloud, you re-instrument everything. Dash0 uses OTel, a vendor-neutral standard. Pricing and dashboards are concerns but instrumentation lock-in is the deepest. 🟢 Dash0 angle: This is Dash0's strongest competitive angle against Dynatrace — OTel portability vs proprietary lock-in. Use it."},
-{q:"What is Google Cloud's observability weakness vs Dash0?",o:["No Kubernetes support","Siloed tools, no unified view","No AI features","No log search"],a:1,cat:"Competition",u:"https://cloud.google.com/products/operations",
-e:"Cloud Monitoring, Cloud Logging, and Cloud Trace are separate, siloed tools — no unified view correlating all signals. Dash0 provides a single platform for metrics, logs, and traces. Google does support K8s, has Gemini AI features, and has log search. 🟢 Dash0 angle: This is Dash0's #1 positioning against Google's native stack. Unified platform > assembled tools."},
-
-// ── GCP Vocab (7 questions) ──
-{q:"GCP VPCs are ___, AWS VPCs are ___",o:["Regional / Global","Global / Regional","Zonal / Regional","Regional / Zonal"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/vpc/docs/overview",
-e:"GCP VPCs are global (subnets can span regions within one VPC). AWS VPCs are regional — you need separate VPCs per region and peer them. This simplifies multi-region architecture on GCP significantly. 🟢 Dash0 angle: Dash0 works across global VPCs seamlessly — one operator install observes workloads regardless of which region they're in."},
-{q:"GCP's ECR equivalent?",o:["Container Registry","Artifact Registry","Image Store","Cloud Repository"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/artifact-registry/docs/overview",
-e:"Artifact Registry is GCP's container image registry (ECR equivalent). Container Registry (GCR) is deprecated. Artifact Registry also handles Maven and npm packages. 🟢 Dash0 angle: Dash0 observes what deploys from your registry — connecting the supply chain (what shipped) to runtime behavior (how it performs)."},
-{q:"What is Workload Identity?",o:["Security scanner","Pod-to-GCP auth without static creds","User management","Network policy"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity",
-e:"Workload Identity maps K8s service accounts to GCP IAM service accounts, letting pods authenticate to GCP services without static credentials — the GKE equivalent of AWS IRSA/EKS Pod Identity. 🟢 Dash0 angle: The Dash0 operator uses Workload Identity for secure GCP authentication — no static credentials. This matters for security-conscious prospects."},
-{q:"What is Cloud Run?",o:["CI/CD pipeline","VM service","Serverless containers","K8s distribution"],a:2,cat:"GCP Vocab",u:"https://cloud.google.com/run/docs/overview/what-is-cloud-run",
-e:"Cloud Run is Google's serverless container platform (Fargate equivalent but simpler). Deploy a container image, Google handles scaling (including to zero). Not CI/CD (Cloud Build), not VMs (Compute Engine). 🟢 Dash0 angle: Dash0 can monitor Cloud Run workloads too — it's not just GKE. This expands the conversation beyond Kubernetes."},
-{q:"Binary Authorization does?",o:["Encrypts data at rest","Only trusted images deploy","Manages API keys","Controls network"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/binary-authorization/docs/overview",
-e:"Binary Authorization enforces deploy-time security by only allowing signed, verified container images to run. It's supply chain security. Encryption is CMEK, API keys is IAM, network is VPC/firewall. 🟢 Dash0 angle: Dash0 doesn't replace Binary Auth (that's supply chain security), but complements it — Binary Auth ensures only trusted images deploy, Dash0 ensures they run correctly."},
-{q:"Cloud Armor is?",o:["Container scanning","WAF/DDoS protection","Identity mgmt","Encryption"],a:1,cat:"GCP Vocab",u:"https://cloud.google.com/armor/docs/cloud-armor-overview",
-e:"Cloud Armor is Google's WAF and DDoS protection (AWS Shield + WAF combined). Protects HTTP(S) load balancers with rate limiting, geo-blocking, and WAF rules. 🟢 Dash0 angle: Dash0 monitors behind the WAF — Cloud Armor blocks threats at the edge, Dash0 shows you what's happening inside your services after traffic gets through."},
-{q:"GCP's equivalent of AWS CloudFormation?",o:["Deployment Manager","Terraform","Cloud Build","Config Connector"],a:0,cat:"GCP Vocab",u:"https://cloud.google.com/deployment-manager",
-e:"Deployment Manager is GCP's native IaC tool (CloudFormation equivalent). Terraform is multi-cloud and widely used on GCP but it's not a GCP product. Cloud Build is CI/CD. Config Connector manages GCP resources via K8s custom resources — powerful but different from IaC templates. 🟢 Dash0 angle: Dash0 deploys via Helm, not IaC templates. This is simpler — one `helm install` vs managing Deployment Manager YAML or Terraform modules."},
-
-// ── Event Prep (6 questions) ──
-{q:"Google Next 2026 dates?",o:["Apr 15-17","Apr 22-24","May 1-3","Apr 28-30"],a:1,cat:"Event Prep",u:"https://cloud.withgoogle.com/next",
-e:"Google Cloud Next 2026 runs April 22-24 at Mandalay Bay, Las Vegas. Getting the dates right matters — you don't want to fumble basic logistics. 🟢 Dash0 angle: Not directly a Dash0 angle, but being there on the right days means you can staff the Dash0 booth and attend partner sessions."},
-{q:"Best opening question at the Dash0 booth?",o:["Want a demo?","What's your K8s setup today?","Do you use Datadog?","Have you heard of OTel?"],a:1,cat:"Event Prep",u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview",
-e:"'What's your K8s setup today?' is open-ended and qualifies the prospect — it gets them talking about their stack without being pushy. 'Want a demo?' is premature. Leading with a competitor name or OTel can alienate people who use different tools. 🟢 Dash0 angle: This question-first approach naturally leads to 'have you looked at Dash0?' once you understand their stack. Qualify first, pitch second."},
-{q:"Dash0 elevator pitch should lead with?",o:["Feature list","Price comparison","OTel-native GKE partner, 5-min install","Company history"],a:2,cat:"Event Prep",u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview",
-e:"Lead with the partnership angle (official GKE Autopilot partner), the standard (OTel-native), and the speed (5-min install). At a Google event, GKE partnership credibility matters most. Feature lists and price comparisons come later in the conversation. 🟢 Dash0 angle: This IS the Dash0 angle — partnership credibility + OTel standard + speed. Practice this until it's automatic."},
-{q:"When someone says 'We're happy with Cloud Monitoring', you should?",o:["Agree and walk away","Attack Cloud Monitoring's weaknesses","Acknowledge strengths, highlight gaps (siloed, single-cloud)","Offer a discount"],a:2,cat:"Event Prep",u:"https://cloud.google.com/monitoring/docs",
-e:"Acknowledge that Cloud Monitoring is solid for GCP-native metrics, then pivot to gaps: siloed tools, no unified view across signals, and no multi-cloud story. Never attack their current choice — validate then expand the conversation. 🟢 Dash0 angle: The 'acknowledge then expand' technique works for any competitor. For Cloud Monitoring specifically, the gap is unified cross-signal correlation — Dash0's core strength."},
-{q:"If asked about a feature you don't know, you should?",o:["Make your best guess","Say 'I'll connect you with the right person'","Change the subject","Say 'we don't have that'"],a:1,cat:"Event Prep",u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes",
-e:"'Let me connect you with the right person' is always better than guessing wrong or dismissing the question. It shows professionalism and ensures the prospect gets accurate info. Wrong answers at a booth can kill deals. 🟢 Dash0 angle: This protects Dash0's reputation. A wrong answer at the booth can kill a deal. 'Let me connect you with the right person' is always correct."},
-{q:"Google Next venue is?",o:["Moscone Center, SF","Mandalay Bay, Las Vegas","McCormick Place, Chicago","Convention Center, Seattle"],a:1,cat:"Event Prep",u:"https://cloud.withgoogle.com/next",
-e:"Google Cloud Next 2026 is at Mandalay Bay in Las Vegas. Previous years alternated between Moscone Center (SF) and Las Vegas. Knowing the venue matters for logistics conversations and meeting planning. 🟢 Dash0 angle: Not a Dash0-specific angle, but knowing logistics signals preparedness — prospects trust people who have their act together."},
+{q:"What percentage of software bugs does pairwise (2-way) testing detect according to NIST research?",o:["~50%","~75%","~93%","~100%"],a:2,cat:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software",e:"NIST studies by Kuhn et al. found ~93% of bugs are triggered by interactions of 1-2 parameters. This is based on analysis of real failures in medical devices, browsers, and servers."},
+{q:"In covering array notation CA(N; t, k, v), what does t represent?",o:["Number of test cases","Interaction strength","Number of parameters","Values per parameter"],a:1,cat:"Fundamentals",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html",e:"t is the interaction strength. t=2 means pairwise (every pair covered), t=3 means every triple, etc. N=rows, k=parameters, v=values."},
+{q:"How does pairwise test count grow when you add more parameters?",o:["Linearly","Quadratically","Logarithmically","Exponentially"],a:2,cat:"Fundamentals",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html",e:"Test count grows as O(v² × log k). Going from 10 to 100 parameters roughly doubles the count. This logarithmic growth is what makes pairwise practical for large systems."},
+{q:"Which tool is the most widely used open-source CLI for pairwise test generation?",o:["ACTS","PICT","Hexawise","allpairspy"],a:1,cat:"Tools",u:"https://github.com/microsoft/pict",e:"PICT (Microsoft) is the most widely used CLI tool. ACTS is NIST's research tool, Hexawise is web/SaaS, and allpairspy is a Python library."},
+{q:"What algorithm does NIST's ACTS tool implement?",o:["Greedy","Simulated Annealing","IPOG","Random"],a:2,cat:"Algorithms",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software",e:"ACTS implements IPOG (In-Parameter-Order-General), which extends a covering array one parameter at a time via horizontal then vertical growth. It often produces smaller arrays than greedy."},
+{q:"How do you specify 3-way testing strength in PICT?",o:["pict model.txt -t 3","pict model.txt /o:3","pict model.txt --strength=3","pict model.txt -3"],a:1,cat:"Tools",u:"https://github.com/microsoft/pict",e:"The /o flag sets interaction order (strength). Default is /o:2 for pairwise. /o:3 generates a 3-way covering array."},
+{q:"What is the correct PICT syntax for a constraint?",o:["CONSTRAINT: A != B","IF [A] = 'X' THEN [B] <> 'Y';","WHERE A.val NOT IN B.val","EXCLUDE(A=X, B=Y)"],a:1,cat:"Tools",u:"https://github.com/microsoft/pict",e:"PICT uses IF/THEN syntax with square brackets around parameter names and semicolons. Operators include =, <>, >, <, >=, <=, IN, LIKE."},
+{q:"What is a PICT sub-model used for?",o:["Splitting output into files","Mixed-strength testing","Running in parallel","Generating constraints"],a:1,cat:"Tools",u:"https://github.com/microsoft/pict",e:"Sub-models let you test certain parameter groups at higher strength. {A, B, C} @ 3 tests that trio at 3-way while the rest stays at 2-way default."},
+{q:"What is the lower bound for rows in a pairwise (t=2) covering array with v values per parameter?",o:["v","v × k","v²","v² × k"],a:2,cat:"Algorithms",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html",e:"The lower bound is v² because you need at least that many rows to cover all pairs between any two v-valued parameters. The upper bound is v² × ceil(ln(k))."},
+{q:"How does the IPOG algorithm extend a covering array?",o:["Removes redundant rows","Adds all parameters at once","One parameter at a time: horizontal then vertical growth","Randomly generates and checks"],a:2,cat:"Algorithms",u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html",e:"IPOG starts with t parameters exhaustively, then extends one parameter at a time. Horizontal growth fills values in existing rows; vertical growth adds new rows for uncovered tuples."},
+{q:"Which technique should you combine with pairwise to handle continuous value ranges?",o:["State transition testing","Boundary value analysis + equivalence partitioning","Mutation testing","Fuzzing"],a:1,cat:"Practice",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software",e:"For continuous ranges (e.g., quantity 1-999), use equivalence partitioning to group values into classes and BVA to pick boundary representatives. This gives you discrete values for the pairwise model."},
+{q:"What cumulative bug detection does 3-way combinatorial testing achieve?",o:["~85%","~93%","~98%","~100%"],a:2,cat:"Fundamentals",u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software",e:"3-way catches ~98% (vs ~93% for 2-way). The jump from 2 to 3 is smaller than 1 to 2, following the law of diminishing returns. Use 3-way for critical parameter groups."},
+{q:"How do you measure pairwise coverage of an existing test suite?",o:["Count test cases","Count covered pairs / total valid pairs","Run mutation testing","Check code coverage"],a:1,cat:"Practice",u:"https://www.pairwise.org/tools.html",e:"Pair coverage = covered_pairs / total_valid_pairs × 100%. This tells you what percentage of parameter interactions your existing suite exercises. PICT /c flag or CAMetrics can help."},
+{q:"What is the PICT /r flag for?",o:["Reset output","Set random seed for reproducibility","Restrict parameters","Run in reverse"],a:1,cat:"Tools",u:"https://github.com/microsoft/pict",e:"pict model.txt /r:42 always produces the same output. Essential for reproducible test generation in CI pipelines."},
 ];
+// TODO: Add 8-12 scenario drills. Each: {q:"situation", a:"suggested response", u:["url1","url2"]}
 const SCENARIOS=[
-{q:"We're happy with Cloud Monitoring, it's free and built in.",a:"Google's built-in stack is great for GCP-native monitoring, but it's siloed across separate tools, locks you into one cloud, and doesn't correlate signals. Most teams run multi-cloud or hybrid. Dash0 gives you one platform for everything, OTel-native with Agent0 handling investigation autonomously.",u:["https://cloud.google.com/monitoring/docs","https://www.dash0.com/docs/integrations"]},
-{q:"We're already using Datadog on GKE.",a:"Datadog is an Autopilot partner too. But you're paying for proprietary agents and unpredictable pricing at scale. Dash0 is OTel-native — portable instrumentation, transparent pricing. We can even migrate your Datadog dashboards to Dash0.",u:["https://www.dash0.com/datadog-alternative","https://docs.datadoghq.com/containers/kubernetes/"]},
-{q:"What about Google's Managed OpenTelemetry for GKE?",a:"Great for routing OTLP to Cloud Monitoring, but it still sends to separate metrics/logs/trace stores. It's plumbing, not a platform. Dash0 is the unified platform on top, and our operator handles OTel setup more seamlessly.",u:["https://cloud.google.com/products/observability","https://opentelemetry.io/docs/"]},
-{q:"How does Dash0 work on Autopilot specifically?",a:"We're an official partner — operator runs as a privileged workload. Deploys via Helm, auto-instruments pods, routes through our OTel collector. No fighting security restrictions. 5 minutes.",u:["https://www.dash0.com/kubernetes-monitoring","https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
-{q:"We need to stay in the Google ecosystem.",a:"Dash0 complements Google — we're OTel-native, the standard Google is investing in. We sit on top of GKE and give you the unified observability layer Cloud Operations doesn't natively provide. You're not leaving Google, you're getting more from it.",u:["https://cloud.google.com/products/operations","https://www.dash0.com/transparent-cost"]},
-{q:"Dynatrace handles our GKE monitoring already.",a:"Dynatrace relies on proprietary OneAgent — vendor lock-in on instrumentation. If you ever switch backends or go multi-cloud, you re-instrument everything. Dash0 is OTel — portable, standards-based. Same easy Autopilot install.",u:["https://www.dash0.com/dynatrace-alternative","https://www.dynatrace.com/technologies/kubernetes-monitoring/"]},
-{q:"OpenTelemetry is too complex.",a:"That's exactly why we built the operator. You don't touch OTel directly — install our Helm chart and the operator handles all configuration, collector deployment, auto-instrumentation. OTel portability without the complexity. 5-minute install.",u:["https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes","https://opentelemetry.io/docs/kubernetes/operator/"]},
-{q:"Does Dash0 support GKE Enterprise (multi-cluster)?",a:"Great question — I want to give you the right answer. Our operator deploys per-cluster today. Let me connect you with Bastian Krol who drove our GKE partnership to discuss your multi-cluster architecture.",u:["https://cloud.google.com/kubernetes-engine/enterprise/docs","https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
-{q:"What about eBPF observability?",a:"eBPF is powerful for kernel-level visibility, but it gives raw data — you still need a platform to correlate and act on it. Dash0's OTel instrumentation gives application-level context eBPF can't. They're complementary, not competing.",u:["https://ebpf.io/what-is-ebpf/","https://opentelemetry.io/docs/concepts/instrumentation/"]},
-{q:"Can I send Dash0 data to BigQuery?",a:"Let me get you a specific answer on that integration. Because we're OTel-native, your data pipeline is standards-based OTLP that could be routed anywhere. Let me connect you with the right person on our team.",u:["https://cloud.google.com/bigquery/docs","https://opentelemetry.io/docs/specs/otlp/"]},
-{q:"We're already OTel-first. Why do we need Dash0?",a:"Great — then Dash0 is the natural backend. Your existing OTel Collectors just point to us, one config change. We store as native OTLP, so nothing gets lost in translation. The question is what happens after ingestion — Dash0 gives you unified correlation across signals and Agent0 for autonomous investigation.",u:["https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"]},
-{q:"We're evaluating Datadog for our GKE clusters.",a:"Datadog works. The question is cost at scale and OTel compatibility. On GKE with autoscaling, per-host pricing gets unpredictable fast — every time node count spikes, your bill spikes. Dash0 is usage-based, tied to signal volume not node count. And because we're OTel-native, your instrumentation stays portable if you ever want to switch.",u:["https://www.dash0.com/datadog-alternative"]},
-{q:"We already use Cloud Logging and Cloud Monitoring for everything.",a:"Great for GCP-native signals — Cloud Logging and Monitoring are solid there. Dash0 gives you the application layer: distributed traces, custom metrics, structured logs with correlation across all three in one place. Think of it as complementary — Google handles the infrastructure signals, Dash0 gives you the app-level picture with AI-powered investigation via Agent0.",u:["https://cloud.google.com/monitoring/docs","https://www.dash0.com/docs/dash0/ai/agent0"]},
+{q:"We have 500 manual test cases for this feature. Management says we need to reduce the test suite but maintain quality. How do you approach this?",a:"First, map the existing 500 tests to their parameter values and measure current pairwise coverage. You will likely find that many tests cover the same pairs. Generate a pairwise suite with PICT — it might produce 20-30 tests with 100% pair coverage. Compare: your 500 tests probably only have 80-90% pair coverage despite being 20x larger. Present this data: fewer tests, better systematic coverage, 93% bug detection per NIST research.",u:["https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software","https://github.com/microsoft/pict"]},
+{q:"A developer says: 'Pairwise testing misses bugs that only appear with specific 3-parameter combinations. It is not thorough enough.'",a:"They are technically correct — pairwise only guarantees 2-way coverage (~93% detection). But: (1) NIST data shows 3-way gets you to 98%, and PICT supports this with /o:3. (2) You can use sub-models to test critical parameter trios at 3-way strength while keeping the rest at 2-way. (3) If they know specific 3-way interactions matter, add them as seeded test cases with PICT /e flag. Pairwise is a floor, not a ceiling.",u:["https://github.com/microsoft/pict","https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"]},
+{q:"The team tests on Chrome + Windows + Desktop only. Stakeholders want cross-browser, cross-platform coverage but the test budget is limited.",a:"This is the perfect pairwise use case. Model the parameters: Browser (Chrome, FF, Safari, Edge), OS (Win, macOS, Linux), Device (Mobile, Tablet, Desktop). Add constraints: Safari only on macOS. Generate with PICT — you will get ~15-20 test configurations instead of the 4×3×3=36 exhaustive combinations. Each test runs on a specific combo. The team goes from testing 1 configuration to covering every pair with maybe 15.",u:["https://github.com/microsoft/pict","https://www.pairwise.org/tools.html"]},
+{q:"How do I convince my team to adopt pairwise testing when they are happy with their current ad-hoc approach?",a:"Measure first, then show. Take one of their existing test suites and calculate its pairwise coverage — it is probably 60-80%. Then generate a pairwise suite for the same feature. Show: (1) the generated suite is smaller, (2) it has 100% pair coverage, (3) it likely found parameter combinations nobody was testing. The NIST data (93% bug detection with massive test reduction) is your business case. Start with one feature as a pilot.",u:["https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software","https://github.com/microsoft/pict"]},
+{q:"We use pairwise for our API tests, but we keep finding bugs that involve specific 4-parameter interactions in our payment processing flow. What should we change?",a:"For the payment flow specifically, increase the interaction strength. Use PICT sub-models: {PaymentMethod, Currency, Amount, Region} @ 4 to test that critical group at 4-way strength, while keeping other parameters at 2-way. The 4-way suite for 4 parameters is still manageable. You can also seed known problematic combinations with /e. For the rest of your API tests, 2-way is fine — reserve higher strength for where the bugs actually are.",u:["https://github.com/microsoft/pict","https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"]},
+{q:"Our test parameters have many dependencies — e.g., payment type determines which fields are required, country determines available payment types. Is pairwise still useful?",a:"Yes, but constraints are essential. Model the dependencies as PICT IF/THEN constraints. Example: IF [PaymentType] = 'CreditCard' THEN [CardField] <> 'N/A'; IF [Country] = 'US' THEN [PaymentType] IN {'Credit','Debit','ACH'}. PICT will only generate valid combinations. Heavily constrained models produce smaller test suites (fewer valid combos to cover) and are more realistic.",u:["https://github.com/microsoft/pict"]},
+{q:"How do I integrate pairwise-generated test cases into our CI pipeline?",a:"Three approaches: (1) Generate a CSV (pict model.txt -d, > matrix.csv), commit it, and use data-driven tests that read it. (2) Run PICT in CI itself — install via brew/apt, generate fresh on each run. (3) Use allpairspy in Python to generate inline within your test code. Option 1 is simplest for stable parameters. Option 2 handles model changes automatically. Parameterize your tests (pytest @parametrize, JUnit @MethodSource, TestNG DataProvider) to iterate over the matrix rows.",u:["https://github.com/microsoft/pict","https://github.com/thombashi/allpairspy"]},
+{q:"We test a mobile app across 8 Android versions, 5 screen sizes, 4 network conditions, 3 languages, and 2 themes. That is 960 combinations. Help!",a:"Classic pairwise scenario. Create a PICT model with those 5 parameters. Generate at t=2 — you will get roughly 25-30 test configurations instead of 960. Add constraints if needed (e.g., certain Android versions not available on certain screen sizes). For critical combos (latest Android + smallest screen + slow network), add them as seeds. You go from infeasible to a weekend of testing.",u:["https://github.com/microsoft/pict"]},
 ];
+// TODO: Add 10-15 rapid fire questions. Each: {q:"question", a:"short answer", t:secondsAllowed, u:"url"}
 const RAPID=[
-{q:"What is GKE?",a:"Google's managed K8s — the OG, K8s born at Google.",t:10,u:"https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview"},
-{q:"What is Autopilot?",a:"Fully managed GKE. Deploy pods, Google manages nodes. Per-pod billing.",t:12,u:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview"},
-{q:"How does Dash0 work on Autopilot?",a:"Official partner. Privileged workload. Helm install, auto-instruments, 5 min.",t:15,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
-{q:"Why Dash0 over Cloud Monitoring?",a:"Unified, multi-cloud, OTel-native, Agent0. Not siloed.",t:15,u:"https://www.dash0.com/docs/dash0/ai/agent0"},
-{q:"Why Dash0 over Datadog on GKE?",a:"OTel-native (portable), transparent pricing, no proprietary agents.",t:15,u:"https://www.dash0.com/datadog-alternative"},
-{q:"What is Managed OTel for GKE?",a:"Google's managed OTLP endpoint. Plumbing, not platform.",t:12,u:"https://cloud.google.com/products/observability"},
-{q:"What is Gemini Cloud Assist?",a:"Google's AI o11y. Summarizes logs, investigates root causes. Their Agent0.",t:12,u:"https://cloud.google.com/gemini/docs/cloud-assist/overview"},
-{q:"GCP VPC vs AWS VPC?",a:"GCP = global. AWS = regional.",t:8,u:"https://cloud.google.com/vpc/docs/overview"},
-{q:"GKE control plane cost?",a:"Free for one zonal cluster. EKS = $73/mo.",t:8,u:"https://cloud.google.com/kubernetes-engine/pricing"},
-{q:"Dash0 elevator pitch — go.",a:"Only o11y platform built OTel-native from the ground up. Full-stack visibility on GKE — metrics, logs, traces. Zero proprietary agents, auto-instrumentation via operator, no per-host pricing surprises.",t:20,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
-{q:"Why does Dash0's cost model hit different on GKE?",a:"DD charges per host/node. GKE autoscaling = node spikes = surprise bills. Dash0 = usage-based on signal volume, not node count.",t:15,u:"https://www.dash0.com/transparent-cost"},
-{q:"Customer says 'We're OTel-first already' — respond.",a:"Then Dash0 is the natural backend. No friction, no re-instrumentation. One config change.",t:12,u:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{q:"SA talking track — key beats?",a:"Deploy operator → traces+metrics+logs in minutes → no proprietary agent → portable instrumentation → no per-node tax on autoscale.",t:20,u:"https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview"},
+{q:"What does pairwise testing guarantee?",a:"Every pair of parameter values appears in at least one test case",t:8,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"What percentage of bugs does 2-way testing catch per NIST?",a:"~93%",t:6,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"What percentage for 3-way?",a:"~98%",t:5,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"Name the most popular open-source pairwise CLI tool",a:"PICT (Microsoft)",t:6,u:"https://github.com/microsoft/pict"},
+{q:"PICT command for 3-way testing?",a:"pict model.txt /o:3",t:8,u:"https://github.com/microsoft/pict"},
+{q:"What algorithm does ACTS use?",a:"IPOG (In-Parameter-Order-General)",t:8,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"PICT constraint syntax?",a:"IF [Param] = 'Val' THEN [Param2] <> 'Val2';",t:10,u:"https://github.com/microsoft/pict"},
+{q:"What is covering array notation?",a:"CA(N; t, k, v) — N rows, t strength, k params, v values",t:10,u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{q:"Lower bound for rows in a pairwise array?",a:"v² (v-squared)",t:8,u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{q:"How does test count scale with more parameters?",a:"Logarithmically — O(v² × log k)",t:8,u:"https://math.nist.gov/coveringarrays/ipof/ipof-results.html"},
+{q:"PICT sub-model syntax for mixed strength?",a:"{A, B, C} @ 3",t:8,u:"https://github.com/microsoft/pict"},
+{q:"Python library for pairwise testing?",a:"allpairspy (pip install allpairspy)",t:6,u:"https://github.com/thombashi/allpairspy"},
+{q:"What is pair coverage?",a:"covered_pairs / total_valid_pairs × 100%",t:8,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"Who published the foundational pairwise empirical study?",a:"Kuhn, Wallace, and Gallo (2004) at NIST",t:10,u:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"},
+{q:"What NIST publication covers practical combinatorial testing?",a:"SP 800-142 (2010)",t:10,u:"https://csrc.nist.gov/pubs/sp/800/142/final"},
 ];
 // ─── LESSONS ───
+// TODO: Add 6-10 lessons. Each: {id, title, time, week, icon, body (HTML string), sources:[], exercises:[{task,hint,url}]}
 const LESSONS=[
-{id:"gke-101",title:"GKE Fundamentals",time:"8 min read",week:1,icon:"☸️",
-body:`<p>Google Kubernetes Engine (GKE) is Google Cloud's managed Kubernetes service. What makes it special? <strong>Google literally invented Kubernetes.</strong> It evolved from Google's internal system called "Borg" that ran their production workloads for over a decade. Kubernetes was open-sourced in 2015, and GKE was the first managed K8s service — before Amazon EKS or Azure AKS existed.</p>
-<p>GKE comes in two modes:</p>`,
-highlights:[
-"Standard Mode: You manage node pools, pick machine types, configure node scaling. More control, more responsibility.",
-"Autopilot Mode: Google manages everything. You just deploy pods. Per-pod billing means you never pay for idle node capacity."
-],
-compare:{left:{label:"GKE",items:["Free control plane (zonal)","Autopilot = per-pod billing","VPC-native, global LB","Node Auto-Provisioning","K8s born here"]},right:{label:"EKS",items:["$73/mo control plane","Fargate = per-pod (limited)","VPC CNI, regional LB","Karpenter (newer)","K8s adopted here"]}},
+{id:"lesson-1",title:"What Is Pairwise Testing?",time:"8 min read",week:1,icon:"🧪",
+sources:["https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software","https://csrc.nist.gov/pubs/sp/800/142/final"],
 exercises:[
-{task:"Log into the GCP console and navigate to Kubernetes Engine. Find where to create a cluster and note the Standard vs Autopilot choice.",hint:"console.cloud.google.com → Kubernetes Engine → Clusters",url:"https://console.cloud.google.com/kubernetes"},
-{task:"Compare GKE pricing: look up the cost of an e2-standard-4 node vs Autopilot per-pod pricing for the same CPU/RAM.",hint:"Check the GKE pricing page and use the pricing calculator",url:"https://cloud.google.com/kubernetes-engine/pricing"},
-{task:"Read the GKE Autopilot overview doc, section by section. Write down 3 things Autopilot does that Standard doesn't.",hint:"Focus on: security hardening, node management, billing model",url:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview"}
+{task:"Pick a real system you test. List all its configurable parameters and their values. Calculate the exhaustive test count.",hint:"Include environment factors (OS, browser), user states, and feature flags.",url:"https://github.com/microsoft/pict"},
+{task:"Read the NIST combinatorial testing project page and note the key empirical findings.",hint:"Focus on the cumulative bug detection percentages at each interaction strength.",url:"https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"}
 ],
-sources:["https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview","https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview","https://cloud.google.com/kubernetes-engine/pricing"]
-},
-{id:"autopilot-deep",title:"Autopilot Deep Dive",time:"7 min read",week:1,icon:"🤖",
-body:`<p>Autopilot is Google's fully managed GKE experience, and it's the future of GKE. Understanding it deeply is critical because <strong>Dash0's GKE partnership is built on Autopilot.</strong></p>
-<p>In Autopilot, Google manages the entire node infrastructure. You submit pod specs, Google figures out where to run them. The billing model is revolutionary — you pay per pod resource request (CPU, memory, ephemeral storage), not per node. No more paying for idle capacity.</p>
-<p>But here's the catch that matters for observability: <strong>Autopilot restricts privileged workloads for security.</strong> Most observability agents need DaemonSets with host network access, privileged containers, or hostPath mounts. Autopilot blocks all of these by default.</p>`,
-highlights:[
-"Only approved partners can run privileged workloads on Autopilot. There are 19 partners with allowlist support including Dash0, Datadog, Dynatrace, CrowdStrike, and Sysdig. Dash0's differentiator: OTel-native with no proprietary agents.",
-"Autopilot can save up to 57% compared to Standard when combined with Committed Use Discounts (CUDs).",
-"Autopilot is Google's recommended mode for new clusters — it's becoming the default."
-],
-compare:null,
+body:`<div class="lesson-section"><h4>The Core Idea</h4><div class="lesson-text"><p>Pairwise testing (also called <strong>all-pairs</strong> or <strong>2-way combinatorial testing</strong>) generates test cases that cover every combination of values between every <em>pair</em> of parameters. Instead of testing all possible combinations (exhaustive), you test a much smaller set that still exercises every 2-way interaction.</p>
+<p>This works because most software bugs are triggered by interactions between only 1-2 parameters. NIST research found:</p>
+<ul><li><strong>~67%</strong> of bugs: single parameter values (1-way)</li><li><strong>~93%</strong> cumulative: pairwise interactions (2-way)</li><li><strong>~98%</strong> cumulative: 3-way interactions</li><li><strong>~100%</strong> by 6-way interactions</li></ul></div></div>
+<div class="lesson-highlight">Pairwise testing achieves ~93% bug detection with a 20x to 700x reduction in test cases compared to exhaustive testing (NIST).</div>
+<div class="lesson-section"><h4>The Combinatorial Explosion</h4><div class="lesson-text"><p>Consider a web app tested across 4 browsers × 3 operating systems × 3 screen sizes × 5 languages × 3 auth methods × 2 themes. Exhaustive = <strong>1,080 test cases</strong>. Pairwise = <strong>~15-20 test cases</strong>. That is a 50-70x reduction while still covering every pair of parameter values.</p>
+<p>The key insight: test count grows <strong>logarithmically</strong> with the number of parameters — O(v² × log k). Adding more parameters barely increases the test suite.</p></div></div>`},
+{id:"lesson-2",title:"Covering Arrays and the Math",time:"10 min read",week:1,icon:"📐",
+sources:["https://math.nist.gov/coveringarrays/ipof/ipof-results.html","https://csrc.nist.gov/pubs/sp/800/142/final"],
 exercises:[
-{task:"Find the official Autopilot security constraints doc. List which pod security restrictions exist (privileged containers, hostNetwork, hostPath, etc.).",hint:"Search for 'GKE Autopilot security capabilities'",url:"https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security"},
-{task:"Find the Autopilot partners page on Google's docs. Verify Dash0 is listed alongside Datadog and Dynatrace.",hint:"Look for 'autopilot partner workloads' in GKE docs",url:"https://cloud.google.com/kubernetes-engine/docs/resources/autopilot-partners"},
-{task:"Practice explaining in 30 seconds why Autopilot's restrictions are actually a selling point for Dash0. Record yourself or write it out.",hint:"Key angle: restrictions = security. Being a partner = trust + differentiation."}
+{task:"Take 3 binary parameters (A: 0/1, B: 0/1, C: 0/1). List all 12 pairs. By hand, find the minimum set of rows that covers all pairs.",hint:"You should need exactly 4 rows. This is a CA(4; 2, 3, 2)."},
+{task:"Verify: for 4 parameters with 3 values each, the lower bound is 3²=9 rows. Use CTWedge to generate the actual pairwise suite. How close is it to the lower bound?",hint:"Go to foselab.unibg.it/ctwedge and define a simple model.",url:"https://foselab.unibg.it/ctwedge/"}
 ],
-sources:["https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview","https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security"]
-},
-{id:"dash0-gke",title:"Dash0 on GKE: The Partnership",time:"6 min read",week:1,icon:"🎯",
-body:`<p>This is the single most important lesson for Google Next. Dash0 is an <strong>official GKE Autopilot partner</strong> — meaning our operator runs as a privileged workload where most competitors can't.</p>
-<p>The partnership was driven by <strong>Bastian Krol</strong> on the Dash0 side. Marcel Birkner handles GCP infrastructure and access, and Michele Mancioppi leads product. Since operator version 0.86.0, Dash0 has full Autopilot support.</p>
-<p>The install story is dead simple: <code>helm install dash0-operator</code> → auto-instruments all workloads → deploys OTel collector → telemetry flowing to Dash0. Five minutes, no YAML wrangling, no manual instrumentation.</p>`,
-highlights:[
-"Dash0 is OTel-native. No proprietary agents. Your instrumentation is portable — switch backends without re-instrumenting.",
-"600+ customers including Zalando, Taco Bell, The Telegraph. This isn't a startup experiment.",
-"The operator auto-instruments workloads. Teams don't touch OTel configs. This is the 'it just works' story."
-],
-compare:{left:{label:"Dash0",items:["OTel-native (portable)","Auto-instrumentation","5-min Helm install","Transparent pricing","Agent0 AI copilot"]},right:{label:"Competitors",items:["Proprietary agents (locked in)","Manual instrumentation","Complex setup","Usage-based surprises","Basic AI features"]}},
+body:`<div class="lesson-section"><h4>Covering Array Notation</h4><div class="lesson-text"><p>A <strong>covering array</strong> CA(N; t, k, v) guarantees that for any t columns, every possible combination of values appears in at least one row.</p>
+<ul><li><strong>N</strong> = number of rows (test cases)</li><li><strong>t</strong> = strength (2 for pairwise, 3 for 3-way, etc.)</li><li><strong>k</strong> = number of parameters (columns)</li><li><strong>v</strong> = number of values per parameter</li></ul>
+<p>For pairwise (t=2): every pair of values between any two parameters appears in at least one test case.</p>
+<p><strong>Mixed covering arrays</strong> handle real-world cases where parameters have different numbers of values. Written as MCA(N; t, k, (v₁, v₂, ..., vₖ)).</p></div></div>
+<div class="lesson-highlight">Lower bound: N ≥ v². Upper bound: N ≤ v² × ⌈ln(k)⌉. Test count grows logarithmically in k — going from 10 to 100 parameters roughly doubles the suite.</div>
+<div class="lesson-section"><h4>Approximate Sizes</h4><div class="lesson-text"><p>For uniform parameters (all v values, k parameters):</p>
+<ul><li><strong>t=2, v=2, k=10:</strong> 6-10 tests</li><li><strong>t=2, v=3, k=10:</strong> 15-20 tests</li><li><strong>t=2, v=5, k=10:</strong> 30-40 tests</li><li><strong>t=3, v=3, k=10:</strong> 50-80 tests</li></ul>
+<p>Growth is dominated by v^t. This is why <strong>keeping value counts small</strong> (via equivalence partitioning) is critical for practical test suites.</p></div></div>`},
+{id:"lesson-3",title:"PICT: The Essential Tool",time:"10 min read",week:1,icon:"🔧",
+sources:["https://github.com/microsoft/pict"],
 exercises:[
-{task:"Walk through the Dash0 operator installation docs. Write down the exact Helm commands needed for a GKE Autopilot cluster.",hint:"Visit the Dash0 operator installation guide",url:"https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes"},
-{task:"Read the Dash0 GKE Autopilot blog post end to end. Note the 3 strongest talking points for a prospect conversation.",hint:"Focus on: partner status, OTel-native, auto-instrumentation",url:"https://www.dash0.com/kubernetes-monitoring"},
-{task:"Practice the Dash0 elevator pitch for GKE: 'We're an official Autopilot partner...' — write it out, then say it out loud 3 times.",hint:"Hit these beats: partner status → OTel-native → 5 min install → no lock-in"}
+{task:"Install PICT (brew install pict or build from GitHub). Create a model with 5 parameters and generate a pairwise suite.",hint:"Start simple: Browser, OS, ScreenSize, Language, Theme.",url:"https://github.com/microsoft/pict"},
+{task:"Add 2-3 realistic constraints to your model (e.g., Safari only on macOS). Re-run and compare test counts.",hint:"Use IF [Param] = 'Val' THEN [Param2] <> 'Val2'; syntax."},
+{task:"Try /o:3 for 3-way. How much bigger is the suite? Try a sub-model: {Browser, OS, ScreenSize} @ 3.",hint:"Compare test counts: default (2-way) vs /o:3 vs sub-model."}
 ],
-sources:["https://www.dash0.com/kubernetes-monitoring","https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes","https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview","https://www.dash0.com/changelog/dash0-operator-gke-autopilot-support"]
-},
-{id:"gcp-vocab",title:"GCP Vocabulary for AWS People",time:"6 min read",week:1,icon:"📘",
-body:`<p>You know AWS. GCP has the same concepts with different names and a few key structural differences. The biggest one: <strong>GCP VPCs are global</strong> (not regional like AWS). This means subnets can span regions, which simplifies multi-region architectures.</p>
-<p>GCP organizes everything around <strong>Projects</strong> — the fundamental unit where all resources live. Think of a Project like an AWS Account, but lighter weight. Projects live inside Folders, which live inside an Organization.</p>`,
-highlights:[
-"VPC = Global (AWS = Regional). This is a common interview/conversation gotcha.",
-"Project = AWS Account. Folder = AWS OU. Organization = AWS Organization.",
-"Workload Identity = how GKE pods authenticate to GCP services without static creds. It's the IRSA equivalent."
-],
-compare:{left:{label:"GCP",items:["Compute Engine = EC2","Cloud Run = Fargate (simpler)","Artifact Registry = ECR","Cloud Armor = Shield + WAF","Vertex AI = SageMaker","Binary Authorization = (no direct)"]},right:{label:"AWS",items:["EC2","Fargate","ECR","Shield + WAF","SageMaker","(no direct equivalent)"]}},
+body:`<div class="lesson-section"><h4>Model File Syntax</h4><div class="lesson-text"><pre>Browser: Chrome, Firefox, Safari, Edge
+OS: Windows, macOS, Linux
+Size: Mobile, Tablet, Desktop
+Language: EN, ES, FR, DE, JA
+Auth: Password, SSO, MFA
+Theme: Light, Dark</pre>
+<p>Run: <code>pict model.txt</code> — outputs tab-separated test cases.</p></div></div>
+<div class="lesson-section"><h4>Key Flags</h4><div class="lesson-text"><ul><li><code>/o:N</code> — interaction strength (default 2)</li><li><code>/d:,</code> — change output delimiter</li><li><code>/r:N</code> — random seed for reproducibility</li><li><code>/e:file</code> — seeding file (force specific rows)</li><li><code>/c</code> — show pair coverage statistics</li></ul></div></div>
+<div class="lesson-section"><h4>Constraints</h4><div class="lesson-text"><pre># Safari only on macOS
+IF [Browser] = "Safari" THEN [OS] = "macOS";
+
+# MFA requires desktop
+IF [Auth] = "MFA" THEN [Size] <> "Mobile";</pre>
+<p>Constraints ensure no invalid combinations appear. They may slightly reduce or increase the total test count.</p></div></div>
+<div class="lesson-highlight">Sub-models for mixed strength: <code>{Browser, OS, Size} @ 3</code> tests that trio at 3-way while the rest stays at the default 2-way. Higher assurance where it matters.</div>
+<div class="lesson-section"><h4>Weights</h4><div class="lesson-text"><pre>Browser: Chrome (5), Firefox (3), Safari (1), Edge (1)</pre>
+<p>Higher weight = appears in more test cases. Useful for biasing toward popular configurations while still covering all pairs.</p></div></div>`},
+{id:"lesson-4",title:"Algorithms Under the Hood",time:"12 min read",week:2,icon:"⚙️",
+sources:["https://math.nist.gov/coveringarrays/ipof/ipof-results.html","https://csrc.nist.gov/pubs/sp/800/142/final"],
 exercises:[
-{task:"Navigate the GCP console and find: Projects, VPC Networks, Compute Engine, Cloud Run, and Artifact Registry. Screenshot each for reference.",hint:"Use the hamburger menu (☰) or the search bar at the top",url:"https://console.cloud.google.com"},
-{task:"Create a mental map: for each AWS service you use daily, write down its GCP equivalent.",hint:"Start with: EC2, S3, RDS, Lambda, EKS, ECR, Route53, CloudWatch, IAM"},
-{task:"Read the VPC overview doc and note 3 differences from AWS VPCs — especially the global vs regional distinction.",hint:"Pay attention to: subnets, firewall rules (vs security groups), shared VPC",url:"https://cloud.google.com/vpc/docs/overview"}
+{task:"Implement a simple greedy pairwise generator in Python for 3 binary parameters. Verify it produces 4 rows.",hint:"Generate all pairs, then greedily pick rows that cover the most uncovered pairs."},
+{task:"Compare PICT output vs ACTS output for the same model. Which produces fewer rows?",hint:"You can use CTWedge as an ACTS proxy if you do not have ACTS installed.",url:"https://foselab.unibg.it/ctwedge/"}
 ],
-sources:["https://cloud.google.com/docs/get-started","https://cloud.google.com/vpc/docs/overview","https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity"]
-},
-{id:"competition",title:"Competitive Landscape",time:"8 min read",week:2,icon:"⚔️",
-body:`<p>At Google Next, you'll bump into people using Google's built-in observability, Datadog, Dynatrace, or rolling their own with open-source tools. You need to know how Dash0 positions against each.</p>
-<p><strong>Google Cloud Observability</strong> (formerly Stackdriver) includes Cloud Monitoring, Cloud Logging, Cloud Trace, Cloud Profiler, and Error Reporting. They're separate tools that share a console. The strengths: free basic tier, tight GCP integration, and now Gemini Cloud Assist for AI-powered investigation. The weaknesses: siloed data, no cross-signal correlation, GCP-only, and you're assembling pieces rather than using a platform.</p>
-<p><strong>Gemini Cloud Assist</strong> is Google's AI layer — it summarizes logs, explains errors, and does "AI-powered Investigations." Think of it as Google's answer to Dash0's Agent0. It's improving fast but is still GCP-scoped.</p>
-<p><strong>Managed OpenTelemetry for GKE</strong> is Google's managed OTLP endpoint. It's plumbing, not a platform. It routes telemetry to Cloud Monitoring/Logging/Trace stores. Useful for teams standardizing on OTel, but the data still lands in separate Google tools.</p>`,
-highlights:[
-"Dash0 vs Google: Unified platform vs siloed tools. Multi-cloud vs GCP-locked. Agent0 correlates signals, Gemini Assist doesn't cross boundaries.",
-"Dash0 vs Datadog: Both Autopilot partners. But DD = proprietary agents (lock-in) + unpredictable pricing. Dash0 = OTel-native (portable) + transparent pricing.",
-"Dash0 vs Dynatrace: DT uses OneAgent (proprietary). Switch backends = re-instrument everything. Dash0 = OTel (switch anytime, keep instrumentation)."
-],
-compare:null,
+body:`<div class="lesson-section"><h4>Greedy Algorithm</h4><div class="lesson-text"><p>The simplest approach:</p>
+<ol><li>Generate all required pairs</li><li>Repeat until all pairs covered: pick the test case covering the most uncovered pairs</li><li>Add it to the suite, mark pairs as covered</li></ol>
+<p><strong>Pros:</strong> Simple, fast. <strong>Cons:</strong> Not optimal — greedy choices may not minimize the final count.</p></div></div>
+<div class="lesson-section"><h4>IPOG (In-Parameter-Order-General)</h4><div class="lesson-text"><p>Used by NIST's ACTS. More sophisticated:</p>
+<ol><li>Start with a full covering array for the first t parameters</li><li>For each additional parameter: <strong>horizontal growth</strong> (fill values in existing rows to cover new tuples) then <strong>vertical growth</strong> (add new rows for remaining uncovered tuples)</li></ol>
+<p>By extending one parameter at a time, IPOG makes better global decisions and often produces smaller arrays than greedy.</p></div></div>
+<div class="lesson-section"><h4>Simulated Annealing</h4><div class="lesson-text"><p>Start with a random suite, make small random changes, keep improvements and sometimes keep worse changes (escaping local optima). Produces very compact arrays but is <strong>slow and non-deterministic</strong>.</p></div></div>
+<div class="lesson-highlight">IPOG (ACTS) generally produces smaller arrays than greedy (AllPairs). Simulated annealing can produce the smallest but at high computational cost. For practical use, PICT or ACTS is sufficient.</div>`},
+{id:"lesson-5",title:"Real-World Application",time:"10 min read",week:2,icon:"🎯",
+sources:["https://github.com/microsoft/pict","https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software"],
 exercises:[
-{task:"Open Cloud Monitoring in the GCP console. Explore the metrics explorer, log viewer, and trace list. Note how they're separate tools, not unified.",hint:"Go to: Operations → Monitoring, then Logging, then Trace in the GCP console",url:"https://console.cloud.google.com/monitoring"},
-{task:"Look up Gemini Cloud Assist and read about 'AI-powered Investigations.' Write down 3 things Agent0 does that Gemini doesn't.",hint:"Think about: multi-cloud, OTel-native data, autonomous investigation depth",url:"https://cloud.google.com/gemini/docs/cloud-assist/overview"},
-{task:"Find the current Datadog GKE integration docs. Compare the setup steps to Dash0's Helm install. Which is simpler?",hint:"Count: number of steps, config files, environment variables required",url:"https://docs.datadoghq.com/containers/kubernetes/"},
-{task:"Write a 2-sentence response to: 'Why would I pay for Dash0 when Cloud Monitoring is free?' Practice it out loud.",hint:"Key points: siloed vs unified, GCP-only vs multi-cloud, assembling tools vs one platform"}
+{task:"Pick a real feature at work. Identify 6-10 parameters with their values. Build a complete PICT model with constraints.",hint:"Include environment, user state, and feature config parameters."},
+{task:"Generate the pairwise suite. Calculate the reduction ratio vs exhaustive. Would 3-way be feasible?",hint:"exhaustive = product of all value counts. Compare with PICT output line count."},
+{task:"For the same feature, measure your existing test suite's pairwise coverage. Map each test to parameter values and count covered pairs.",hint:"If you have 50 tests, what percentage of all valid pairs do they cover?"}
 ],
-sources:["https://cloud.google.com/products/operations","https://cloud.google.com/gemini/docs/cloud-assist/overview","https://cloud.google.com/products/observability"]
-},
-{id:"otel-101",title:"OpenTelemetry Essentials",time:"7 min read",week:2,icon:"🔭",
-body:`<p>OpenTelemetry (OTel) is the open-source observability framework that Dash0 is built on. It's the second most active CNCF project after Kubernetes itself. Understanding OTel is key because it's Dash0's core differentiator: <strong>OTel-native means no vendor lock-in.</strong></p>
-<p>OTel has three signal types: <strong>traces</strong> (request flows across services), <strong>metrics</strong> (measurements over time), and <strong>logs</strong> (event records). The goal is to correlate all three into a unified picture.</p>
-<p>The OTLP (OpenTelemetry Protocol) is the standard wire format. Any OTLP-compatible backend can receive the data. This is why Dash0 customers can switch backends without changing instrumentation — the data format is universal.</p>`,
-highlights:[
-"OTel Collector: The pipeline component that receives, processes, and exports telemetry. Dash0's operator deploys this automatically.",
-"Auto-instrumentation: OTel can automatically instrument common libraries and frameworks. Dash0's operator handles this — teams don't configure OTel directly.",
-"OTLP is the standard. Google's Managed OTel uses it. Dash0 uses it. Even Datadog accepts it now. But only Dash0 is OTel-native end to end."
-],
-compare:{left:{label:"OTel-native (Dash0)",items:["Portable instrumentation","Standard wire format","Switch backends freely","Community-driven","Growing ecosystem"]},right:{label:"Proprietary (DD/DT)",items:["Locked-in agents","Custom protocols","Re-instrument to switch","Vendor-driven","Closed ecosystem"]}},
+body:`<div class="lesson-section"><h4>Identifying Parameters</h4><div class="lesson-text"><p>Be thorough. Common sources of parameters:</p>
+<ul><li><strong>Config:</strong> feature flags, environment variables, settings</li><li><strong>UI:</strong> dropdowns, toggles, radio buttons, input fields</li><li><strong>API:</strong> query params, headers, body fields</li><li><strong>Environment:</strong> OS, browser, hardware, network condition</li><li><strong>User state:</strong> logged in/out, role, permissions, locale</li></ul></div></div>
+<div class="lesson-section"><h4>Reducing Value Counts</h4><div class="lesson-text"><p>For continuous values, use <strong>equivalence partitioning + boundary value analysis</strong>:</p>
+<ul><li>Quantity 1-999 → {1, 500, 999} (min, mid, max)</li><li>Age field → {0, 17, 18, 65, 120} (boundaries of equivalence classes)</li><li>Boolean → {True, False}</li></ul>
+<p>Keeping v small is critical — test count scales as v².</p></div></div>
+<div class="lesson-section"><h4>Handling Constraints</h4><div class="lesson-text"><p><strong>Hard constraints:</strong> physically impossible (Safari on Linux). Must exclude.</p>
+<p><strong>Soft constraints:</strong> technically possible but not worth testing (extremely rare config). May exclude.</p>
+<p>Model all hard constraints in PICT. This ensures no impossible test cases and often reduces the suite size.</p></div></div>
+<div class="lesson-highlight">Pairwise is most powerful combined with BVA and equivalence partitioning. Use boundary values as your parameter values in the PICT model.</div>`},
+{id:"lesson-6",title:"Automation Integration",time:"8 min read",week:2,icon:"🤖",
+sources:["https://github.com/microsoft/pict","https://github.com/thombashi/allpairspy"],
 exercises:[
-{task:"Read the OTel getting started overview. Understand the three signal types: traces, metrics, logs.",hint:"Focus on understanding what each signal type captures and how they relate",url:"https://opentelemetry.io/docs/concepts/signals/"},
-{task:"Look at the OTel Collector architecture diagram. Understand receivers → processors → exporters pipeline.",hint:"This is exactly what Dash0's operator sets up automatically",url:"https://opentelemetry.io/docs/collector/"},
-{task:"Find the OTel auto-instrumentation docs for one language you know (Java, Python, Node.js). Note the setup steps — then compare to 'helm install dash0-operator.'",hint:"The contrast between manual OTel setup and Dash0's one-command install is a selling point",url:"https://opentelemetry.io/docs/languages/"}
+{task:"Generate a CSV from PICT (pict model.txt -d, > matrix.csv). Write a parameterized test in your framework that reads it.",hint:"pytest: @pytest.mark.parametrize with csv.reader. JUnit: @MethodSource."},
+{task:"Try allpairspy: pip install allpairspy. Generate test cases inline in a Python test file.",hint:"from allpairspy import AllPairs; for pairs in AllPairs(parameters): ...",url:"https://github.com/thombashi/allpairspy"},
+{task:"Set up PICT in a CI pipeline step (GitHub Actions, GitLab CI, or local script) that regenerates the test matrix on each run.",hint:"Install PICT, run against model file, pipe to CSV, pass to test runner."}
 ],
-sources:["https://opentelemetry.io/docs/","https://opentelemetry.io/docs/collector/","https://opentelemetry.io/docs/concepts/signals/"]
-},
-{id:"hands-on",title:"Hands-On: GCP Console Tour",time:"15 min exercise",week:2,icon:"🖥️",
-body:`<p>This is a guided walkthrough of the GCP console. No reading — all doing. Open <a href="https://console.cloud.google.com" target="_blank" style="color:#93c5fd">console.cloud.google.com</a> on your laptop and follow along.</p>
-<p>The goal: get comfortable navigating GCP so you can hold a conversation at Google Next without fumbling. You want the "I've been in the console" confidence, not just book knowledge.</p>`,
-highlights:[
-"Take screenshots as you go. They'll help you review later and are useful for internal Slack updates.",
-"Don't worry about creating resources — just navigate and explore. The console is free to browse.",
-"Pay attention to the search bar at the top. GCP's console search is excellent — use it like you'd use Spotlight."
-],
-compare:null,
+body:`<div class="lesson-section"><h4>Pattern 1: PICT → CSV → Data-Driven Tests</h4><div class="lesson-text"><pre>pict model.txt -d, > test-matrix.csv</pre>
+<p>Then parameterize your test framework to read from the CSV. Works with any language/framework.</p></div></div>
+<div class="lesson-section"><h4>Pattern 2: Python Library Integration</h4><div class="lesson-text"><pre>from allpairspy import AllPairs
+
+parameters = [
+    ["Chrome", "Firefox", "Safari"],
+    ["Windows", "macOS", "Linux"],
+    ["Mobile", "Desktop"],
+]
+
+for i, pairs in enumerate(AllPairs(parameters)):
+    print(f"Test {i}: {pairs}")</pre></div></div>
+<div class="lesson-section"><h4>Pattern 3: CI Pipeline</h4><div class="lesson-text"><pre># GitHub Actions example
+- name: Generate pairwise tests
+  run: |
+    brew install pict
+    pict model.txt -d, > test-matrix.csv
+
+- name: Run parameterized tests
+  run: pytest --csv test-matrix.csv</pre></div></div>
+<div class="lesson-highlight">Commit the model file, not the generated CSV. Regenerate in CI so the matrix always matches the current model.</div>`},
+{id:"lesson-7",title:"Measuring Coverage and Making the Case",time:"8 min read",week:3,icon:"📊",
+sources:["https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software","https://www.pairwise.org/tools.html"],
 exercises:[
-{task:"Step 1: Find your Project. Click the project dropdown at the top. See how projects are organized under folders/org.",hint:"This is the GCP equivalent of switching AWS accounts",url:"https://console.cloud.google.com"},
-{task:"Step 2: Navigate to Kubernetes Engine → Clusters. If you have the Dash0 dev cluster, click into it. Note Autopilot vs Standard designation.",hint:"Look for the cluster mode badge — it says 'Autopilot' or 'Standard'"},
-{task:"Step 3: Go to Monitoring → Overview. Explore Metrics Explorer, Dashboards, Alerting, Uptime Checks. Note how they're separate sections.",hint:"This is the 'siloed' experience Dash0 unifies"},
-{task:"Step 4: Search for 'Cloud Run', 'Artifact Registry', 'VPC Networks', and 'IAM' using the top search bar. Spend 60 seconds in each.",hint:"You're building muscle memory for navigating the console"},
-{task:"Step 5: Go to IAM & Admin → Service Accounts. This is where Workload Identity connects K8s service accounts to GCP IAM.",hint:"Understanding this flow matters for explaining how Dash0 authenticates on GKE",url:"https://console.cloud.google.com/iam-admin/serviceaccounts"},
-{task:"Step 6: Find the GKE cost estimates. Go to Billing → Cost Table, filter by Kubernetes Engine. See how Standard vs Autopilot billing appears.",hint:"If billing isn't accessible, just note the pricing page structure",url:"https://console.cloud.google.com/billing"}
+{task:"Take your existing test suite for a real feature. Calculate its pairwise coverage percentage.",hint:"Map tests to parameter values, enumerate all valid pairs, count covered ones."},
+{task:"Build a one-page pitch for your team: problem (combinatorial explosion), solution (pairwise), evidence (NIST data), proof (your coverage measurement).",hint:"Include before/after numbers: test count, coverage percentage, estimated time savings."}
 ],
-sources:["https://console.cloud.google.com","https://cloud.google.com/docs/overview"]
-},
-{id:"event-prep",title:"Google Next Game Day Prep",time:"5 min read",week:3,icon:"🎪",
-body:`<p>Google Cloud Next 2026 runs April 22-24 at Mandalay Bay, Las Vegas. This lesson is about being ready for the floor — not just the tech, but the conversations.</p>
-<p>Expected themes: <strong>Gemini everywhere</strong> (AI integrated into every service), Managed OTel expansion, Autopilot as the default GKE mode, Cloud Run + GKE convergence, multi-cloud messaging, and supply chain security.</p>
-<p>At the booth and in conversations, people will ask about observability. Your job isn't to pitch Dash0 cold — it's to <strong>ask good questions, listen for pain, and connect dots.</strong></p>`,
-highlights:[
-"Opener: 'What does your K8s setup look like today?' — gets them talking, reveals if they're GKE/EKS/self-managed.",
-"Pain detector: 'How's your observability keeping up?' — opens the door without being salesy.",
-"Bridge: 'We're actually an Autopilot partner...' — drops credibility. Most people don't know how the partner program works or that Dash0 is OTel-native unlike the other partners."
-],
-compare:null,
-exercises:[
-{task:"Write your 30-second self-intro: who you are, what Dash0 does, and why you're at Next. Practice it out loud 5 times.",hint:"Keep it casual: name, role, 'we do observability for K8s, OTel-native, official GKE Autopilot partner'"},
-{task:"Prepare 3 open-ended questions to ask people at the event that naturally lead to observability conversations.",hint:"Good openers: 'What's your stack look like?', 'Running GKE or something else?', 'How's your observability setup?'"},
-{task:"Review the Google Next agenda. Identify 3 sessions relevant to observability, GKE, or OTel that you want to attend.",hint:"Look for sessions mentioning: Autopilot, observability, Gemini Cloud Assist, OpenTelemetry, SRE",url:"https://cloud.withgoogle.com/next"},
-{task:"Role-play: Have someone ask 'What does Dash0 do?' and practice a 60-second answer that includes: Autopilot partner, OTel-native, auto-instruments in 5 min.",hint:"End with a question back: 'What are you using for observability today?'"}
-],
-sources:["https://cloud.withgoogle.com/next"]
-}
+body:`<div class="lesson-section"><h4>Pair Coverage Metric</h4><div class="lesson-text"><p><strong>Formula:</strong> coverage = covered_pairs / total_valid_pairs × 100%</p>
+<p>Even without generating a new pairwise suite, measuring your existing test suite's pair coverage is valuable. Tools:</p>
+<ul><li><strong>PICT /c flag</strong> — shows coverage stats</li><li><strong>CAMetrics</strong> — web tool for measuring t-way coverage</li><li><strong>Manual</strong> — enumerate pairs in your test matrix</li></ul></div></div>
+<div class="lesson-section"><h4>The Business Case</h4><div class="lesson-text"><p>Present this data: <em>"Our current 200 manual tests achieve only 74% pairwise coverage. A PICT-generated suite of 25 tests achieves 100%. We can run fewer tests, find more bugs, and do it faster."</em></p>
+<p>Key talking points:</p>
+<ul><li>NIST research: 93% bug detection at 2-way</li><li>20x-700x test reduction vs exhaustive</li><li>Systematic coverage vs ad-hoc selection</li><li>Tools are free and open-source (PICT, allpairspy)</li></ul></div></div>
+<div class="lesson-highlight">The strongest argument for pairwise testing is measuring your existing suite and showing the coverage gaps. Numbers beat opinions.</div>`},
 ];
 // ─── DEFAULT SCHEDULE ───
+// TODO: Add 10-20 study sessions. Each: {id, date, time, dur (minutes), title, desc, phase}
 const DEFAULT_SESSIONS=[
-{id:"s1",date:"2026-04-03",time:"09:00",dur:60,title:"Lesson 1: GKE Fundamentals",desc:"Read Lesson 1 (8 min), complete exercises 1-3, flashcards: GKE Basics, take quiz — target 60%+",phase:1},
-{id:"s2",date:"2026-04-04",time:"09:00",dur:45,title:"Lesson 2: Autopilot Deep Dive",desc:"Read Lesson 2 (7 min), complete exercises, study Autopilot security constraints",phase:1},
-{id:"s3",date:"2026-04-06",time:"10:00",dur:45,title:"Lesson 3: Dash0 GKE Partnership",desc:"Read Lesson 3 (6 min), practice elevator pitch, walk through operator install docs",phase:1},
-{id:"s4",date:"2026-04-07",time:"09:00",dur:45,title:"Lesson 4: GCP Vocab for AWS People",desc:"Read Lesson 4 (6 min), GCP console tour, flashcards: GCP Vocab category",phase:1},
-{id:"s5",date:"2026-04-08",time:"14:00",dur:30,title:"Week 1 Review",desc:"Full quiz — target 75%+. All flashcards. Identify weak spots.",phase:1},
-{id:"s6",date:"2026-04-10",time:"09:00",dur:60,title:"Lesson 5: Competitive Landscape",desc:"Read Lesson 5 (8 min), explore Cloud Monitoring console, scenario drills",phase:2},
-{id:"s7",date:"2026-04-11",time:"10:00",dur:45,title:"Lesson 6: OpenTelemetry Essentials",desc:"Read Lesson 6 (7 min), OTel collector architecture, auto-instrumentation docs",phase:2},
-{id:"s8",date:"2026-04-12",time:"09:00",dur:60,title:"Lesson 7: Hands-On Console Tour",desc:"15-min guided walkthrough, all 6 exercises, screenshot each section",phase:2},
-{id:"s9",date:"2026-04-13",time:"14:00",dur:30,title:"Week 2 Review + Drills",desc:"Quiz — target 80%+. All scenario drills. Practice objection handling.",phase:2},
-{id:"s10",date:"2026-04-14",time:"09:00",dur:30,title:"Scenario Deep Practice",desc:"All 10 scenario drills. Say responses out loud. Time yourself.",phase:2},
-{id:"m1",date:"2026-04-15",time:"08:00",dur:10,title:"Travel Flashcards",desc:"Quick flashcard sprint on phone — Competition + Dash0+GKE categories",phase:2},
-{id:"m2",date:"2026-04-15",time:"12:00",dur:5,title:"Rapid Fire Break",desc:"One rapid fire round on phone",phase:2},
-{id:"s11",date:"2026-04-17",time:"09:00",dur:45,title:"Lesson 8: Game Day Prep",desc:"Read Lesson 8 (5 min), write self-intro, prepare conversation openers",phase:3},
-{id:"s12",date:"2026-04-18",time:"09:00",dur:30,title:"Speed Drill Session",desc:"Rapid fire until 80%+. Timed elevator pitch. Curveball scenarios.",phase:3},
-{id:"m3",date:"2026-04-19",time:"09:00",dur:15,title:"Saturday Quick Review",desc:"Flashcards: all categories shuffled. Quick quiz.",phase:3},
-{id:"s13",date:"2026-04-20",time:"10:00",dur:45,title:"Final Polish",desc:"Full quiz — target 90%+. All scenarios. Rapid fire. Practice pitch standing up.",phase:3},
-{id:"m4",date:"2026-04-21",time:"08:00",dur:10,title:"Day Before: Quick Confidence Check",desc:"10 flashcards, 1 rapid fire round. You're ready.",phase:3},
+{id:"s1",date:"2026-04-14",time:"09:00",dur:45,title:"Foundations",desc:"Read Lessons 1-2. Understand the NIST data and covering array math.",phase:1},
+{id:"s2",date:"2026-04-15",time:"09:00",dur:60,title:"PICT Hands-On",desc:"Install PICT. Work through Lesson 3 exercises. Build your first model.",phase:1},
+{id:"s3",date:"2026-04-16",time:"09:00",dur:45,title:"Flashcards + Quiz",desc:"Fundamentals and Tools flashcards. Take the Fundamentals and Tools quizzes.",phase:1},
+{id:"s4",date:"2026-04-21",time:"09:00",dur:60,title:"Algorithms + Real-World",desc:"Lessons 4-5. Understand IPOG. Build a model for a real work feature.",phase:2},
+{id:"s5",date:"2026-04-22",time:"09:00",dur:60,title:"Automation Integration",desc:"Lesson 6. Integrate PICT output with your test framework. Try allpairspy.",phase:2},
+{id:"s6",date:"2026-04-23",time:"09:00",dur:45,title:"Coverage + Business Case",desc:"Lesson 7. Measure your existing suite. Build your team pitch.",phase:3},
+{id:"s7",date:"2026-04-24",time:"09:00",dur:30,title:"Scenarios + Rapid Fire",desc:"Practice all scenario drills. Rapid fire until 80%+. Final exam quiz.",phase:3},
 ];
+// TODO: Add 5-8 checkpoints. Each: {id, target, by (date), metric, threshold}
+// Metrics: 'bestQuiz','bestRapid','cards','scenarios','exercises'
 const DEFAULT_CHECKPOINTS=[
-{id:"cp1",target:"Score 60%+ on quiz",by:"2026-04-05",metric:"bestQuiz",threshold:60},
-{id:"cp2",target:"Flip all 28 flashcards at least once",by:"2026-04-07",metric:"cards",threshold:28},
-{id:"cp3",target:"Score 75%+ on quiz",by:"2026-04-10",metric:"bestQuiz",threshold:75},
-{id:"cp4",target:"Practice all 10 scenarios",by:"2026-04-13",metric:"scenarios",threshold:10},
-{id:"cp5",target:"Score 80%+ on quiz",by:"2026-04-15",metric:"bestQuiz",threshold:80},
-{id:"cp6",target:"Score 80%+ on rapid fire",by:"2026-04-18",metric:"bestRapid",threshold:80},
-{id:"cp7",target:"Complete all exercises",by:"2026-04-20",metric:"exercises",threshold:100},
-{id:"cp8",target:"Score 90%+ on quiz",by:"2026-04-21",metric:"bestQuiz",threshold:90},
+{id:"cp1",target:"Score 80%+ on Fundamentals quiz",by:"2026-04-16",metric:"bestQuiz",threshold:80},
+{id:"cp2",target:"Build a real PICT model from work",by:"2026-04-22",metric:"exercises",threshold:50},
+{id:"cp3",target:"Rapid fire 80%+ score",by:"2026-04-25",metric:"bestRapid",threshold:80},
 ];
 // ─── PERSISTENCE ───
-const STORAGE_KEY="gke-crash-course";
+// TODO: Change storage key to something unique for your course
+const STORAGE_KEY="pairwise-testing-v1";
 function saveState(){
 try{
 const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
@@ -851,12 +770,10 @@ function fcRate(rating){
   stats.cards=(stats.cards||0)+1;
   saveState();
   fcFlipped=false;
-  // advance to next card
   var next=fcGetCards();
   if(next.length>0)fcIdx=(fcIdx+1)%next.length;
   render();
 }
-
 function fcWeightedShuffle(){
   var cards=fcGetCards();
   if(!cards.length)return;
@@ -870,7 +787,6 @@ function fcWeightedShuffle(){
   fcFlipped=false;
   render();
 }
-
 function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
 function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
 function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
@@ -901,22 +817,10 @@ if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d
 function setMode(m){mode=m;render()}
 // ─── DASHBOARD ───
 function renderDashboard(el){
-const now=new Date(),evt=new Date(2026,3,22);
-const days=Math.max(0,Math.ceil((evt-now)/(864e5)));
-const wk=days>12?1:days>5?2:days>0?3:0;
-const wkL=wk===0?"Event time!":`Week ${wk}`;
-const wkD=wk===1?"The Essentials":wk===2?"Going Deeper":wk===3?"Final Prep":"You're at Google Next!";
-const focus=wk===1?"Master the basics: GKE vs EKS, Autopilot, Dash0 partnership, competitive positioning. Hit flashcards and take a quiz."
-:wk===2?"Go hands-on: GCP console, dev cluster, vocabulary. Practice scenario drills for objection fluency."
-:wk===3?"Speed and polish: rapid fire until 80%+, every scenario, elevator pitch out loud."
-:"Trust your prep. Be curious, ask questions, take notes.";
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
 const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
 el.innerHTML=`
-<div style="text-align:center;margin-bottom:24px">
-<div style="font-size:48px;font-weight:700">${days}</div>
-<div style="font-size:14px;color:#6b7280">days until Google Cloud Next</div>
-<div class="badge" style="margin-top:8px;display:inline-block">${wkL}: ${wkD}</div>
-</div>
 <div class="stat-grid">
 <div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">📝</div><div class="stat-val">${stats.quizzes}</div><div class="stat-label">Quizzes</div></div>
 <div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">🏆</div><div class="stat-val">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
@@ -924,10 +828,10 @@ el.innerHTML=`
 <div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-icon">💬</div><div class="stat-val">${stats.scenarios}</div><div class="stat-label">Scenarios</div></div>
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">⚡</div><div class="stat-val">${stats.rapid}</div><div class="stat-label">Rapid Rounds</div></div>
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">🌟</div><div class="stat-val">${stats.bestRapid?stats.bestRapid+'%':'—'}</div><div class="stat-label">Best Rapid</div></div>
-<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${doneEx}/${totalEx}</div><div class="stat-label">Exercises</div></div>
 <div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-icon">⚠️</div><div class="stat-val" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
 </div>
-<div class="focus-box"><div class="focus-title">Today's Focus</div><div class="focus-text">${focus}</div></div>
+<div class="focus-box"><div class="focus-title">Quick Reference</div><div class="focus-text">Pairwise = 2-way combinatorial testing &nbsp;&middot;&nbsp; ~93% bug detection (NIST) &nbsp;&middot;&nbsp; Tool: <code>pict model.txt</code> &nbsp;&middot;&nbsp; Covering array: CA(N; t, k, v) &nbsp;&middot;&nbsp; Growth: O(v² × log k)</div></div>
 ${renderDashSchedule()}`;
 }
 function renderDashSchedule(){
@@ -1022,7 +926,7 @@ function fcShuffle(){fcFlipped=false;const cards=fcGetCards();fcIdx=Math.floor(M
 function fcToggleFav(idx){const cards=fcGetCards();const card=cards[idx];if(!card)return;if(fcFavs.has(card.f))fcFavs.delete(card.f);else fcFavs.add(card.f);if(fcCat==="★ Favorites"&&!fcFavs.has(card.f)){const nc=fcGetCards();if(fcIdx>=nc.length)fcIdx=Math.max(0,nc.length-1)}saveState();render()}
 // ─── QUIZ ───
 const QUIZ_CATS=[...new Set(QUIZ.map(q=>q.cat))];
-function getQuizCatIcon(cat){return{['GKE Basics']:'☸️',['Dash0+GKE']:'🎯',['Competition']:'⚔️',['GCP Vocab']:'📘',['Event Prep']:'🎪'}[cat]||'📝'}
+function getQuizCatIcon(cat){return{Fundamentals:'🧪',Tools:'🔧',Algorithms:'⚙️',Practice:'🎯'}[cat]||'📝'}
 function startQuiz(catOrFinal){
 if(catOrFinal==='final'){qzMode='final';qzQs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10)}
 else{qzMode=catOrFinal;qzQs=QUIZ.filter(q=>q.cat===catOrFinal).sort(()=>Math.random()-.5)}
@@ -1117,11 +1021,11 @@ const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
 const doneEx=Object.keys(exercisesDone).length;
 el.innerHTML=`
 <div class="progress-bar"><div class="progress-label"><span>Exercises completed</span><span>${doneEx}/${totalEx}</span></div><div class="progress-track"><div class="progress-fill" style="width:${totalEx?Math.round(doneEx/totalEx*100):0}%"></div></div></div>
-<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Week 1 — The Essentials</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Phase 1 — Foundations</div>
 <div class="lesson-grid">${LESSONS.filter(l=>l.week===1).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
-<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 2 — Going Deeper</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Phase 2 — Deep Dive</div>
 <div class="lesson-grid">${LESSONS.filter(l=>l.week===2).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
-<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 3 — Final Prep</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Phase 3 — Apply It</div>
 <div class="lesson-grid">${LESSONS.filter(l=>l.week===3).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>`;
 }
 function lessonCard(l,idx){
@@ -1137,14 +1041,14 @@ ${allDone?'<span style="font-size:11px;color:#10b981;font-weight:600">✓</span>
 </div>
 </div>
 <div class="lesson-title">${l.title}</div>
-<div class="lesson-meta"><span>${l.time}</span><span>Week ${l.week}</span></div>
+<div class="lesson-meta"><span>${l.time}</span><span>Phase ${l.week}</span></div>
 </div>`}
 function openLesson(idx){learnIdx=idx;learnView="detail";render()}
 function backToLessons(){learnView="list";render()}
 function renderLessonDetail(el){
 const l=LESSONS[learnIdx];
 let html=`<button class="back-btn" onclick="backToLessons()">← All Lessons</button>`;
-html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Week ${l.week}</div>`;
+html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Phase ${l.week}</div>`;
 html+=`<div style="font-size:22px;font-weight:700;margin:6px 0 4px">${l.title}</div>`;
 html+=`<div style="font-size:12px;color:#6b7280;margin-bottom:20px">${l.time}</div>`;
 // Body
@@ -1453,51 +1357,23 @@ ${(RELATED_COURSES.length ? '<div class="res-group"><h4>Related Courses</h4>'
   +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span> <strong>'+c.title+'</strong><small>'+c.desc+'</small></a>'}).join('')
   +'</div>' : '')}
 <div class="res-group">
-<h4>GKE & Autopilot</h4>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/docs/concepts/kubernetes-engine-overview" target="_blank" rel="noopener">GKE Overview<small>What GKE is and how it works</small></a>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview" target="_blank" rel="noopener">GKE Autopilot Overview<small>Fully managed K8s — the key selling point</small></a>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/pricing" target="_blank" rel="noopener">GKE Pricing<small>Free control plane, Autopilot per-pod billing</small></a>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-security#privileged-workloads" target="_blank" rel="noopener">Autopilot Privileged Workloads & Partners<small>Why Dash0's partner status matters</small></a>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/docs/concepts/node-auto-provisioning" target="_blank" rel="noopener">Node Auto-Provisioning<small>GKE's auto-scaling edge</small></a>
+<h4>Tools</h4>
+<a class="res-link" href="https://github.com/microsoft/pict" target="_blank" rel="noopener">PICT (Microsoft)<small>Open-source CLI — the most widely used pairwise tool</small></a>
+<a class="res-link" href="https://csrc.nist.gov/projects/automated-combinatorial-testing-for-software" target="_blank" rel="noopener">ACTS (NIST)<small>Free covering array generator — implements IPOG, supports 2-way through 6-way</small></a>
+<a class="res-link" href="https://github.com/thombashi/allpairspy" target="_blank" rel="noopener">allpairspy<small>Python library for pairwise test generation</small></a>
+<a class="res-link" href="https://foselab.unibg.it/ctwedge/" target="_blank" rel="noopener">CTWedge<small>Web-based combinatorial testing — no install needed</small></a>
+<a class="res-link" href="https://www.pairwise.org/tools.html" target="_blank" rel="noopener">pairwise.org Tool Directory<small>Comprehensive list of all pairwise testing tools</small></a>
 </div>
 <div class="res-group">
-<h4>Dash0 on GKE</h4>
-<a class="res-link" href="https://www.dash0.com/kubernetes-monitoring" target="_blank" rel="noopener">Dash0 GKE Autopilot Partnership<small>Blog post — the partnership story</small></a>
-<a class="res-link" href="https://www.dash0.com/docs/dash0/monitoring/kubernetes/about-kubernetes" target="_blank" rel="noopener">Dash0 Kubernetes Monitoring Docs<small>Operator installation, auto-instrumentation, collector setup</small></a>
-<a class="res-link" href="https://www.dash0.com/docs/integrations/int_gcp_container_gke/overview" target="_blank" rel="noopener">Dash0 GKE Integration<small>GKE-specific setup and metrics</small></a>
-<a class="res-link" href="https://www.dash0.com/docs/dash0/ai/agent0" target="_blank" rel="noopener">Agent0 AI Copilot Docs<small>Autonomous investigation, natural language queries</small></a>
-<a class="res-link" href="https://www.dash0.com/pricing" target="_blank" rel="noopener">Dash0 Pricing<small>Transparent, consumption-based, no per-seat fees</small></a>
-<a class="res-link" href="https://github.com/dash0hq/dash0-operator" target="_blank" rel="noopener">Dash0 Operator GitHub<small>Source code, Helm chart, release notes</small></a>
-<a class="res-link" href="https://www.dash0.com/datadog-alternative" target="_blank" rel="noopener">Dash0 vs Datadog<small>Head-to-head comparison</small></a>
-<a class="res-link" href="https://www.dash0.com/dynatrace-alternative" target="_blank" rel="noopener">Dash0 vs Dynatrace<small>Proprietary agents vs OTel-native</small></a>
+<h4>Research and Theory</h4>
+<a class="res-link" href="https://csrc.nist.gov/pubs/sp/800/142/final" target="_blank" rel="noopener">NIST SP 800-142<small>Practical Combinatorial Testing — the best overview document (2010)</small></a>
+<a class="res-link" href="https://math.nist.gov/coveringarrays/ipof/ipof-results.html" target="_blank" rel="noopener">NIST Covering Array Tables<small>IPOG-F results and covering array sizes by strength</small></a>
 </div>
 <div class="res-group">
-<h4>Google Cloud Observability</h4>
-<a class="res-link" href="https://cloud.google.com/products/operations" target="_blank" rel="noopener">Cloud Operations Suite<small>Monitoring, Logging, Trace, Profiler</small></a>
-<a class="res-link" href="https://cloud.google.com/gemini/docs/cloud-assist/overview" target="_blank" rel="noopener">Gemini Cloud Assist<small>Google's AI observability — their Agent0</small></a>
-<a class="res-link" href="https://cloud.google.com/products/observability" target="_blank" rel="noopener">Managed OpenTelemetry for GKE<small>Google's managed OTLP endpoint</small></a>
-<a class="res-link" href="https://cloud.google.com/monitoring/docs" target="_blank" rel="noopener">Cloud Monitoring Docs<small>Full reference documentation</small></a>
+<h4>Tutorials</h4>
+<a class="res-link" href="https://www.pairwise.org/" target="_blank" rel="noopener">pairwise.org<small>Community site with introductions, tool list, and examples</small></a>
 </div>
-<div class="res-group">
-<h4>GCP Core Services</h4>
-<a class="res-link" href="https://cloud.google.com/vpc/docs/overview" target="_blank" rel="noopener">VPC Overview<small>Global VPCs — key GCP differentiator</small></a>
-<a class="res-link" href="https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity" target="_blank" rel="noopener">Workload Identity<small>Pod-to-GCP auth without static creds</small></a>
-<a class="res-link" href="https://cloud.google.com/run/docs/overview/what-is-cloud-run" target="_blank" rel="noopener">Cloud Run<small>Serverless containers</small></a>
-<a class="res-link" href="https://cloud.google.com/binary-authorization/docs/overview" target="_blank" rel="noopener">Binary Authorization<small>Supply chain security</small></a>
-<a class="res-link" href="https://cloud.google.com/artifact-registry/docs/overview" target="_blank" rel="noopener">Artifact Registry<small>Container image registry (ECR equivalent)</small></a>
-<a class="res-link" href="https://cloud.google.com/armor/docs/cloud-armor-overview" target="_blank" rel="noopener">Cloud Armor<small>WAF/DDoS protection</small></a>
-</div>
-<div class="res-group">
-<h4>OpenTelemetry</h4>
-<a class="res-link" href="https://opentelemetry.io/docs/" target="_blank" rel="noopener">OpenTelemetry Docs<small>The OTel standard — Dash0's foundation</small></a>
-<a class="res-link" href="https://opentelemetry.io/docs/kubernetes/operator/" target="_blank" rel="noopener">OTel K8s Operator<small>How OTel works in Kubernetes</small></a>
-<a class="res-link" href="https://opentelemetry.io/docs/specs/otlp/" target="_blank" rel="noopener">OTLP Specification<small>The protocol standard</small></a>
-</div>
-<div class="res-group">
-<h4>Google Next 2026</h4>
-<a class="res-link" href="https://cloud.withgoogle.com/next" target="_blank" rel="noopener">Google Cloud Next 2026<small>Event page — sessions, agenda, logistics</small></a>
-</div>
-</div>`}
+</div>`;}
 function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
 function askResetSection(key){const names={quiz:"Quiz",cards:"Flashcard",scenarios:"Scenario",rapid:"Rapid Fire",exercises:"Exercise"};confirmMsg="Reset "+names[key]+" progress?";confirmAction=key;showConfirm=true;render()}
 function cancelConfirm(){showConfirm=false;confirmAction=null;render()}
@@ -1529,7 +1405,7 @@ function askClaude(context){
 const input=document.getElementById('askInput');
 if(!input||!input.value.trim())return;
 const q=input.value.trim();
-const prompt=`I'm studying for Google Cloud Next 2026 (preparing as a Solutions Architect at Dash0, an observability company). I'm currently studying: ${context}\n\nMy question: ${q}\n\nPlease give me a clear, practical answer. Include specific details, examples, or comparisons where helpful. If this relates to GKE, Dash0, or observability, include relevant context for my role.`;
+const prompt=`I'm studying pairwise (combinatorial) testing for practical application at work. Context: ${context}\n\nMy question: ${q}\n\nPlease give a clear, practical answer. Include PICT model examples, covering array math, or tool commands where relevant.`;
 navigator.clipboard.writeText(prompt).then(()=>{
 showToast('Copied to clipboard — opening Claude...');
 setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
@@ -1605,7 +1481,7 @@ const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${
 return{start:fmt(start),end:fmt(end)};
 };
 const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
-let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Study Sessions\r\n`;
+let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Pairwise Testing Study Sessions\r\n`;
 selected.forEach(s=>{
 const{start,end}=toIcsDate(s.date,s.time,s.dur);
 const desc=(s.desc||'').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
@@ -1616,7 +1492,7 @@ cal+=`STATUS:CONFIRMED\r\nBEGIN:VALARM\r\nTRIGGER:-PT10M\r\nACTION:DISPLAY\r\nDE
 cal+=`END:VCALENDAR`;
 const blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
 const url=URL.createObjectURL(blob);
-const a=document.createElement('a');a.href=url;a.download='study-sessions.ics';a.click();
+const a=document.createElement('a');a.href=url;a.download='pairwise-testing-study.ics';a.click();
 URL.revokeObjectURL(url);
 showToast(`Downloaded ${selected.length} session${selected.length!==1?'s':''} as .ics`);
 icsOpen=false;render();
