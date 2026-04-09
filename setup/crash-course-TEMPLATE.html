@@ -246,6 +246,11 @@ body{max-width:1100px}
 .fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-option,.fs-m .scenario-box,.fs-m .scenario-q,.fs-m .scenario-a,.fs-m .focus-text{font-size:15px}
 .fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-option,.fs-l .scenario-box,.fs-l .scenario-q,.fs-l .scenario-a,.fs-l .focus-text{font-size:17px}
 .fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-option,.fs-xl .scenario-box,.fs-xl .scenario-q,.fs-xl .scenario-a,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
 </style>
 </head>
 <body>
@@ -557,6 +562,35 @@ ${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pick
 }
 function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
 function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
 function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
 function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
 function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
