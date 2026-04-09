@@ -730,9 +730,9 @@ jobs:
           docker pull ghcr.io/dash0hq/cli:latest
       - name: Create profile
         env:
-          DASH0_AUTH_TOKEN: ${{ secrets.DASH0_AUTH_TOKEN }}
-          DASH0_API_URL: ${{ secrets.DASH0_API_URL }}
-          DASH0_OTLP_URL: ${{ secrets.DASH0_OTLP_URL }}
+          DASH0_AUTH_TOKEN: \${{ secrets.DASH0_AUTH_TOKEN }}
+          DASH0_API_URL: \${{ secrets.DASH0_API_URL }}
+          DASH0_OTLP_URL: \${{ secrets.DASH0_OTLP_URL }}
         run: |
           export DASH0_CONFIG_DIR=/tmp/dash0-ci
           docker run -e DASH0_CONFIG_DIR -v /tmp/dash0-ci:/tmp/dash0-ci \
