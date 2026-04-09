@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dash0 API Crash Course</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:700}.header small{font-size:12px;color:#6b7280}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500}
+.content{padding:16px;padding-bottom:100px;min-height:calc(100vh - 130px)}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:960px;margin:0 auto;background:rgba(10,10,15,.95);border-top:1px solid #1f2937;padding:8px;display:flex;justify-content:space-around;gap:4px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav button{display:flex;flex-direction:column;align-items:center;padding:6px 6px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;min-width:46px;flex:1}
+.nav button.active{background:#10b981;color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.nav button span{font-size:18px;margin-bottom:2px}
+.card{border-radius:16px;padding:20px;min-height:200px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:all .3s;user-select:none;-webkit-user-select:none}
+.card.question{background:#1f2937;border:2px solid #374151}
+.card.answer{background:rgba(16,185,129,.1);border:2px solid rgba(16,185,129,.3)}
+.card-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.card-text{font-size:17px;line-height:1.5}
+.card-hint{font-size:12px;color:#4b5563;text-align:center;margin-top:16px}
+.fav-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.4;transition:all .2s;padding:4px;line-height:1}
+.fav-btn:hover{opacity:.7;transform:scale(1.2)}
+.fav-btn.active{opacity:1;filter:none}
+.btn-row{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.btn{padding:12px 20px;border-radius:12px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:#10b981;color:#fff}.btn-primary:hover{background:#059669}
+.btn-secondary{background:#1f2937;color:#d1d5db}.btn-secondary:hover{background:#374151}
+.btn-danger{background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.3);color:#fca5a5}
+.btn-success{background:rgba(16,185,129,.2);border:2px solid rgba(16,185,129,.3);color:#6ee7b7}
+.btn-full{width:100%;padding:14px;font-size:15px}
+.progress-bar{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.progress-track{width:100%;background:#1f2937;border-radius:999px;height:8px}
+.progress-fill{background:#10b981;height:8px;border-radius:999px;transition:width .5s}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{white-space:nowrap;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;border:none;cursor:pointer;transition:all .2s}
+.pill.active{background:#10b981;color:#fff}.pill:not(.active){background:#1f2937;color:#9ca3af}
+.quiz-option{text-align:left;padding:14px 16px;border-radius:12px;border:2px solid #374151;background:#1f2937;color:#d1d5db;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-bottom:10px;transition:all .2s}
+.quiz-option.correct{background:rgba(16,185,129,.15);border-color:#10b981;color:#6ee7b7}
+.quiz-option.wrong{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5}
+.quiz-option.dimmed{background:rgba(31,41,55,.5);border-color:#1f2937;color:#4b5563}
+.scenario-box{border-radius:16px;padding:20px;margin-bottom:16px}
+.scenario-q{background:rgba(239,68,68,.08);border:2px solid rgba(153,27,27,.4)}
+.scenario-a{background:rgba(16,185,129,.08);border:2px solid rgba(16,185,129,.3)}
+.scenario-reveal{background:#1f2937;border:2px solid #374151;text-align:center;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.timer{font-size:28px;font-family:monospace;font-weight:700}
+.timer.green{color:#10b981}.timer.yellow{color:#f59e0b}.timer.red{color:#ef4444}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:#1f2937;border-radius:12px;padding:12px;text-align:center;transition:all .2s;border:2px solid transparent}
+.stat-card:hover{border-color:#374151;background:#263040}
+.stat-icon{font-size:24px;margin-bottom:4px}.stat-val{font-size:20px;font-weight:700}.stat-label{font-size:11px;color:#6b7280}
+.focus-box{background:#1f2937;border-radius:16px;padding:16px}
+.focus-title{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.focus-text{font-size:14px;color:#d1d5db;line-height:1.6}
+.results-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0}
+.grade{font-size:56px;font-weight:700;text-align:center;margin-bottom:8px}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:50vh}
+.mgmt-section{background:#1f2937;border-radius:16px;padding:16px;margin-bottom:16px}
+.mgmt-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#d1d5db}
+.mgmt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151}
+.mgmt-row:last-child{border-bottom:none}
+.mgmt-row .label{font-size:13px;color:#9ca3af}
+.mgmt-row .value{font-size:13px;font-weight:600;color:#fff}
+.btn-outline{background:transparent;border:2px solid #374151;color:#9ca3af;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:#6b7280;color:#d1d5db}
+.btn-danger-solid{background:#dc2626;color:#fff;border:none;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger-solid:hover{background:#b91c1c}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.confirm-box{background:#1f2937;border:2px solid #374151;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151;font-size:12px}
+.history-item:last-child{border-bottom:none}
+.export-box{background:#0d1117;border:1px solid #374151;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#6ee7b7;word-break:break-all;max-height:120px;overflow-y:auto;margin-top:8px}
+.source-link{display:inline-flex;align-items:center;gap:4px;margin-top:12px;padding:6px 12px;border-radius:8px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#93c5fd;font-size:12px;font-weight:500;text-decoration:none;transition:all .2s}
+.source-link:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.source-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.res-group{margin-bottom:20px}
+.res-group h4{font-size:13px;font-weight:600;color:#6ee7b7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.res-link{display:block;padding:10px 12px;border-radius:10px;background:#1f2937;margin-bottom:6px;text-decoration:none;color:#93c5fd;font-size:13px;font-weight:500;border:1px solid #374151;transition:all .2s}
+.res-link:hover{background:#374151;border-color:#4b5563}
+.res-link small{display:block;color:#6b7280;font-size:11px;font-weight:400;margin-top:2px}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:4px}
+.lesson-card{background:#1f2937;border-radius:16px;padding:16px;cursor:pointer;border:2px solid #374151;transition:all .2s}
+.lesson-card:hover{border-color:#4b5563}
+.lesson-card.completed{border-color:rgba(16,185,129,.3)}
+.lesson-num{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.lesson-title{font-size:15px;font-weight:600;margin:4px 0}
+.lesson-meta{font-size:12px;color:#6b7280;display:flex;gap:12px}
+.lesson-body{padding:0}
+.lesson-section{margin-bottom:20px}
+.lesson-section h4{font-size:13px;font-weight:600;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.lesson-text{font-size:14px;color:#d1d5db;line-height:1.7}
+.lesson-text p{margin-bottom:10px}
+.lesson-highlight{background:rgba(16,185,129,.08);border-left:3px solid #10b981;padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0;font-size:13px;color:#d1fae5;line-height:1.5}
+.lesson-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.lesson-compare-item{background:#0d1117;border-radius:10px;padding:10px;font-size:12px;line-height:1.5}
+.lesson-compare-item .compare-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.exercise-box{background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.2);border-radius:14px;padding:14px;margin-bottom:10px}
+.exercise-box .ex-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.exercise-box .ex-task{font-size:13px;color:#ddd6fe;line-height:1.5;margin-bottom:8px}
+.exercise-box .ex-hint{font-size:12px;color:#6b7280;font-style:italic}
+.exercise-check{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
+.exercise-check .checkbox{width:22px;height:22px;border-radius:6px;border:2px solid #374151;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0}
+.exercise-check .checkbox.checked{background:#10b981;border-color:#10b981}
+.exercise-check .ex-text{font-size:13px;color:#d1d5db}
+.ex-steps-toggle{background:none;border:1px solid rgba(139,92,246,.25);color:#a78bfa;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:6px;font-family:inherit;transition:all .2s}
+.ex-steps-toggle:hover{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4)}
+.ex-steps{display:none;margin-top:8px;padding:10px 12px;background:rgba(139,92,246,.04);border-radius:8px;border:1px solid rgba(139,92,246,.12)}
+.ex-steps.open{display:block}
+.ex-steps ol{margin:0;padding-left:20px;font-size:13px;color:#c4b5fd;line-height:1.7}
+.ex-steps li{margin-bottom:4px}
+.ex-steps code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:12px;color:#a5f3fc}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px}
+.sched-item{background:#1f2937;border-radius:12px;padding:12px;margin-bottom:8px;border:2px solid #374151;transition:all .2s}
+.sched-item.today{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.sched-item.past{opacity:.5}
+.sched-item.done{border-color:rgba(16,185,129,.3);opacity:.7}
+.sched-item .si-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sched-item .si-date{font-size:11px;color:#6b7280;font-weight:600}
+.sched-item .si-dur{font-size:10px;color:#4b5563;background:#0d1117;padding:2px 8px;border-radius:6px}
+.sched-item .si-title{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:2px}
+.sched-item .si-desc{font-size:12px;color:#9ca3af;line-height:1.4}
+.sched-item .si-actions{display:flex;gap:6px;margin-top:8px}
+.sched-item .si-actions button{padding:6px 10px;border-radius:8px;border:none;font-size:11px;font-weight:500;cursor:pointer}
+.cp-item{background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;margin-bottom:8px}
+.cp-item.hit{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.cp-item .cp-target{font-size:14px;font-weight:600;color:#fde68a}
+.cp-item.hit .cp-target{color:#6ee7b7;text-decoration:line-through}
+.cp-item .cp-date{font-size:11px;color:#6b7280}
+.form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.form-sheet{background:#111827;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.form-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:12px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.form-field input,.form-field textarea,.form-field select{width:100%;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:14px;font-family:inherit}
+.form-field textarea{min-height:60px;resize:vertical}
+.form-field input:focus,.form-field textarea:focus,.form-field select:focus{outline:none;border-color:#10b981}
+.ask-box{background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.15);border-radius:14px;padding:14px;margin-top:16px}
+.ask-box .ask-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ask-box .ask-row{display:flex;gap:8px}
+.ask-box input{flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:13px;font-family:inherit}
+.ask-box input:focus{outline:none;border-color:#a78bfa}
+.ask-box input::placeholder{color:#4b5563}
+.ask-box button{padding:10px 14px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ask-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:200;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ics-panel{background:#111827;border:2px solid #374151;border-radius:16px;padding:16px;margin-bottom:16px}
+.ics-panel h4{font-size:13px;font-weight:600;color:#93c5fd;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.ics-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ics-filters button{padding:5px 10px;border-radius:8px;border:2px solid #374151;background:#1f2937;color:#9ca3af;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.ics-filters button.active{border-color:#3b82f6;background:rgba(59,130,246,.15);color:#93c5fd}
+.ics-list{max-height:320px;overflow-y:auto;margin-bottom:12px}
+.ics-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2937;font-size:13px}
+.ics-item:last-child{border-bottom:none}
+.ics-check{width:20px;height:20px;border-radius:5px;border:2px solid #374151;background:#0d1117;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+.ics-check.on{border-color:#3b82f6;background:rgba(59,130,246,.2);color:#93c5fd}
+.ics-item-info{flex:1;min-width:0}
+.ics-item-title{font-weight:500;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ics-item-date{font-size:11px;color:#6b7280}
+.ics-actions{display:flex;gap:8px;margin-top:4px}
+.ics-actions button{flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.ics-dl{background:#3b82f6;color:#fff}
+.ics-dl:hover{background:#2563eb}
+.ics-count{font-size:12px;color:#6b7280;margin-bottom:8px}
+@media(min-width:600px){
+body{max-width:960px;padding:0 24px}
+.header{padding:20px 0 12px}
+.header h1{font-size:22px}
+.content{padding:20px 0 100px}
+.nav{padding:10px 16px;gap:8px;border-radius:16px 16px 0 0}
+.nav button{min-width:auto;padding:8px 14px;font-size:12px;flex-direction:row;gap:6px;border-radius:10px}
+.nav button span{font-size:16px;margin-bottom:0}
+.stat-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:16px}
+.stat-val{font-size:22px}
+.card{max-width:640px;margin:0 auto;min-height:240px;padding:28px}
+.card-text{font-size:18px}
+.quiz-option{font-size:15px;padding:16px 20px}
+.scenario-box{max-width:700px}
+.lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lesson-card{margin-bottom:0}
+.mgmt-section{max-width:700px}
+.form-sheet{max-width:560px;border-radius:20px;margin:auto}
+.form-overlay{align-items:center}
+.res-group{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.res-group h4{grid-column:1/-1}
+.focus-box{max-width:700px}
+.sched-item{max-width:700px}
+.ics-panel{max-width:700px}
+.cp-item{max-width:700px}
+.pills{flex-wrap:wrap}
+.ask-box{max-width:640px;margin:16px auto 0}
+.confirm-box{max-width:400px}
+.source-links{justify-content:flex-start}
+}
+@media(min-width:800px){
+body{max-width:1100px}
+.nav{max-width:1100px}
+.stat-grid{grid-template-columns:repeat(4,1fr)}
+.lesson-grid{grid-template-columns:repeat(3,1fr)}
+.card{max-width:700px}
+.res-group{grid-template-columns:repeat(3,1fr)}
+}
+.role-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.role-picker{max-width:520px;width:92%;padding:28px 20px;text-align:center}
+.role-picker h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.role-picker .rp-sub{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5}
+.role-cards{display:flex;flex-direction:column;gap:12px}
+.role-card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left}
+.role-card:hover{border-color:#10b981;background:#263040}
+.role-card .rc-icon{font-size:28px;margin-bottom:8px}
+.role-card .rc-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.role-card .rc-desc{font-size:13px;color:#9ca3af;line-height:1.4}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.role-badge.core{background:rgba(16,185,129,.15);color:#6ee7b7}
+.role-badge.bonus{background:rgba(107,114,128,.15);color:#6b7280}
+.role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
+.role-current:hover{border-color:#10b981;background:#263040}
+.fs-s .card-text,.fs-s .lesson-text,.fs-s .quiz-option,.fs-s .scenario-box,.fs-s .scenario-q,.fs-s .scenario-a,.fs-s .focus-text{font-size:13px}
+.fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-option,.fs-m .scenario-box,.fs-m .scenario-q,.fs-m .scenario-a,.fs-m .focus-text{font-size:15px}
+.fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-option,.fs-l .scenario-box,.fs-l .scenario-q,.fs-l .scenario-a,.fs-l .focus-text{font-size:17px}
+.fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-option,.fs-xl .scenario-box,.fs-xl .scenario-q,.fs-xl .scenario-a,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>Dash0 API Crash Course</h1><small>From auth tokens to observability-as-code</small></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="header-role"></div>
+<div class="badge">Self-Paced</div>
+<span id="app-version" style="font-size:9px;color:#6b7280;font-weight:400;letter-spacing:.3px"></span><span id="sync-badge" style="font-size:11px;color:#6b7280;margin-left:8px;cursor:help"></span>
+</div>
+</div>
+<div class="content" id="app"></div>
+<div class="nav" id="nav"></div>
+<script>
+// ─── DATA ───
+const FLASHCARDS=[
+// Fundamentals (8)
+{f:"What are the three API categories in Dash0?",b:"1. OTLP Ingestion (traces/metrics/logs via gRPC/HTTP)\n2. Prometheus Query API (PromQL over HTTP)\n3. Management API (dashboards, check-rules, datasets — CRUD)",c:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What transport protocols does Dash0 support for OTLP ingestion?",b:"Both gRPC (port 4317) and HTTP (port 4318). HTTP uses JSON or Protobuf payloads. gRPC uses Protobuf. Both require TLS.",c:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the base domain pattern for Dash0 region endpoints?",b:"ingress.<region>.dash0.com — e.g. ingress.eu-west-1.dash0.com for EU West. Each region has its own endpoint for ingestion and API calls.",c:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints"},
+{f:"What signal types can be sent to the Dash0 OTLP HTTP endpoint?",b:"Three signals:\n• /v1/traces — distributed traces\n• /v1/metrics — metrics\n• /v1/logs — logs\nAll at https://ingress.<region>.dash0.com",c:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does Dash0 relate to the OpenTelemetry standard?",b:"Dash0 is a native OTel backend. It accepts OTLP (OpenTelemetry Protocol) directly — no proprietary agent or SDK required. Any OTel-instrumented app can send data to Dash0 immediately.",c:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What query language does the Dash0 query API use?",b:"PromQL (Prometheus Query Language). Dash0 exposes a Prometheus-compatible query API, so existing PromQL knowledge and tooling (Grafana, recording rules, etc.) works natively.",c:"Fundamentals",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What format does the Dash0 Management API use for dashboards?",b:"Perses — an open-source dashboard format. Dashboards are defined as JSON/YAML objects following the Perses schema, enabling version control and GitOps workflows.",c:"Fundamentals",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is observability-as-code in the Dash0 context?",b:"Storing dashboards, alert rules, and dataset configs as YAML/JSON in Git. Use the Management API (or CLI) to apply/sync them — enabling CI/CD, code review, and reproducible observability infrastructure.",c:"Fundamentals",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+
+// Auth & Endpoints (7)
+{f:"What HTTP header is used for authentication when sending OTLP data to Dash0?",b:"Authorization: Bearer <token>\nExample:\ncurl -H 'Authorization: Bearer ds0_...' https://ingress.eu-west-1.dash0.com/v1/logs",c:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{f:"Where are Dash0 auth tokens created?",b:"In the Dash0 UI under Settings > Auth Tokens. Tokens are scoped per organization and can have different permissions. They look like ds0_<random>.",c:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{f:"What is the OTLP gRPC endpoint and port for Dash0 EU West?",b:"Host: ingress.eu-west-1.dash0.com\nPort: 4317 (gRPC)\nPort: 4318 (HTTP)\nAlways TLS. Set via OTEL_EXPORTER_OTLP_ENDPOINT env var.",c:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints"},
+{f:"What environment variables configure the OTel SDK to send to Dash0?",b:"OTEL_EXPORTER_OTLP_ENDPOINT=https://ingress.eu-west-1.dash0.com\nOTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ds0_...\nOTEL_SERVICE_NAME=my-service",c:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{f:"What is the difference between the ingestion endpoint and the API endpoint?",b:"Ingestion endpoint (ingress.<region>.dash0.com): receives OTLP telemetry data\nAPI endpoint (api.<region>.dash0.com): Management API for dashboards/rules, Prometheus query API. Different auth header format may apply.",c:"Auth & Endpoints",d:2,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints"},
+{f:"How do you authenticate to the Dash0 Prometheus query API?",b:"Authorization: Bearer <token> header — same token type as OTLP ingestion. Example:\ncurl -H 'Authorization: Bearer ds0_...' 'https://api.eu-west-1.dash0.com/prometheus/api/v1/query?query=up'",c:"Auth & Endpoints",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What should you do if an API call returns 401 Unauthorized?",b:"Check: 1) Token is valid and not expired. 2) Token has correct permissions for the operation. 3) Correct Authorization: Bearer header format. 4) Right regional endpoint being used.",c:"Auth & Endpoints",d:2,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+
+// OTLP Ingestion (10)
+{f:"What is the OTLP HTTP path for sending traces to Dash0?",b:"POST https://ingress.eu-west-1.dash0.com/v1/traces\nContent-Type: application/json (JSON-encoded OTLP) or application/x-protobuf (binary Protobuf)",c:"OTLP Ingestion",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the OTLP HTTP path for sending metrics to Dash0?",b:"POST https://ingress.eu-west-1.dash0.com/v1/metrics\nSame auth header pattern. Metrics use OTLP MetricsExportRequest format.",c:"OTLP Ingestion",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the OTLP HTTP path for sending logs to Dash0?",b:"POST https://ingress.eu-west-1.dash0.com/v1/logs\nLogs use OTLP LogsExportRequest. Useful for structured log ingestion alongside traces.",c:"OTLP Ingestion",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you send a test log to Dash0 via curl?",b:"curl -X POST https://ingress.eu-west-1.dash0.com/v1/logs \\\n  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"resourceLogs\":[{\"resource\":{\"attributes\":[{\"key\":\"service.name\",\"value\":{\"stringValue\":\"test\"}}]},\"scopeLogs\":[{\"logRecords\":[{\"body\":{\"stringValue\":\"hello from curl\"}}]}]}]}'",c:"OTLP Ingestion",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the difference between gRPC and HTTP OTLP ingestion?",b:"gRPC (port 4317): binary Protobuf, multiplexed streams, lower overhead, best for high-volume production.\nHTTP (port 4318): JSON or Protobuf, easier to debug with curl, works through HTTP proxies and firewalls.",c:"OTLP Ingestion",d:2,u:"https://opentelemetry.io/docs/specs/otlp/"},
+{f:"What OTel Collector exporter config targets Dash0?",b:"exporters:\n  otlp:\n    endpoint: ingress.eu-west-1.dash0.com:4317\n    headers:\n      Authorization: Bearer ds0_YOUR_TOKEN\n    tls:\n      insecure: false",c:"OTLP Ingestion",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What HTTP status code does Dash0 return on successful OTLP ingestion?",b:"HTTP 200 OK with an empty ExportResponse body ({}). Any non-2xx response indicates an error — check auth (401), payload format (400), or rate limits (429).",c:"OTLP Ingestion",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What resource attributes should you always include in OTLP payloads?",b:"At minimum: service.name (required for proper routing/display). Recommended: service.version, service.namespace, deployment.environment, host.name, telemetry.sdk.name, telemetry.sdk.version.",c:"OTLP Ingestion",d:2,u:"https://opentelemetry.io/docs/specs/semconv/resource/"},
+{f:"How does Prometheus remote_write send metrics to Dash0?",b:"Configure Prometheus remote_write:\nremote_write:\n  - url: https://ingress.eu-west-1.dash0.com/prometheus/remote/write\n    authorization:\n      credentials: ds0_YOUR_TOKEN",c:"OTLP Ingestion",d:3,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the OTLP Protobuf content type for HTTP ingestion?",b:"Content-Type: application/x-protobuf\nAccept: application/x-protobuf\nThis is more efficient than JSON but requires Protobuf serialization. Most OTel SDKs use Protobuf by default.",c:"OTLP Ingestion",d:3,u:"https://opentelemetry.io/docs/specs/otlp/"},
+
+// Prometheus Queries (9)
+{f:"What is the Dash0 Prometheus instant query endpoint?",b:"GET/POST https://api.eu-west-1.dash0.com/prometheus/api/v1/query\nParams: query=<PromQL>, time=<unix-timestamp>\nReturns current value at a point in time.",c:"Prometheus Queries",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the Dash0 Prometheus range query endpoint?",b:"GET/POST https://api.eu-west-1.dash0.com/prometheus/api/v1/query_range\nParams: query=<PromQL>, start=<ts>, end=<ts>, step=<duration>\nReturns a time series matrix.",c:"Prometheus Queries",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"Write a curl command for an instant PromQL query against Dash0.",b:"curl -G 'https://api.eu-west-1.dash0.com/prometheus/api/v1/query' \\\n  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\\n  --data-urlencode 'query=up' \\\n  --data-urlencode 'time=1700000000'",c:"Prometheus Queries",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What does the Prometheus API response envelope look like?",b:"{\"status\":\"success\",\"data\":{\"resultType\":\"vector\",\"result\":[{\"metric\":{\"__name__\":\"up\",\"job\":\"myapp\"},\"value\":[1700000000,\"1\"]}]}}\nresultType can be: vector, matrix, scalar, string",c:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/api/"},
+{f:"How do you query label names and values via the Dash0 Prometheus API?",b:"Label names: GET /prometheus/api/v1/labels\nLabel values: GET /prometheus/api/v1/label/<name>/values\nBoth support start/end time params and match[] series selectors.",c:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/api/"},
+{f:"What PromQL function calculates per-second rate from a counter?",b:"rate(metric_name[5m]) — computes average per-second rate over 5-minute window. Use irate() for instant rate. Always use rate/irate with counters, never raw values.",c:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/functions/"},
+{f:"How do you filter a PromQL query by label in a Dash0 API call?",b:"Use label matchers in the query: http_requests_total{service=\"checkout\",status_code=\"200\"}\nEncode the full query string URL-safe: --data-urlencode 'query=http_requests_total{service=\"checkout\"}'",c:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/basics/"},
+{f:"What is the Prometheus API /series endpoint used for?",b:"GET /prometheus/api/v1/series — returns all time series matching a given selector.\nParams: match[]={job=\"myapp\"}, start, end\nUseful for discovering what metrics exist.",c:"Prometheus Queries",d:3,u:"https://prometheus.io/docs/prometheus/latest/querying/api/"},
+{f:"How do you run a range query to plot HTTP error rate over the last hour?",b:"curl -G 'https://api.eu-west-1.dash0.com/prometheus/api/v1/query_range' \\\n  -H 'Authorization: Bearer ds0_...' \\\n  --data-urlencode 'query=rate(http_requests_total{status=~\"5..\"}[5m])' \\\n  --data-urlencode 'start=<now-3600>' \\\n  --data-urlencode 'end=<now>' \\\n  --data-urlencode 'step=60'",c:"Prometheus Queries",d:3,u:"https://www.dash0.com/documentation/dash0/api"},
+
+// Management API (9)
+{f:"What does the Dash0 Management API manage?",b:"Dashboards (Perses format), check rules (alerting/SLO rules), and dataset configuration. All CRUD operations over REST — GET, POST, PUT, DELETE.",c:"Management API",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What HTTP method and path lists all dashboards in Dash0?",b:"GET https://api.eu-west-1.dash0.com/api/v1/dashboards\nReturns an array of dashboard objects in Perses JSON format.",c:"Management API",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you create a new dashboard via the Management API?",b:"POST https://api.eu-west-1.dash0.com/api/v1/dashboards\nContent-Type: application/json\nBody: Perses dashboard JSON\nReturns created dashboard with assigned ID.",c:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the Perses dashboard format?",b:"Open-source dashboard specification from CNCF. Dashboards are JSON objects with metadata, spec.display, spec.panels, and spec.variables. Panels reference data sources and use PromQL queries.",c:"Management API",d:2,u:"https://perses.dev/docs/"},
+{f:"How do you update an existing dashboard via the Management API?",b:"PUT https://api.eu-west-1.dash0.com/api/v1/dashboards/<dashboard-id>\nBody: full updated Perses JSON. Returns the updated dashboard. Use GET first to retrieve current state.",c:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is a check rule in Dash0?",b:"An alerting rule (similar to Prometheus alerting rules). Defined with a PromQL expression, threshold, duration, and labels/annotations. When expression fires, it triggers an alert.",c:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What HTTP path manages check rules in the Dash0 API?",b:"GET/POST /api/v1/check-rules — list/create\nGET/PUT/DELETE /api/v1/check-rules/<id> — read/update/delete\nPayload uses Prometheus alerting rule format.",c:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"Write a minimal Dash0 check rule creation request.",b:"POST /api/v1/check-rules\n{\n  \"metadata\":{\"name\":\"high-error-rate\"},\n  \"spec\":{\n    \"expr\":\"rate(http_errors_total[5m]) > 0.05\",\n    \"for\":\"2m\",\n    \"labels\":{\"severity\":\"warning\"},\n    \"annotations\":{\"summary\":\"High error rate detected\"}\n  }\n}",c:"Management API",d:3,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you delete a dashboard via the Management API?",b:"DELETE https://api.eu-west-1.dash0.com/api/v1/dashboards/<dashboard-id>\nReturns 204 No Content on success. Irreversible — export the JSON first if you need a backup.",c:"Management API",d:3,u:"https://www.dash0.com/documentation/dash0/api"},
+
+// Observability-as-Code (7)
+{f:"What is the GitOps workflow for Dash0 dashboards?",b:"Store dashboard JSON/YAML in Git. In CI/CD pipeline: 1) Validate schema, 2) GET existing dashboard, 3) PUT (update) or POST (create) via Management API. Use branch-based review for dashboard changes.",c:"Observability-as-Code",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you export all dashboards for backup or migration?",b:"Script a GET /api/v1/dashboards call, iterate the response array, and write each dashboard JSON to a file. Use the dashboard metadata.name as the filename.",c:"Observability-as-Code",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What tool can deploy Dash0 resources as code alongside infrastructure?",b:"The Dash0 Terraform provider (registry.terraform.io/providers/dash0hq/dash0). Manages dashboards and check-rules as Terraform resources — integrates with existing IaC workflows.",c:"Observability-as-Code",d:2,u:"https://registry.terraform.io/providers/dash0hq/dash0"},
+{f:"How would you script a dashboard deployment in bash?",b:"DASHBOARD_JSON=$(cat dashboard.json)\ncurl -X PUT \\\n  https://api.eu-west-1.dash0.com/api/v1/dashboards/my-dashboard \\\n  -H 'Authorization: Bearer ds0_...' \\\n  -H 'Content-Type: application/json' \\\n  -d \"$DASHBOARD_JSON\"",c:"Observability-as-Code",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does the Dash0 CLI relate to the Management API?",b:"The CLI is a thin wrapper over the Management API. Every dash0 apply, dash0 get, dash0 delete command maps to a corresponding REST API call. The CLI adds convenience: YAML support, diffing, dry-run.",c:"Observability-as-Code",d:2,u:"https://github.com/dash0hq/dash0-cli"},
+{f:"What is the benefit of version-controlling Dash0 dashboards in Git?",b:"Enables: code review for dashboard changes, rollback via git revert, environment promotion (dev → staging → prod), disaster recovery, and team collaboration on observability configurations.",c:"Observability-as-Code",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you implement a CI/CD check for dashboard schema validity?",b:"Use the Perses CLI or JSON Schema validation. In GitHub Actions: install perses CLI, run perses lint dashboard.json. This catches broken PromQL or invalid panel configs before deployment.",c:"Observability-as-Code",d:3,u:"https://perses.dev/docs/"},
+
+// Integrations (8)
+{f:"How does Grafana connect to Dash0 as a data source?",b:"Add a Prometheus data source in Grafana. URL: https://api.eu-west-1.dash0.com/prometheus\nAuth: Bearer token in Custom HTTP Headers: Authorization: Bearer ds0_...\nAll PromQL queries then run against Dash0.",c:"Integrations",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is Prometheus remote_write and how does it integrate with Dash0?",b:"Prometheus remote_write streams metrics from a local Prometheus server to a remote backend. Point it at Dash0's remote_write endpoint with Bearer auth to ship all Prometheus metrics to Dash0.",c:"Integrations",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does an OpenTelemetry Collector send to Dash0?",b:"Use the otlp exporter:\nexporters:\n  otlp:\n    endpoint: ingress.eu-west-1.dash0.com:4317\n    headers:\n      Authorization: Bearer ds0_...\nRoute pipelines to this exporter.",c:"Integrations",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the Dash0 Operator for Kubernetes?",b:"A Kubernetes operator that automatically instruments workloads with OpenTelemetry and configures them to send telemetry to Dash0. No manual SDK setup required — just annotate namespaces or pods.",c:"Integrations",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you configure a Node.js app to send traces to Dash0 without code changes?",b:"Use the Dash0 Kubernetes Operator (zero-code injection) or set environment variables:\nOTEL_EXPORTER_OTLP_ENDPOINT=https://ingress.eu-west-1.dash0.com\nOTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ds0_...\nOTEL_SERVICE_NAME=my-node-app\nThen use @opentelemetry/auto-instrumentations-node.",c:"Integrations",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does the Perses Grafana plugin relate to Dash0?",b:"Dash0 uses the Perses dashboard format. A Perses Grafana plugin allows rendering Perses dashboards inside Grafana. This means Dash0 dashboards can be viewed in Grafana without re-creating them.",c:"Integrations",d:3,u:"https://perses.dev/docs/"},
+{f:"What SDK languages have auto-instrumentation support for Dash0?",b:"Any OTel-supported language works: Java, Node.js, Python, Go, .NET, Ruby, PHP. Use official OpenTelemetry auto-instrumentation packages — Dash0 is a standard OTLP backend, no proprietary SDK needed.",c:"Integrations",d:2,u:"https://opentelemetry.io/docs/instrumentation/"},
+{f:"How does alerting integrate with external systems via Dash0?",b:"Dash0 check rules fire alerts that can be routed via notification channels (PagerDuty, Slack, email, webhooks). Configure notification channels in Dash0 settings — the Management API manages the rules, the UI manages routing.",c:"Integrations",d:3,u:"https://www.dash0.com/documentation/dash0/api"},
+
+// Pitch & Positioning (7)
+{f:"How do you explain Dash0's API-first approach to a prospect?",b:"Every Dash0 action is API-accessible. Teams can automate dashboard deployment, manage alert rules in Git, and query metrics programmatically — making observability a first-class part of the software delivery pipeline.",c:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"Why is Dash0's native OTLP support a competitive advantage?",b:"No vendor lock-in. Teams use standard OpenTelemetry SDKs and can switch backends without re-instrumenting. Compared to Datadog/New Relic which require proprietary agents, Dash0's OTLP-native approach means zero migration cost.",c:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does Dash0's Prometheus compatibility help existing customers?",b:"Teams already running Prometheus can point remote_write at Dash0 and immediately get long-term storage, better UI, and alerting — without replacing their existing Prometheus setup or rewriting queries.",c:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What is the value proposition of the Dash0 Management API vs. UI-only tools?",b:"API access enables: GitOps for dashboards, automated dashboard promotion across environments, integration into existing DevOps pipelines, and programmatic audit/compliance. UI-only tools create config drift and manual toil.",c:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How do you position Dash0 against Datadog's API?",b:"Datadog has a large API surface but requires proprietary agents and charges per host/metric volume. Dash0 uses open standards (OTLP, PromQL, Perses), has simpler pricing, and provides equal API power without lock-in.",c:"Pitch & Positioning",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"What story does the Dash0 API enable for platform/DevOps teams?",b:"Platform teams can build internal developer platforms where observability configuration (dashboards, alerts) is versioned alongside application code — deployed, reviewed, and rolled back just like application infrastructure.",c:"Pitch & Positioning",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+{f:"How does Dash0's open standards approach reduce onboarding time?",b:"Engineers already know OTel, PromQL, and YAML. Zero proprietary concepts to learn. A team can start sending telemetry in minutes using existing knowledge, vs. weeks learning a proprietary observability platform's SDK and query language.",c:"Pitch & Positioning",d:2,u:"https://www.dash0.com/documentation/dash0/api"},
+];
+// ─── CONFIG ───
+const APP_VERSION='v1.0';
+const PLATFORM_VERSION='v3.1';
+const COURSE_TITLE='Dash0 API Crash Course';
+let SYNC_SHEET_URL='';
+let SYNC_USER_ID='';
+const CATEGORIES=["All","Fundamentals","Auth & Endpoints","OTLP Ingestion","Prometheus Queries","Management API","Observability-as-Code","Integrations","Pitch & Positioning"];
+const ROLE_CONFIG={
+role1:{label:'Sales Rep',icon:'💼',desc:'Conversational fluency. Integration stories, competitive positioning, value drivers.',
+coreCategories:['Fundamentals','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-3','lesson-8'],
+categoryOrder:['All','Fundamentals','Pitch & Positioning','Auth & Endpoints','OTLP Ingestion','Prometheus Queries','Management API','Observability-as-Code','Integrations']},
+role2:{label:'Solutions Architect',icon:'🏗️',desc:'Demo-ready working knowledge. Architecture, curl examples, customer Q&A.',
+coreCategories:['Fundamentals','Auth & Endpoints','OTLP Ingestion','Prometheus Queries','Management API','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-8'],
+categoryOrder:['All','Fundamentals','Auth & Endpoints','OTLP Ingestion','Prometheus Queries','Management API','Observability-as-Code','Integrations','Pitch & Positioning']},
+role3:{label:'Engineer / DevOps',icon:'⚡',desc:'Deep technical. Hands-on with curl, OTLP, PromQL, dashboard YAML, integrations.',
+coreCategories:['Fundamentals','Auth & Endpoints','OTLP Ingestion','Prometheus Queries','Management API','Observability-as-Code','Integrations','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-7','lesson-8'],
+categoryOrder:['All','Auth & Endpoints','OTLP Ingestion','Prometheus Queries','Management API','Observability-as-Code','Integrations','Fundamentals','Pitch & Positioning']}
+};
+const RELATED_COURSES=[
+{title:"Dash0 CLI Crash Course",url:"dash0-cli-crash-course.html",icon:"🖥️",desc:"Developer-friendly terminal interface to the API"},
+{title:"Dash0 MCP Crash Course",url:"dash0-mcp-crash-course.html",icon:"🧠",desc:"AI-native access via Model Context Protocol"}
+];
+const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
+const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
+
+// ─── QUIZ ───
+const QUIZ=[
+// Fundamentals (6)
+{q:"Which three API categories make up the Dash0 API surface?",o:["OTLP Ingestion, SQL Query, Management","OTLP Ingestion, Prometheus Query, Management","REST, gRPC, GraphQL","Metrics, Logs, Traces"],a:1,cat:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"Dash0 has three distinct API categories: OTLP Ingestion (for sending telemetry), Prometheus Query (PromQL-based querying), and Management API (dashboards, check-rules CRUD). 🟢 Dash0 angle: This three-API structure shows Dash0's open-standards architecture — no proprietary protocols."},
+{q:"What format does Dash0 use for dashboard definitions?",o:["Grafana JSON Model","Perses","OpenDashboard YAML","Kibana saved objects"],a:1,cat:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"Dash0 uses Perses, an open-source CNCF dashboard format. This enables GitOps workflows and portability. 🟢 Dash0 angle: Using an open format means no vendor lock-in on dashboards — a key differentiator vs. proprietary formats."},
+{q:"What query language does the Dash0 query API use?",o:["NRQL","DQL","PromQL","LogQL"],a:2,cat:"Fundamentals",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"PromQL (Prometheus Query Language). Dash0 exposes a Prometheus-compatible query API, meaning all existing PromQL knowledge and tools work. 🟢 Dash0 angle: Teams with Prometheus knowledge can query Dash0 immediately — zero learning curve."},
+{q:"What does OTLP stand for?",o:["Open Telemetry Log Protocol","OpenTelemetry Protocol","Open Transport Layer Protocol","Observability Transfer Link Protocol"],a:1,cat:"Fundamentals",d:1,u:"https://opentelemetry.io/docs/specs/otlp/",e:"OTLP = OpenTelemetry Protocol. It is the wire format used to send traces, metrics, and logs between instrumented apps and backends like Dash0."},
+{q:"What is the primary advantage of Dash0's native OTLP support?",o:["Faster ingestion than competitors","No proprietary agent or SDK required","Free tier is larger","Better compression ratios"],a:1,cat:"Fundamentals",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"Native OTLP support means any standard OpenTelemetry-instrumented application sends data directly to Dash0 without a proprietary agent. 🟢 Dash0 angle: This eliminates vendor lock-in and makes migration trivially easy for OTel-instrumented apps."},
+{q:"In the context of observability-as-code, what does the Dash0 Management API enable?",o:["Real-time streaming dashboards","Version-controlled, API-driven deployment of dashboards and alert rules","Auto-scaling of ingestion capacity","ML-based anomaly detection"],a:1,cat:"Fundamentals",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"The Management API exposes full CRUD for dashboards and check-rules, enabling GitOps: store configs in Git, deploy via CI/CD, review changes as PRs, and roll back like any infrastructure code. 🟢 Dash0 angle: This is a major enterprise differentiator — observability treated as code, not manual UI work."},
+
+// Auth & Endpoints (5)
+{q:"What HTTP header authenticates OTLP requests to Dash0?",o:["X-API-Key: ds0_...","Auth-Token: ds0_...","Authorization: Bearer ds0_...","Dash0-Token: ds0_..."],a:2,cat:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens",e:"Standard HTTP Bearer authentication: Authorization: Bearer <token>. This is the same format used for both OTLP ingestion and Management API calls."},
+{q:"What is the correct OTLP gRPC port for Dash0?",o:["443","4318","4317","9090"],a:2,cat:"Auth & Endpoints",d:1,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints",e:"Port 4317 is the standard OTLP/gRPC port (defined by OpenTelemetry spec). Port 4318 is for OTLP/HTTP. Both are TLS-required on Dash0."},
+{q:"Which environment variable sets the Dash0 auth token for OTel SDKs?",o:["DASH0_API_KEY","OTEL_EXPORTER_OTLP_API_KEY","OTEL_EXPORTER_OTLP_HEADERS","DASH0_TOKEN"],a:2,cat:"Auth & Endpoints",d:2,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens",e:"OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ds0_... is the standard OTel SDK environment variable for passing auth headers to the OTLP exporter."},
+{q:"What HTTP status code does Dash0 return for an invalid auth token?",o:["400 Bad Request","403 Forbidden","401 Unauthorized","429 Too Many Requests"],a:2,cat:"Auth & Endpoints",d:2,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens",e:"401 Unauthorized is returned when the token is missing, malformed, or invalid. 403 Forbidden would indicate the token is valid but lacks permission for the requested operation."},
+{q:"What is the hostname pattern for the Dash0 EU West ingestion endpoint?",o:["eu-west-1.ingress.dash0.com","ingest.eu-west-1.dash0.com","ingress.eu-west-1.dash0.com","api.eu-west-1.dash0.com"],a:2,cat:"Auth & Endpoints",d:3,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints",e:"ingress.eu-west-1.dash0.com is the correct pattern. Note that api.eu-west-1.dash0.com is for the Management and query APIs — different subdomain from ingestion."},
+
+// OTLP Ingestion (7)
+{q:"What HTTP path receives distributed trace data in Dash0?",o:["/api/v1/traces","/v1/traces","/otlp/traces","/ingest/traces"],a:1,cat:"OTLP Ingestion",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"/v1/traces is the standard OTLP HTTP path defined by the OpenTelemetry specification. Dash0 follows this standard exactly."},
+{q:"What Content-Type header is used for JSON-encoded OTLP data?",o:["application/json","application/otlp+json","application/x-protobuf","text/plain"],a:0,cat:"OTLP Ingestion",d:1,u:"https://opentelemetry.io/docs/specs/otlp/",e:"application/json is used for JSON-encoded OTLP payloads. application/x-protobuf is used for binary Protobuf payloads."},
+{q:"Which OTel Collector component exports data to Dash0?",o:["otlphttp receiver","otlp exporter","dash0 exporter","prometheus exporter"],a:1,cat:"OTLP Ingestion",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"The otlp exporter (standard OpenTelemetry Collector component) handles all OTLP exports. No Dash0-specific exporter needed — Dash0 is a standard OTLP backend. 🟢 Dash0 angle: Works with any OTel Collector deployment without plugins."},
+{q:"What is the minimum required resource attribute when sending OTLP data?",o:["host.name","deployment.environment","service.name","telemetry.sdk.name"],a:2,cat:"OTLP Ingestion",d:2,u:"https://opentelemetry.io/docs/specs/semconv/resource/",e:"service.name is the most critical resource attribute — it identifies which service the telemetry belongs to and is used for filtering and routing in Dash0's UI."},
+{q:"What does Prometheus remote_write do with Dash0?",o:["Pulls metrics from Dash0","Pushes metrics from a local Prometheus server to Dash0","Queries Dash0 via PromQL","Syncs alert rules bidirectionally"],a:1,cat:"OTLP Ingestion",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"remote_write pushes metrics from a running Prometheus server to a remote storage backend (Dash0). This lets you keep your existing Prometheus setup while adding Dash0's storage and UI. 🟢 Dash0 angle: Low-friction migration path for Prometheus users."},
+{q:"What HTTP response body does Dash0 return on successful OTLP ingestion?",o:["{\"received\":true}","{}","{\"status\":\"ok\"}","204 No Content"],a:1,cat:"OTLP Ingestion",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"An empty JSON object {} with HTTP 200 OK is the standard OTLP HTTP success response per the spec. This is lightweight by design."},
+{q:"What is the OTLP HTTP port number?",o:["4317","4318","9090","443"],a:1,cat:"OTLP Ingestion",d:3,u:"https://opentelemetry.io/docs/specs/otlp/",e:"4318 is the OTLP/HTTP port. 4317 is OTLP/gRPC. These are OpenTelemetry-defined standard ports that Dash0 follows."},
+
+// Prometheus Queries (6)
+{q:"What is the difference between /query and /query_range in the Prometheus API?",o:["query is for metrics, query_range is for logs","query returns a point-in-time value, query_range returns a time series","query is read-only, query_range supports writes","query uses PromQL, query_range uses SQL"],a:1,cat:"Prometheus Queries",d:1,u:"https://prometheus.io/docs/prometheus/latest/querying/api/",e:"/query (instant query) returns the current value at a single timestamp. /query_range returns a series of values over a time window — used for graphing."},
+{q:"What parameter in a range query controls the resolution of returned data points?",o:["interval","resolution","step","granularity"],a:2,cat:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/api/",e:"The step parameter controls how frequently data points are sampled within the range. Smaller step = more data points = finer resolution but larger response."},
+{q:"What PromQL function is correct for computing request rate from a counter?",o:["delta()","increase()","rate()","avg_over_time()"],a:2,cat:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/functions/",e:"rate() computes the per-second average rate of increase of a counter over the specified window. increase() gives total increase. delta() is for gauges only."},
+{q:"What does the resultType 'matrix' mean in a Prometheus API response?",o:["An error occurred","Query returned no data","A time series result from a range query","A single scalar value"],a:2,cat:"Prometheus Queries",d:2,u:"https://prometheus.io/docs/prometheus/latest/querying/api/",e:"resultType 'matrix' is returned by range queries (/query_range). It contains multiple timestamps per series. resultType 'vector' is returned by instant queries."},
+{q:"How do you filter metrics to a specific service in a PromQL API call?",o:["Add ?service=myapp to the URL","Use label matchers: metric{service_name=\"myapp\"}","Use X-Filter header","Add /service/myapp/ to the path"],a:1,cat:"Prometheus Queries",d:3,u:"https://prometheus.io/docs/prometheus/latest/querying/basics/",e:"PromQL label matchers in curly braces filter results: http_requests_total{service_name=\"myapp\"}. The entire query is URL-encoded in the query parameter."},
+{q:"What Prometheus API endpoint lists all available label names?",o:["/prometheus/api/v1/metadata","/prometheus/api/v1/labels","/prometheus/api/v1/label-names","/prometheus/api/v1/series/labels"],a:1,cat:"Prometheus Queries",d:3,u:"https://prometheus.io/docs/prometheus/latest/querying/api/",e:"/prometheus/api/v1/labels returns all label names present in the data. Use /prometheus/api/v1/label/<name>/values to get values for a specific label."},
+
+// Management API (6)
+{q:"What HTTP method creates a new dashboard via the Dash0 Management API?",o:["PUT","PATCH","GET","POST"],a:3,cat:"Management API",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"POST /api/v1/dashboards creates a new dashboard. PUT is used to update an existing dashboard by ID. GET lists or retrieves dashboards."},
+{q:"What does a 204 response to a DELETE dashboard request mean?",o:["Dashboard was not found","Deletion is queued","Dashboard was successfully deleted","Authorization required"],a:2,cat:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"HTTP 204 No Content is the standard success response for DELETE operations — the resource was deleted and there is no body to return."},
+{q:"What is a check rule in Dash0?",o:["A dashboard validation rule","A rate limit policy","An alerting rule with a PromQL expression","An API authentication rule"],a:2,cat:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"Check rules are alerting rules: a PromQL expression that, when it fires, creates an alert. They have expr, for (duration), labels, and annotations fields — similar to Prometheus alerting rules."},
+{q:"What field in a check rule specifies how long the condition must be true before alerting?",o:["duration","delay","for","wait"],a:2,cat:"Management API",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"The 'for' field (same as Prometheus alerting rules) specifies a duration like '5m'. The alert only fires if the expression is continuously true for that duration — reduces false positives."},
+{q:"How do you retrieve a single dashboard by its ID?",o:["POST /api/v1/dashboards with id in body","GET /api/v1/dashboards?id=<id>","GET /api/v1/dashboards/<id>","FETCH /api/v1/dashboards/<id>"],a:2,cat:"Management API",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"REST convention: GET /api/v1/dashboards/<id> retrieves a single resource by its ID. GET /api/v1/dashboards (no ID) lists all dashboards."},
+{q:"Which open-source dashboard format does Dash0 use for the Management API?",o:["Grafana JSON Model","Kibana Lens","Perses","OpenMetrics Dashboard"],a:2,cat:"Management API",d:3,u:"https://perses.dev/docs/",e:"Perses is a CNCF sandbox project providing an open-source dashboard specification. Dash0 uses it to avoid vendor lock-in on dashboard format. 🟢 Dash0 angle: Perses adoption is growing — customers aren't locked into a proprietary format."},
+
+// Observability-as-Code (5)
+{q:"What is the main benefit of storing Dash0 dashboards in Git?",o:["Faster dashboard rendering","Version control, code review, and rollback for observability config","Automatic backup to the cloud","Reduced API rate limits"],a:1,cat:"Observability-as-Code",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"Git-stored dashboards get all the benefits of version control: history, blame, code review via PRs, rollback via revert, and environment promotion. 🟢 Dash0 angle: This enables treating observability as code — a major enterprise selling point."},
+{q:"Which Dash0 product provides declarative IaC management of Dash0 resources?",o:["Dash0 CLI","Dash0 Terraform Provider","Dash0 Operator","Dash0 SDK"],a:1,cat:"Observability-as-Code",d:2,u:"https://registry.terraform.io/providers/dash0hq/dash0",e:"The Dash0 Terraform Provider allows dashboards and check-rules to be managed as Terraform resources — declarative, idempotent, and integrated with existing infrastructure workflows."},
+{q:"In a CI/CD pipeline that deploys a dashboard, which API method is used to update an existing dashboard?",o:["POST","PATCH","PUT","MERGE"],a:2,cat:"Observability-as-Code",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"PUT /api/v1/dashboards/<id> replaces the entire dashboard. POST creates new ones. A typical CI script does GET (check if exists), then PUT (update) or POST (create)."},
+{q:"What Perses tool can validate dashboard JSON schema before deployment?",o:["perses lint","perses validate","perses check","perses test"],a:0,cat:"Observability-as-Code",d:3,u:"https://perses.dev/docs/",e:"The perses CLI provides a lint command that validates dashboard JSON against the Perses schema. Use it in CI to catch errors before they reach production."},
+{q:"What is the relationship between the Dash0 CLI and Management API?",o:["The CLI is completely independent","The CLI uses a separate binary protocol","The CLI is a wrapper that calls the Management API","The CLI uses GraphQL, the API uses REST"],a:2,cat:"Observability-as-Code",d:3,u:"https://github.com/dash0hq/dash0-cli",e:"The Dash0 CLI is built on top of the Management API. CLI commands like dash0 apply and dash0 delete are convenience wrappers that make the corresponding REST API calls with added features like YAML parsing and diffing."},
+
+// Integrations (5)
+{q:"How is Grafana configured to query Dash0 data?",o:["Install Dash0 Grafana plugin","Add a Prometheus data source pointing to Dash0's Prometheus endpoint","Use Dash0's native Grafana connector","Configure OTLP receiver in Grafana"],a:1,cat:"Integrations",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"Since Dash0 exposes a standard Prometheus API, Grafana's built-in Prometheus data source works directly. No special plugin needed. 🟢 Dash0 angle: Teams keep their existing Grafana dashboards — just change the data source URL."},
+{q:"What Kubernetes component automatically instruments apps to send data to Dash0?",o:["Dash0 Sidecar","Dash0 DaemonSet","Dash0 Operator","Dash0 Admission Controller"],a:2,cat:"Integrations",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"The Dash0 Operator is a Kubernetes operator that handles auto-instrumentation via mutating admission webhooks. It injects OTel instrumentation into pods based on namespace/pod annotations."},
+{q:"What OTel Collector exporter type do you use to send data to Dash0?",o:["dash0exporter","prometheusremotewrite","otlp","jaeger"],a:2,cat:"Integrations",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"The standard otlp exporter is used — no Dash0-specific exporter. Configure endpoint and Authorization header. This is a key advantage: Dash0 works with any standard OTel Collector."},
+{q:"Which Prometheus integration allows existing Prometheus metrics to be stored long-term in Dash0?",o:["Prometheus federation","Prometheus remote_write","Prometheus pull scraping","Prometheus recording rules"],a:1,cat:"Integrations",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"remote_write continuously ships metrics from a local Prometheus server to Dash0 for long-term storage and better querying. Federation pulls a subset of metrics, which is different."},
+{q:"What is the key advantage of the Dash0 Kubernetes Operator for instrumentation?",o:["It provides a custom metrics format","Zero-code instrumentation — no SDK changes needed in application code","It replaces the OTel Collector","It manages Kubernetes nodes automatically"],a:1,cat:"Integrations",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"The Operator uses mutating admission webhooks to inject OTel auto-instrumentation at pod creation time. Developers don't need to change application code. 🟢 Dash0 angle: Fastest path to production observability for k8s teams."},
+
+// Pitch & Positioning (5)
+{q:"What is the key message when positioning Dash0 against Datadog's API?",o:["Dash0's API has more endpoints","Dash0 uses open standards with no lock-in; Datadog requires proprietary agents","Dash0 has better documentation","Dash0 is cheaper per API call"],a:1,cat:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"Dash0 uses OTLP, PromQL, and Perses — all open standards. Datadog requires proprietary agents and has a non-standard query language. This is vendor lock-in vs. open standards. 🟢 Dash0 angle: Switching from Datadog to Dash0 doesn't require re-instrumenting applications."},
+{q:"How do you explain GitOps for observability to a DevOps prospect?",o:["It means dashboards are stored in a database","Dashboard and alert configs live in Git, deployed via CI/CD — same workflow as application code","It's a Dash0-specific feature with no open standard","It requires Kubernetes to work"],a:1,cat:"Pitch & Positioning",d:1,u:"https://www.dash0.com/documentation/dash0/api",e:"GitOps for observability means configuration (dashboards, alerts) is treated as code: versioned, reviewed, and deployed automatically. 🟢 Dash0 angle: Enabled by Dash0's Management API + open Perses format — not possible with UI-only tools."},
+{q:"What makes Dash0 appealing to teams already using Prometheus?",o:["Dash0 replaces Prometheus completely","Dash0 uses a custom migration tool","Teams can remote_write existing Prometheus metrics to Dash0 and use the same PromQL queries","Dash0 reads Prometheus config files directly"],a:2,cat:"Pitch & Positioning",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"Prometheus remote_write is a zero-disruption migration path. Teams keep Prometheus running, add remote_write to Dash0, and immediately get better storage and UI — no query rewrites needed. 🟢 Dash0 angle: Low-risk expansion, not a rip-and-replace."},
+{q:"What competitive advantage does Dash0's Management API give platform engineering teams?",o:["Faster UI rendering","Ability to manage observability configuration programmatically — dashboards as code, alerts as code","Lower storage costs","Automatic anomaly detection"],a:1,cat:"Pitch & Positioning",d:2,u:"https://www.dash0.com/documentation/dash0/api",e:"Platform teams can build internal developer portals where observability config is versioned, reviewed, and deployed like application infrastructure. This is a major maturity indicator for DevOps organizations. 🟢 Dash0 angle: Dash0's API-first design enables this; many competitors are UI-first with limited API access."},
+{q:"How does Dash0's open-standards approach reduce TCO vs. proprietary observability platforms?",o:["Open source means no license cost","No proprietary SDK or agent vendor lock-in means zero migration cost and standard OTel investments are reusable","Open standards have fewer features","Dash0 gives more storage for free"],a:1,cat:"Pitch & Positioning",d:3,u:"https://www.dash0.com/documentation/dash0/api",e:"TCO includes migration costs, training, and lock-in risk. With Dash0, OTel instrumentation investments are reusable across backends, reducing vendor switching costs dramatically. 🟢 Dash0 angle: This is the core anti-lock-in value proposition."},
+];
+// ─── SCENARIOS ───
+const SCENARIOS=[
+// Sales (4)
+{q:"A prospect says 'We already have Datadog. Why would we add another tool?'",a:"Acknowledge the investment. Then reframe: Dash0 isn't a replacement fight today — it's about what happens when you want to grow. Datadog requires proprietary agents and charges per host. Dash0 uses standard OTel so your instrumentation works with both — you're not locked in. Many teams start by running Dash0 alongside Datadog for specific use cases, then expand as they see the value.",u:["https://www.dash0.com/documentation/dash0/api","https://www.dash0.com"]},
+{q:"A prospect asks: 'What's the difference between your API and just using Prometheus directly?'",a:"Prometheus is a self-hosted time-series database with limited long-term storage and no SaaS management. Dash0 provides fully-managed long-term storage, a Prometheus-compatible query API (so your existing PromQL works), plus traces, logs, dashboards, and alert management — all in one platform. You get Prometheus familiarity without the operational burden.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"A Sales Engineer needs to demo Dash0's API capabilities to a DevOps lead in 10 minutes. What do you show?",a:"Focus on the 'wow moments': 1) Show a curl to /v1/logs — data appears in the UI in seconds. 2) Run a PromQL query via the API and show the JSON response. 3) Export a dashboard as JSON with a GET call, edit it, re-apply with PUT — GitOps in 3 steps. These three demos prove the platform is API-native, not just API-adjacent.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"A prospect's platform team says 'We want observability config in Git alongside our Terraform, is that possible?'",a:"Yes — this is a first-class Dash0 use case. The Management API enables full CRUD on dashboards and alert rules. We also have an official Terraform provider (registry.terraform.io/providers/dash0hq/dash0) so dashboards and check-rules can be managed as Terraform resources. Your existing IaC workflow, same tool.",u:["https://registry.terraform.io/providers/dash0hq/dash0","https://www.dash0.com/documentation/dash0/api"]},
+// SA (4)
+{q:"A customer asks how to configure their existing OTel Collector to send to Dash0 without any code changes.",a:"Add an otlp exporter to their existing collector config pointing to ingress.<region>.dash0.com:4317, with Authorization: Bearer <token> in the headers. Then route their existing traces/metrics/logs pipelines to this exporter. Zero application code changes — just a config update to collector.yaml. They can even run this alongside their existing backend by adding it to the exporters list.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"A customer reports that their OTel data isn't appearing in Dash0 after configuration. How do you troubleshoot?",a:"Work through the checklist: 1) Test with curl — does POST /v1/logs with a minimal payload return 200? 2) Check auth: is Authorization: Bearer correct (not X-API-Key or other format)? 3) Verify the regional endpoint matches their Dash0 org's region. 4) Check service.name resource attribute is set — Dash0 uses this for routing. 5) Check OTel Collector logs for export errors. 6) Verify TLS — Dash0 requires HTTPS/TLS.",u:["https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens","https://www.dash0.com/documentation/dash0/key-concepts/endpoints"]},
+{q:"A customer wants to set up automated dashboard deployment in their CI/CD pipeline. Walk them through the approach.",a:"Here's the pattern: 1) Store dashboard JSON files in Git. 2) In CI: GET the existing dashboard to check if it exists. 3) If exists: PUT /api/v1/dashboards/<id> with the updated JSON. If new: POST /api/v1/dashboards. 4) Optionally run perses lint in CI to validate schema before deployment. 5) Use environment-specific tokens so dev/staging/prod dashboards are deployed independently. This is exactly how the Dash0 CLI does it internally.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"A customer asks how to build a PromQL-based SLO alert in Dash0. Walk through the API call.",a:"Create a check rule via POST /api/v1/check-rules with the body: { metadata: { name: 'slo-error-rate' }, spec: { expr: 'rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.01', for: '5m', labels: { severity: 'critical', slo: 'checkout-99.9' }, annotations: { summary: 'SLO breach: error rate above 1%' } } }. The 'for: 5m' ensures transient spikes don't trigger false alerts.",u:["https://www.dash0.com/documentation/dash0/api"]},
+// Technical (4)
+{q:"You need to backfill a week of Prometheus metrics from a local Prometheus server into Dash0. What approach do you use?",a:"Use Prometheus remote_write backfill approach: configure remote_write in Prometheus to point at Dash0's remote_write endpoint with the auth header. If Prometheus is still running, remote_write will start streaming current and optionally catch up with the WAL. For historical backfill, look at tools like prometheus-backfill or promtool that can replay TSDB data via remote_write. Always test with a small time window first.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"Write a bash script that exports all Dash0 dashboards to local JSON files.",a:"#!/bin/bash\nTOKEN=\"ds0_your_token\"\nENDPOINT=\"https://api.eu-west-1.dash0.com\"\nDATA=$(curl -s -H \"Authorization: Bearer $TOKEN\" $ENDPOINT/api/v1/dashboards)\necho $DATA | jq -c '.[]' | while read -r dash; do\n  NAME=$(echo $dash | jq -r '.metadata.name')\n  echo $dash > \"dashboard-${NAME}.json\"\n  echo \"Exported: $NAME\"\ndone",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"A developer asks how to instrument their Go service to send traces to Dash0 with zero code changes in production.",a:"Use the Dash0 Kubernetes Operator if they're on k8s: annotate the namespace with dash0.com/instrumentation=enabled, and the operator automatically injects OTel instrumentation. If not on k8s, use OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS env vars with go.opentelemetry.io/contrib/instrumentation packages for auto-instrumentation. The endpoint and auth are injected via environment, not code.",u:["https://www.dash0.com/documentation/dash0/api"]},
+{q:"You want to set up Grafana to query Dash0 metrics. What exact configuration do you need?",a:"In Grafana > Data Sources > Add > Prometheus:\n• URL: https://api.eu-west-1.dash0.com/prometheus\n• Auth: Custom HTTP Headers\n• Header: Authorization, Value: Bearer ds0_YOUR_TOKEN\n• Leave everything else as default\nTest & Save. All existing Grafana Prometheus dashboards now work against Dash0 data without modification.",u:["https://www.dash0.com/documentation/dash0/api"]},
+];
+// ─── RAPID FIRE ───
+const RAPID=[
+{q:"What port does OTLP gRPC use?",a:"4317",t:6,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints"},
+{q:"What port does OTLP HTTP use?",a:"4318",t:6,u:"https://www.dash0.com/documentation/dash0/key-concepts/endpoints"},
+{q:"Name the three OTLP HTTP paths for Dash0 ingestion.",a:"/v1/traces, /v1/metrics, /v1/logs",t:8,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What HTTP header authenticates Dash0 API requests?",a:"Authorization: Bearer ds0_...",t:6,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{q:"What query language does the Dash0 query API use?",a:"PromQL",t:5,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What dashboard format does the Dash0 Management API use?",a:"Perses",t:6,u:"https://perses.dev/docs/"},
+{q:"What endpoint returns a point-in-time PromQL result?",a:"/prometheus/api/v1/query",t:8,u:"https://prometheus.io/docs/prometheus/latest/querying/api/"},
+{q:"What endpoint returns a time series PromQL result?",a:"/prometheus/api/v1/query_range",t:8,u:"https://prometheus.io/docs/prometheus/latest/querying/api/"},
+{q:"What OTel Collector exporter type sends data to Dash0?",a:"otlp exporter",t:7,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What env var sets the OTel export endpoint?",a:"OTEL_EXPORTER_OTLP_ENDPOINT",t:8,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{q:"What env var passes the auth header to OTel exporters?",a:"OTEL_EXPORTER_OTLP_HEADERS",t:8,u:"https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens"},
+{q:"Name the three Dash0 API categories.",a:"OTLP Ingestion, Prometheus Query, Management",t:10,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What HTTP status means successful OTLP ingestion?",a:"200 OK with empty body {}",t:6,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What Prometheus feature pushes metrics to Dash0?",a:"remote_write",t:6,u:"https://www.dash0.com/documentation/dash0/api"},
+{q:"What Kubernetes component auto-instruments apps for Dash0?",a:"Dash0 Operator",t:7,u:"https://www.dash0.com/documentation/dash0/api"},
+];
+
+// ─── LESSONS ───
+const LESSONS=[
+{id:"lesson-1",title:"What is the Dash0 API?",time:"8 min read",week:1,icon:"🌐",
+sources:["https://www.dash0.com/documentation/dash0/api","https://opentelemetry.io/docs/specs/otlp/"],
+exercises:[
+{task:"Draw the three Dash0 API categories and their use cases from memory.",hint:"OTLP Ingestion, Prometheus Query, Management. What flows in each direction?"},
+{task:"Find the Dash0 API documentation page and identify the endpoint for EU West.",hint:"Look for ingress.<region>.dash0.com patterns.",url:"https://www.dash0.com/documentation/dash0/api"},
+],
+body:`<div class="lesson-section"><h4>Three API Categories</h4><div class="lesson-text"><p>The Dash0 platform exposes three distinct API surfaces, each serving a different purpose:</p><p><strong>1. OTLP Ingestion</strong> — Receives telemetry data (traces, metrics, logs) from instrumented applications. Uses standard OpenTelemetry Protocol over HTTP (port 4318) or gRPC (port 4317). This is the write path.</p><p><strong>2. Prometheus Query API</strong> — Exposes a Prometheus-compatible HTTP API for querying stored metrics via PromQL. This is the read path for metrics.</p><p><strong>3. Management API</strong> — RESTful CRUD API for dashboards, check-rules (alerts), and configuration. This is the control plane.</p></div></div>
+<div class="lesson-highlight">Key insight: Every Dash0 action you can do in the UI is also available via API. This makes Dash0 automation-friendly and GitOps-ready from day one.</div>
+<div class="lesson-section"><h4>Architecture Overview</h4><div class="lesson-text"><p>All three API categories share a common auth model (Bearer tokens) but use different hostnames and paths. Ingestion traffic goes to <code class="code-inline">ingress.&lt;region&gt;.dash0.com</code>. Query and Management traffic goes to <code class="code-inline">api.&lt;region&gt;.dash0.com</code>.</p><p>Dash0 is built on open standards throughout: OTLP is the OpenTelemetry standard, PromQL is the Prometheus query standard, and Perses is an open CNCF dashboard format. No proprietary protocols means your existing tooling works.</p></div></div>`},
+
+{id:"lesson-2",title:"Authentication & Endpoints",time:"7 min read",week:1,icon:"🔐",
+sources:["https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens","https://www.dash0.com/documentation/dash0/key-concepts/endpoints"],
+exercises:[
+{task:"Create a test auth token in the Dash0 UI and note the token prefix.",hint:"Navigate to Settings > Auth Tokens. Tokens start with ds0_",url:"https://app.dash0.com"},
+{task:"Run this curl command substituting your token and verify a 200 response.",hint:"If you get 401, check the Bearer format exactly.",
+steps:["Replace ds0_YOUR_TOKEN with your actual token","Run: curl -X POST https://ingress.eu-west-1.dash0.com/v1/logs -H 'Authorization: Bearer ds0_YOUR_TOKEN' -H 'Content-Type: application/json' -d '{\"resourceLogs\":[]}'","A 200 response confirms auth is working"]},
+],
+body:`<div class="lesson-section"><h4>Auth Token Format</h4><div class="lesson-text"><p>All Dash0 API requests use Bearer token authentication. Tokens are created in the Dash0 UI under <strong>Settings &gt; Auth Tokens</strong> and have the format <code class="code-inline">ds0_&lt;random&gt;</code>.</p><p>The header is always: <code class="code-inline">Authorization: Bearer ds0_...</code></p></div></div>
+<div class="lesson-section"><h4>Region Endpoints</h4><div class="lesson-text"><p>Dash0 is region-specific. Two endpoint types per region:</p></div></div>
+<div class="lesson-highlight">Ingestion: ingress.eu-west-1.dash0.com (port 4317 gRPC, 4318 HTTP)<br>API/Query: api.eu-west-1.dash0.com</div>
+<div class="lesson-section"><h4>OTel SDK Environment Variables</h4><div class="lesson-text"><p>Configure OTel SDKs via environment variables — no code changes needed:</p></div></div>
+<div class="code-block">OTEL_EXPORTER_OTLP_ENDPOINT=https://ingress.eu-west-1.dash0.com
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ds0_YOUR_TOKEN
+OTEL_SERVICE_NAME=my-service
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production</div>
+<div class="lesson-text"><p>These three variables are all you need to send telemetry from any OTel-instrumented application to Dash0.</p></div>`},
+
+{id:"lesson-3",title:"OTLP Ingestion",time:"10 min read",week:1,icon:"📡",
+sources:["https://www.dash0.com/documentation/dash0/api","https://opentelemetry.io/docs/specs/otlp/"],
+exercises:[
+{task:"Send a test log entry to Dash0 using curl and verify it appears in the UI.",hint:"Use the /v1/logs endpoint with a minimal resourceLogs payload.",
+steps:["Set TOKEN=ds0_your_actual_token","Run the curl command from the lesson","Open Dash0 UI and check the logs view","Filter by service.name='curl-test'"]},
+{task:"Configure an OTel Collector to send to Dash0 alongside an existing backend.",hint:"Add the otlp exporter and include it in the exporters list of your existing pipelines — pipelines support multiple exporters."},
+],
+body:`<div class="lesson-section"><h4>OTLP HTTP Paths</h4><div class="lesson-text"><p>Three paths, one for each signal type:</p></div></div>
+<div class="lesson-highlight">POST https://ingress.eu-west-1.dash0.com/v1/traces<br>POST https://ingress.eu-west-1.dash0.com/v1/metrics<br>POST https://ingress.eu-west-1.dash0.com/v1/logs</div>
+<div class="lesson-section"><h4>Sending a Test Log with curl</h4></div>
+<div class="code-block">curl -X POST https://ingress.eu-west-1.dash0.com/v1/logs \\
+  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "resourceLogs": [{
+      "resource": {
+        "attributes": [{
+          "key": "service.name",
+          "value": {"stringValue": "curl-test"}
+        }]
+      },
+      "scopeLogs": [{
+        "logRecords": [{
+          "body": {"stringValue": "Hello from Dash0 API lesson!"},
+          "severityText": "INFO"
+        }]
+      }]
+    }]
+  }'</div>
+<div class="lesson-section"><h4>OTel Collector Config</h4><div class="lesson-text"><p>Add the otlp exporter to an existing collector config:</p></div></div>
+<div class="code-block">exporters:
+  otlp/dash0:
+    endpoint: ingress.eu-west-1.dash0.com:4317
+    headers:
+      Authorization: "Bearer ds0_YOUR_TOKEN"
+    tls:
+      insecure: false
+
+service:
+  pipelines:
+    traces:
+      exporters: [existing_exporter, otlp/dash0]
+    metrics:
+      exporters: [existing_exporter, otlp/dash0]
+    logs:
+      exporters: [existing_exporter, otlp/dash0]</div>`},
+
+{id:"lesson-4",title:"Prometheus Query API",time:"9 min read",week:2,icon:"📊",
+sources:["https://www.dash0.com/documentation/dash0/api","https://prometheus.io/docs/prometheus/latest/querying/api/"],
+exercises:[
+{task:"Run an instant query against Dash0's Prometheus API to see what metrics exist.",hint:"Use /prometheus/api/v1/query?query={job!=''}  to see a sample of all series.",
+steps:["curl -G 'https://api.eu-west-1.dash0.com/prometheus/api/v1/query' -H 'Authorization: Bearer ds0_...' --data-urlencode 'query=up'","Inspect the JSON response structure","Note the resultType field — should be 'vector'"]},
+{task:"Run a range query to get HTTP request counts for the last 30 minutes.",hint:"Use query_range with step=60 and set start/end to Unix timestamps.",steps:["Calculate now=$(date +%s) and start=$((now - 1800))","Run the query_range call with these timestamps","Compare the resultType — should be 'matrix'"]},
+],
+body:`<div class="lesson-section"><h4>Two Query Endpoints</h4><div class="lesson-text"><p><strong>Instant query</strong> — returns the current value at a point in time:</p></div></div>
+<div class="code-block">GET /prometheus/api/v1/query?query=up&time=1700000000</div>
+<div class="lesson-text"><p><strong>Range query</strong> — returns a time series over a window:</p></div>
+<div class="code-block">GET /prometheus/api/v1/query_range?query=up&start=1699996400&end=1700000000&step=60</div>
+<div class="lesson-section"><h4>Full curl Example</h4></div>
+<div class="code-block">curl -G 'https://api.eu-west-1.dash0.com/prometheus/api/v1/query' \\
+  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\
+  --data-urlencode 'query=rate(http_requests_total{service_name="checkout"}[5m])' \\
+  --data-urlencode "time=$(date +%s)"</div>
+<div class="lesson-section"><h4>Response Structure</h4><div class="lesson-text"><p>All responses follow the Prometheus envelope:</p></div></div>
+<div class="code-block">{
+  "status": "success",
+  "data": {
+    "resultType": "vector",  // or "matrix" for range queries
+    "result": [{
+      "metric": {"__name__": "up", "job": "myapp"},
+      "value": [1700000000, "1"]
+    }]
+  }
+}</div>
+<div class="lesson-highlight">Pro tip: Use --data-urlencode for PromQL queries in curl — label matchers with curly braces and quotes need URL encoding.</div>`},
+
+{id:"lesson-5",title:"Management API: Dashboards",time:"10 min read",week:2,icon:"📋",
+sources:["https://www.dash0.com/documentation/dash0/api","https://perses.dev/docs/"],
+exercises:[
+{task:"Export an existing Dash0 dashboard as JSON using the API.",hint:"GET /api/v1/dashboards to list all, then GET /api/v1/dashboards/<id> for a specific one.",
+steps:["List all dashboards: curl -H 'Authorization: Bearer ...' https://api.eu-west-1.dash0.com/api/v1/dashboards","Copy a dashboard ID from the response","GET /api/v1/dashboards/<id> and pipe to jq > dashboard.json"]},
+{task:"Modify the exported dashboard JSON and re-deploy it via PUT.",hint:"Change the display.name field and PUT it back. Verify the change in the UI."},
+],
+body:`<div class="lesson-section"><h4>Dashboard CRUD</h4><div class="lesson-text"><p>Full CRUD operations on dashboards via the Management API:</p></div></div>
+<div class="lesson-highlight">GET /api/v1/dashboards — list all<br>POST /api/v1/dashboards — create new<br>GET /api/v1/dashboards/&lt;id&gt; — get one<br>PUT /api/v1/dashboards/&lt;id&gt; — update<br>DELETE /api/v1/dashboards/&lt;id&gt; — delete (irreversible)</div>
+<div class="lesson-section"><h4>Exporting a Dashboard</h4></div>
+<div class="code-block">curl -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\
+  https://api.eu-west-1.dash0.com/api/v1/dashboards | jq '.'</div>
+<div class="lesson-section"><h4>Creating a Dashboard</h4></div>
+<div class="code-block">curl -X POST https://api.eu-west-1.dash0.com/api/v1/dashboards \\
+  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\
+  -H 'Content-Type: application/json' \\
+  -d @dashboard.json</div>
+<div class="lesson-section"><h4>Perses Dashboard Format</h4><div class="lesson-text"><p>Dashboards follow the Perses open-source schema:</p></div></div>
+<div class="code-block">{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "my-service-overview",
+    "project": "default"
+  },
+  "spec": {
+    "display": {"name": "My Service Overview"},
+    "panels": { ... },
+    "variables": [ ... ]
+  }
+}</div>`},
+
+{id:"lesson-6",title:"Management API: Check Rules",time:"8 min read",week:2,icon:"🔔",
+sources:["https://www.dash0.com/documentation/dash0/api","https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/"],
+exercises:[
+{task:"Create a check rule that alerts when HTTP error rate exceeds 5% for 2 minutes.",hint:"Use rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05 as the expr.",
+steps:["Write the check rule JSON to a file","POST it to /api/v1/check-rules","Verify it appears in the Dash0 Alerts section"]},
+{task:"List all existing check rules and identify their severity labels.",hint:"GET /api/v1/check-rules and look at spec.labels.severity in each item."},
+],
+body:`<div class="lesson-section"><h4>What are Check Rules?</h4><div class="lesson-text"><p>Check rules are alerting rules defined with PromQL expressions. When the expression is continuously true for a specified duration, Dash0 fires an alert. They follow the Prometheus alerting rule format.</p></div></div>
+<div class="lesson-section"><h4>Check Rule API Paths</h4></div>
+<div class="lesson-highlight">GET /api/v1/check-rules — list all<br>POST /api/v1/check-rules — create<br>GET /api/v1/check-rules/&lt;id&gt; — get one<br>PUT /api/v1/check-rules/&lt;id&gt; — update<br>DELETE /api/v1/check-rules/&lt;id&gt; — delete</div>
+<div class="lesson-section"><h4>Creating a Check Rule</h4></div>
+<div class="code-block">curl -X POST https://api.eu-west-1.dash0.com/api/v1/check-rules \\
+  -H 'Authorization: Bearer ds0_YOUR_TOKEN' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "metadata": {"name": "high-error-rate"},
+    "spec": {
+      "expr": "rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05",
+      "for": "2m",
+      "labels": {
+        "severity": "warning",
+        "team": "backend"
+      },
+      "annotations": {
+        "summary": "High HTTP error rate detected",
+        "description": "Error rate is {{ $value | humanizePercentage }} over last 5m"
+      }
+    }
+  }'</div>
+<div class="lesson-highlight">The <strong>for</strong> field is critical — it prevents false alerts from transient spikes. A 2-minute window means the condition must be continuously true for 2 minutes before firing.</div>`},
+
+{id:"lesson-7",title:"Observability-as-Code Patterns",time:"10 min read",week:3,icon:"🔄",
+sources:["https://www.dash0.com/documentation/dash0/api","https://registry.terraform.io/providers/dash0hq/dash0","https://github.com/dash0hq/dash0-cli"],
+exercises:[
+{task:"Write a bash script that syncs a local dashboard.json file to Dash0.",hint:"Check if dashboard exists (GET), then POST or PUT accordingly. Use jq to extract the ID.",
+steps:["Script should GET /api/v1/dashboards and check for name match","If found: PUT /api/v1/dashboards/<id>","If not found: POST /api/v1/dashboards","Test with a real dashboard JSON file"]},
+{task:"Look up the Dash0 Terraform provider and identify the resource type for dashboards.",hint:"search for 'dash0' at registry.terraform.io/providers",url:"https://registry.terraform.io/providers/dash0hq/dash0"},
+],
+body:`<div class="lesson-section"><h4>The GitOps Pattern for Dashboards</h4><div class="lesson-text"><p>Store all dashboard JSON files in a Git repository. Use a CI/CD pipeline to deploy changes automatically:</p></div></div>
+<div class="code-block">#!/bin/bash
+# deploy-dashboards.sh
+TOKEN="${DASH0_TOKEN}"
+ENDPOINT="https://api.eu-west-1.dash0.com"
+
+for file in dashboards/*.json; do
+  NAME=$(jq -r '.metadata.name' "$file")
+  
+  # Check if dashboard exists
+  EXISTING=$(curl -s -o /dev/null -w "%{http_code}" \\
+    -H "Authorization: Bearer $TOKEN" \\
+    "$ENDPOINT/api/v1/dashboards/$NAME")
+  
+  if [ "$EXISTING" = "200" ]; then
+    # Update existing
+    curl -s -X PUT "$ENDPOINT/api/v1/dashboards/$NAME" \\
+      -H "Authorization: Bearer $TOKEN" \\
+      -H "Content-Type: application/json" \\
+      -d @"$file"
+    echo "Updated: $NAME"
+  else
+    # Create new
+    curl -s -X POST "$ENDPOINT/api/v1/dashboards" \\
+      -H "Authorization: Bearer $TOKEN" \\
+      -H "Content-Type: application/json" \\
+      -d @"$file"
+    echo "Created: $NAME"
+  fi
+done</div>
+<div class="lesson-section"><h4>Terraform Integration</h4><div class="lesson-text"><p>Use the official Dash0 Terraform provider to manage dashboards and check-rules as IaC:</p></div></div>
+<div class="code-block">resource "dash0_dashboard" "service_overview" {
+  metadata = {
+    name    = "service-overview"
+    project = "default"
+  }
+  spec_json = file("dashboards/service-overview.json")
+}</div>
+<div class="lesson-highlight">Terraform manages the full lifecycle: create, update, delete. Combine with Terraform workspaces to manage dev/staging/prod dashboards separately.</div>`},
+
+{id:"lesson-8",title:"Competitive Positioning",time:"8 min read",week:3,icon:"🏆",
+sources:["https://www.dash0.com","https://www.dash0.com/documentation/dash0/api"],
+exercises:[
+{task:"For each competitor (Datadog, Grafana Cloud, Dynatrace), identify one API-specific weakness vs. Dash0.",hint:"Think about: proprietary formats, lock-in, migration cost, open standards support."},
+{task:"Practice the 'Why Dash0 API?' pitch in under 60 seconds. Cover: open standards, GitOps, no lock-in.",hint:"Structure: problem → Dash0 approach → benefit. Keep each point to one sentence."},
+],
+body:`<div class="lesson-section"><h4>Dash0 vs. Datadog</h4><div class="lesson-text"><p><strong>Datadog:</strong> Requires proprietary agents, custom SDK wrappers, and has a proprietary query language (NRQL). API is extensive but dashboard format is proprietary JSON — not portable.</p><p><strong>Dash0:</strong> Native OTLP — standard OTel SDKs work directly. PromQL — existing query knowledge applies. Perses — open dashboard format. Zero lock-in at every layer.</p></div></div>
+<div class="lesson-highlight">The lock-in question: "What happens if you want to switch?" With Datadog, you re-instrument. With Dash0, you point your OTel exporters at a new endpoint.</div>
+<div class="lesson-section"><h4>Dash0 vs. Grafana Cloud</h4><div class="lesson-text"><p><strong>Grafana Cloud:</strong> Open source friendly but complex multi-component architecture (Loki, Mimir, Tempo, Grafana). API surface is fragmented across services. Requires operational expertise.</p><p><strong>Dash0:</strong> Single unified platform with one API surface. OTLP in, PromQL out, Management API for config. Simpler operational model with the same open standards.</p></div></div>
+<div class="lesson-section"><h4>Dash0 vs. Dynatrace</h4><div class="lesson-text"><p><strong>Dynatrace:</strong> Powerful but highly proprietary — OneAgent, DQL query language, proprietary dashboard format. Deep auto-discovery comes with deep lock-in.</p><p><strong>Dash0:</strong> The Dash0 Operator provides similar auto-instrumentation for Kubernetes without proprietary agents. You get automation without the lock-in.</p></div></div>
+<div class="lesson-section"><h4>The 30-Second API Pitch</h4></div>
+<div class="lesson-highlight">"Dash0's API is built entirely on open standards — OTLP for ingestion, PromQL for querying, Perses for dashboards. This means your existing OTel instrumentation, Grafana dashboards, and PromQL queries work with Dash0 today. And your team can manage all observability configuration as code in Git — version-controlled, reviewed, and deployed like application infrastructure."</div>`},
+];
+// ─── SCHEDULE ───
+const DEFAULT_SESSIONS=[
+{id:"s1",date:"2026-04-14",time:"09:00",dur:30,title:"API Foundations",desc:"Lessons 1-2. API categories overview, auth setup, test your first curl call.",phase:1},
+{id:"s2",date:"2026-04-15",time:"09:00",dur:30,title:"OTLP Ingestion",desc:"Lesson 3. Send traces, metrics, logs. Configure OTel Collector.",phase:1},
+{id:"s3",date:"2026-04-16",time:"09:00",dur:30,title:"Flashcards + Auth & Endpoints",desc:"All Auth & Endpoints and Fundamentals flashcards. Practice first 3 scenarios.",phase:1},
+{id:"s4",date:"2026-04-21",time:"09:00",dur:45,title:"Prometheus Query API",desc:"Lesson 4. Instant and range queries, PromQL via API, label discovery.",phase:2},
+{id:"s5",date:"2026-04-22",time:"09:00",dur:45,title:"Management API: Dashboards & Rules",desc:"Lessons 5-6. CRUD dashboards, create check rules via API.",phase:2},
+{id:"s6",date:"2026-04-23",time:"09:00",dur:30,title:"Observability-as-Code + Rapid Fire",desc:"Lesson 7. GitOps patterns, Terraform, CI/CD deployment. Rapid fire round.",phase:3},
+{id:"s7",date:"2026-04-24",time:"09:00",dur:45,title:"Competitive Positioning + Final Review",desc:"Lesson 8. All scenarios, rapid fire 85%+, final exam. Review weak cards.",phase:3},
+];
+const DEFAULT_CHECKPOINTS=[
+{id:"cp1",target:"Score 80%+ on Auth & Endpoints quiz",by:"2026-04-17",metric:"bestQuiz",threshold:80},
+{id:"cp2",target:"Complete all Phase 1 exercises",by:"2026-04-17",metric:"exercises",threshold:40},
+{id:"cp3",target:"Rapid fire 85%+",by:"2026-04-23",metric:"bestRapid",threshold:85},
+{id:"cp4",target:"Score 90%+ on Final Exam",by:"2026-04-24",metric:"bestQuiz",threshold:90},
+];
+
+// ─── PERSISTENCE ───
+const STORAGE_KEY="dash0-api-cc";
+function saveState(){
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}catch(e){}
+debouncedCloudSave();
+}
+function loadState(){
+try{
+const raw=localStorage.getItem(STORAGE_KEY);
+if(!raw)return null;
+return JSON.parse(raw);
+}catch(e){return null}
+}
+function exportState(){
+try{return localStorage.getItem(STORAGE_KEY)||"{}"}catch(e){return"{}"}
+}
+function importState(json){
+try{
+const data=JSON.parse(json);
+if(data.stats){stats={...stats,...data.stats}}
+if(data.history){sessionHistory=data.history}
+saveState();render();return true;
+}catch(e){return false}
+}
+// ─── CLOUD SYNC ENGINE (offline-resilient) ───
+let syncStatus='idle',lastSyncAt=null,syncPending=false;
+function syncEnabled(){return typeof SYNC_SHEET_URL==='string'&&SYNC_SHEET_URL.length>10}
+function getSyncKey(){return SYNC_USER_ID?(SYNC_USER_ID+'/'+STORAGE_KEY):STORAGE_KEY}
+function isOnline(){return typeof navigator!=='undefined'?navigator.onLine:true}
+async function cloudSave(){
+if(!syncEnabled()){syncPending=false;return}
+if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
+syncStatus='syncing';updateSyncUI();
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
+method:'POST',headers:{'Content-Type':'text/plain'},
+body:JSON.stringify({data,savedAt:data.savedAt})
+});
+syncStatus='synced';lastSyncAt=new Date().toISOString();syncPending=false;
+}catch(e){
+syncStatus=isOnline()?'error':'offline';syncPending=true;
+console.warn('Cloud sync save failed:',e);
+}
+updateSyncUI();
+}
+async function cloudLoad(){
+if(!syncEnabled())return null;
+if(!isOnline()){syncStatus='offline';updateSyncUI();return null}
+syncStatus='syncing';updateSyncUI();
+try{
+const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(getSyncKey()));
+const json=await resp.json();
+syncStatus='synced';lastSyncAt=new Date().toISOString();updateSyncUI();
+if(json.ok&&json.data)return json;
+return null;
+}catch(e){syncStatus=isOnline()?'error':'offline';updateSyncUI();console.warn('Cloud sync load failed:',e);return null}
+}
+function updateSyncUI(){
+const el=document.getElementById('sync-badge');
+if(!el)return;
+const icons={idle:'☁️',syncing:'⟳',synced:'✓',error:'✕',offline:'⏸'};
+const colors={idle:'#6b7280',syncing:'#f59e0b',synced:'#10b981',error:'#ef4444',offline:'#6b7280'};
+const titles={idle:'Cloud sync ready',syncing:'Syncing...',synced:'Synced'+(lastSyncAt?' '+new Date(lastSyncAt).toLocaleTimeString():''),error:'Sync error — will retry when online',offline:'Offline — will sync when reconnected'};
+el.textContent=icons[syncStatus]||'☁️';el.style.color=colors[syncStatus]||'#6b7280';el.title=titles[syncStatus]||'';
+}
+let syncTimer=null;
+function debouncedCloudSave(){
+if(!syncEnabled())return;
+if(syncTimer)clearTimeout(syncTimer);
+syncTimer=setTimeout(()=>cloudSave(),2000);
+}
+function saveSyncSettings(url,userId){
+SYNC_SHEET_URL=url.trim();
+SYNC_USER_ID=(userId||'').trim();
+try{
+if(SYNC_SHEET_URL)localStorage.setItem(STORAGE_KEY+'-sync-url',SYNC_SHEET_URL);
+else localStorage.removeItem(STORAGE_KEY+'-sync-url');
+if(SYNC_USER_ID)localStorage.setItem(STORAGE_KEY+'-sync-user',SYNC_USER_ID);
+else localStorage.removeItem(STORAGE_KEY+'-sync-user');
+}catch(e){}
+updateSyncUI();
+if(syncEnabled())cloudLoad().then(cloud=>{
+if(cloud&&cloud.data){
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();
+}
+render();
+}
+});
+}
+// Auto-sync when coming back online
+if(typeof window!=='undefined'){
+window.addEventListener('online',()=>{
+if(syncEnabled()&&syncPending){console.log('☁️ Back online — syncing pending changes');cloudSave()}
+else if(syncEnabled()){syncStatus='idle';updateSyncUI()}
+});
+window.addEventListener('offline',()=>{
+if(syncEnabled()){syncStatus='offline';updateSyncUI()}
+});
+}
+function resetAll(){
+stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;cardRatings={};
+try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
+showConfirm=false;mode="dashboard";render();
+}
+function resetSection(key){
+if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
+else if(key==="cards"){stats.cards=0;cardRatings={}}
+else if(key==="scenarios"){stats.scenarios=0}
+else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
+else if(key==="exercises"){exercisesDone={}}
+sessionHistory=sessionHistory.filter(h=>h.type!==key);
+saveState();render();
+}
+// ─── SESSION HISTORY ───
+let sessionHistory=[];
+function logSession(type,detail){
+sessionHistory.push({type,detail,ts:new Date().toISOString()});
+if(sessionHistory.length>50)sessionHistory=sessionHistory.slice(-50);
+saveState();
+}
+// ─── STATE ───
+let mode="dashboard",fcCat="All",fcDiff="All Levels",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
+let qzQs=[],qzIdx=0,qzSel=null,qzShow=false,qzScore=0,qzDone=false,qzMode=null; // qzMode: null=picker, category string, or "final"
+let scIdx=0,scRevealed=false,scPracticed=new Set();
+let rfState="ready",rfQs=[],rfIdx=0,rfTimer=0,rfResults=[],rfInterval=null;
+let stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}};
+let showConfirm=false,confirmAction=null,confirmMsg="",showExport=false;
+let learnView="list",learnIdx=0,exercisesDone={};
+let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
+let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
+let userRole=null,showRolePicker=false;
+let cardRatings={};
+// ─── LOAD SAVED STATE ───
+(function(){
+const saved=loadState();
+if(saved){
+if(saved.stats){stats={...stats,...saved.stats};if(!stats.quizScores)stats.quizScores={}}
+if(saved.history)sessionHistory=saved.history;
+if(saved.exercisesDone)exercisesDone=saved.exercisesDone;
+if(saved.schedule)schedule=saved.schedule;
+if(saved.checkpoints)checkpoints=saved.checkpoints;
+if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
+if(saved.userRole)userRole=saved.userRole;
+if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
+if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+if(saved.cardRatings)cardRatings=saved.cardRatings;
+}
+if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
+if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
+try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
+try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');const validFs=['fs-s','fs-m','fs-l','fs-xl'];const applyFs=validFs.includes(fs)?fs:'fs-m';document.body.classList.remove(...validFs);document.body.classList.add(applyFs)}catch(e){document.body.classList.add('fs-m')}
+})();
+// ─── CLOUD SYNC ON LOAD ───
+(async function(){
+if(!syncEnabled())return;
+const cloud=await cloudLoad();
+if(!cloud||!cloud.data)return;
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();render();
+console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
+}
+})();
+// ─── ROLE PICKER ───
+function renderRolePickerOverlay(){
+return`<div class="role-overlay">
+<div class="role-picker">
+<h2>What's your focus?</h2>
+<div class="rp-sub">This shapes which content surfaces first. You can still access everything — this just sets your starting point.</div>
+<div class="role-cards">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pickRole('${k}')">
+<div class="rc-icon">${v.icon}</div>
+<div class="rc-title">${v.label}</div>
+<div class="rc-desc">${v.desc}</div>
+</div>`).join('')}
+</div>
+</div>
+</div>`;
+}
+function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
+function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
+function fcRate(rating){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var card=cards[fcIdx%cards.length];
+  cardRatings[card.f]=rating;
+  stats.cards=(stats.cards||0)+1;
+  saveState();
+  fcFlipped=false;
+  // advance to next card
+  var next=fcGetCards();
+  if(next.length>0)fcIdx=(fcIdx+1)%next.length;
+  render();
+}
+
+function fcWeightedShuffle(){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var weighted=[];
+  cards.forEach(function(c,i){
+    var r=cardRatings[c.f];
+    var w=r==='missed'?3:r==='unsure'?2:1;
+    for(var j=0;j<w;j++)weighted.push(i);
+  });
+  fcIdx=weighted[Math.floor(Math.random()*weighted.length)];
+  fcFlipped=false;
+  render();
+}
+
+function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
+function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
+function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
+// ─── RENDER ───
+function render(){
+const app=document.getElementById("app");
+const nav=document.getElementById("nav");
+// Show role picker on first launch
+if(!userRole&&!showRolePicker){showRolePicker=true}
+let overlayHtml='';
+if(showRolePicker)overlayHtml=renderRolePickerOverlay();
+const modes=[["dashboard","🏠","Home"],["learn","📖","Learn"],["flashcards","📃","Cards"],["quiz","📝","Quiz"],["scenarios","💬","Drills"],["rapid","⚡","Rapid"],["manage","⚙️","More"]];
+nav.innerHTML=modes.map(([m,i,l])=>`<button class="${mode===m?'active':''}" onclick="setMode('${m}')"><span>${i}</span>${l}</button>`).join("");
+if(mode==="dashboard")renderDashboard(app);
+else if(mode==="flashcards")renderFlashcards(app);
+else if(mode==="quiz")renderQuiz(app);
+else if(mode==="scenarios")renderScenarios(app);
+else if(mode==="rapid")renderRapid(app);
+else if(mode==="learn")renderLearn(app);
+else if(mode==="manage")renderManage(app);
+// Update header role indicator
+const hdr=document.getElementById('header-role');
+if(hdr)hdr.innerHTML=userRole?`<span class="role-current" onclick="showRolePicker=true;render()">${ROLE_CONFIG[userRole].icon} ${ROLE_CONFIG[userRole].label.split(' ')[0]}</span>`:'';
+const verEl=document.getElementById('app-version');if(verEl)verEl.textContent=APP_VERSION;
+// Append role picker overlay if needed
+if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d.innerHTML=overlayHtml;const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove();document.body.appendChild(d)}else{const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove()}
+}
+function setMode(m){mode=m;render()}
+// ─── DASHBOARD ───
+function renderDashboard(el){
+const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
+const focus=(stats.quizzes||0)===0
+?"Start with Learn mode to build your foundation"
+:(stats.quizzes||0)<3
+?"Keep quizzing to reinforce the material"
+:"Great progress! Use Rapid mode to sharpen your speed";
+el.innerHTML=`
+<div style="text-align:center;margin-bottom:24px">
+<div style="font-size:20px;font-weight:700;color:#e5e7eb">${COURSE_TITLE||'TODO: Course Title'}</div>
+<div style="font-size:14px;color:#6b7280;margin-top:6px">Pick a mode to start &rarr; learn &rarr; quiz &rarr; drills</div>
+</div>
+<div class="stat-grid">
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.quizzes||0}</div><div class="stat-label">Quizzes Taken</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
+<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-num">${stats.cards||0}</div><div class="stat-label">Cards Flipped</div></div>
+<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-num">${stats.scenarios||0}</div><div class="stat-label">Scenarios Done</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.rapid||0}</div><div class="stat-label">Rapid Rounds</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.bestRapid||'—'}</div><div class="stat-label">Best Rapid</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-num">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
+</div>
+<div class="focus-box"><div class="focus-title">Your Focus</div><div class="focus-text">${focus}</div></div>
+${renderDashSchedule()}`;
+}
+function renderDashSchedule(){
+const today=new Date().toISOString().slice(0,10);
+const nextSession=schedule.filter(s=>s.date>=today&&!sessionsDone[s.id]).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))[0];
+const nextCp=checkpoints.filter(cp=>{
+const met=getMetricVal(cp.metric);return met<cp.threshold&&cp.by>=today;
+}).sort((a,b)=>a.by.localeCompare(b.by))[0];
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">`;
+if(nextCp){
+h+=`<div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Next Checkpoint</div><div style="font-size:14px;font-weight:600;color:#fde68a;margin-top:2px">${nextCp.target}</div></div>
+<div style="text-align:right"><div style="font-size:11px;color:#6b7280">by ${fmtDate(nextCp.by)}</div><div style="font-size:13px;font-weight:600;color:#fff">${getMetricVal(nextCp.metric)}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''} / ${nextCp.threshold}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''}</div></div></div>`;
+}
+if(nextSession){
+const isToday=nextSession.date===today;
+h+=`<div style="background:#1f2937;border:1px solid ${isToday?'rgba(16,185,129,.4)':'#374151'};border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">
+<div><div style="font-size:11px;color:${isToday?'#10b981':'#6b7280'};font-weight:600">${isToday?'TODAY':'NEXT UP'} · ${fmtDate(nextSession.date)} · ${nextSession.time}</div><div style="font-size:14px;font-weight:600;color:#e5e7eb;margin-top:2px">${nextSession.title}</div></div>
+<div style="font-size:11px;color:#6b7280;white-space:nowrap">${nextSession.dur} min →</div></div>`;
+}
+h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+<div style="font-size:12px;color:#6b7280">${doneCount}/${schedule.length} sessions done</div>
+<button style="background:none;border:none;color:#10b981;font-size:12px;font-weight:600;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">Full schedule →</button>
+</div></div>`;
+return h;
+}
+function schedItemHtml(s,isToday){
+const done=sessionsDone[s.id];
+return`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button></div>`:`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`}
+function fmtDate(d){const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+function markSessionDone(id){sessionsDone[id]=Date.now();saveState();render()}
+function getMetricVal(m){
+if(m==="bestQuiz")return stats.bestQuiz||0;
+if(m==="bestRapid")return stats.bestRapid||0;
+if(m==="cards")return stats.cards||0;
+if(m==="scenarios")return stats.scenarios||0;
+if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return t?Math.round(Object.keys(exercisesDone).length/t*100):0}
+return 0;
+}
+// ─── FLASHCARDS ───
+function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):fcCat==='⚠ Weak'?FLASHCARDS.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
+function renderFlashcards(el){
+const allCards=FLASHCARDS.filter(function(c){return fcDiff==='All Levels'||DIFF_LABELS[c.d]===fcDiff});
+const weakCount=allCards.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}).length;
+const cards=fcGetCards();
+if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==='⚠ Weak'){
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill='<button class="pill active" onclick="fcSetCat(\'⚠ Weak\')" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Weak ('+weakCount+')</button>';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="text-align:center;padding:40px;color:#9ca3af">No weak cards! Rate flashcards to see them here.</div>';
+return;
+}
+if(fcIdx>=cards.length)fcIdx=0;
+const card=cards[fcIdx];
+const isFav=fcFavs.has(card.f);
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill=weakCount||fcCat==='⚠ Weak'?'<button class="pill '+(fcCat==='⚠ Weak'?'active':'')+'" onclick="fcSetCat(\'⚠ Weak\')" style="'+(fcCat!=='⚠ Weak'?'background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)':'')+'">⚠ Weak ('+weakCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+['All Levels','Beginner','Intermediate','Advanced'].map(function(d){return '<button class="pill'+(fcDiff===d?' pill-active':'')+'" onclick="fcDiff=\''+d+'\';fcIdx=0;render()">'+d+'</button>';}).join('')+'</div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':fcCat==='⚠ Weak'?'Weak cards':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
++'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
++'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
++'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+(card.d?'<span style="background:'+DIFF_COLORS[card.d]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600">'+DIFF_LABELS[card.d]+'</span>':'')+'</div>'
++'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
++(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
++(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
++(fcFlipped?'<div style="display:flex;gap:8px;justify-content:center;margin-top:14px">'
++'<button onclick="event.stopPropagation();fcRate(\'missed\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#ef4444;color:#fff;font-weight:600">Missed</button>'
++'<button onclick="event.stopPropagation();fcRate(\'unsure\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#f59e0b;color:#fff;font-weight:600">Unsure</button>'
++'<button onclick="event.stopPropagation();fcRate(\'known\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#10b981;color:#fff;font-weight:600">Know it</button>'
++'</div>':'')
++'</div>'
++(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
++'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcWeightedShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
+}
+function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
+function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
+function fcNext(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx+1)%cards.length;saveState();render()}
+function fcPrev(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx-1+cards.length)%cards.length;saveState();render()}
+function fcShuffle(){fcFlipped=false;const cards=fcGetCards();fcIdx=Math.floor(Math.random()*cards.length);saveState();render()}
+function fcToggleFav(idx){const cards=fcGetCards();const card=cards[idx];if(!card)return;if(fcFavs.has(card.f))fcFavs.delete(card.f);else fcFavs.add(card.f);if(fcCat==="★ Favorites"&&!fcFavs.has(card.f)){const nc=fcGetCards();if(fcIdx>=nc.length)fcIdx=Math.max(0,nc.length-1)}saveState();render()}
+// ─── QUIZ ───
+const QUIZ_CATS=[...new Set(QUIZ.map(q=>q.cat))];
+function getQuizCatIcon(cat){return{'Fundamentals':'📗','Auth & Endpoints':'🔐','OTLP Ingestion':'📡','Prometheus Queries':'📊','Management API':'📋','Observability-as-Code':'🔄','Integrations':'🔌','Pitch & Positioning':'🏆'}[cat]||'📝'}
+function startQuiz(catOrFinal){
+if(catOrFinal==='final'){qzMode='final';qzQs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10)}
+else{qzMode=catOrFinal;qzQs=QUIZ.filter(q=>q.cat===catOrFinal).sort(()=>Math.random()-.5)}
+qzIdx=0;qzSel=null;qzShow=false;qzScore=0;qzDone=false;render()}
+function backToQuizPicker(){qzMode=null;qzQs=[];qzDone=false;render()}
+function renderQuiz(el){
+// Quiz picker screen
+if(qzMode===null){
+const cats=QUIZ_CATS.map(cat=>{const cnt=QUIZ.filter(q=>q.cat===cat).length;const best=stats.quizScores[cat];const bestStr=best!=null?`<span style="color:#10b981;font-size:12px">${best}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+return`<div style="background:#1f2937;border:2px solid #374151;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s" onclick="startQuiz('${cat}')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='#374151'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">${getQuizCatIcon(cat)}</span><div><div style="font-weight:600;font-size:15px">${cat}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${cnt} questions</div>${(function(){var qs=QUIZ.filter(q=>q.cat===cat);var counts=[1,2,3].map(function(d){return{d:d,n:qs.filter(function(q){return q.d===d}).length}}).filter(function(x){return x.n>0});return counts.length?'<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+counts.map(function(x){return'<span style="background:'+DIFF_COLORS[x.d]+';color:#fff;font-size:10px;padding:1px 6px;border-radius:8px">'+DIFF_LABELS[x.d]+' '+x.n+'</span>'}).join('')+"</div>":''})()}</div></div></div><div style="text-align:right">${bestStr}</div></div></div>`}).join('');
+const finalBest=stats.quizScores['final'];const finalStr=finalBest!=null?`<span style="color:#10b981;font-size:12px">${finalBest}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+el.innerHTML=`<div style="margin-bottom:20px"><div style="font-size:20px;font-weight:700;margin-bottom:4px">Quizzes</div><div style="color:#6b7280;font-size:13px;margin-bottom:16px">Test yourself by section or take the final exam</div></div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${cats}</div>
+<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(59,130,246,.12));border:2px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s" onclick="startQuiz('final')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16,185,129,.3)'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">🎓</span><div><div style="font-weight:700;font-size:16px">Final Exam</div><div style="color:#9ca3af;font-size:12px;margin-top:2px">10 random questions across all sections</div></div></div><div style="text-align:right">${finalStr}</div></div></div>`;return}
+// Results screen
+if(qzDone){
+const pct=Math.round(qzScore/qzQs.length*100);
+stats.quizzes++;if(pct>stats.bestQuiz)stats.bestQuiz=pct;
+const scoreKey=qzMode==='final'?'final':qzMode;
+if(!stats.quizScores[scoreKey]||pct>stats.quizScores[scoreKey])stats.quizScores[scoreKey]=pct;
+const label=qzMode==='final'?'Final Exam':qzMode;
+logSession("quiz",label+" — Score: "+pct+"%");
+const g=pct>=90?"A":pct>=80?"B":pct>=70?"C":pct>=60?"D":"F";
+const c=pct>=70?"#10b981":pct>=50?"#f59e0b":"#ef4444";
+const m=pct>=90?"You're ready for Next.":pct>=70?"Getting there. Run it again.":"Keep studying. You've got time.";
+el.innerHTML=`<div class="center"><div style="font-size:13px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode}</div><div class="grade" style="color:${c}">${g}</div><div style="font-size:24px;font-weight:600;margin-bottom:4px">${qzScore}/${qzQs.length}</div><div style="color:#6b7280;margin-bottom:24px">${m}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" onclick="startQuiz('${qzMode==='final'?'final':qzMode}')">Try Again</button><button class="btn btn-secondary" onclick="backToQuizPicker()">All Quizzes</button></div></div>`;return}
+// Question screen
+const q=qzQs[qzIdx];
+const headerLabel=qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode;
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:12px;color:#6b7280;cursor:pointer" onclick="backToQuizPicker()">← All Quizzes</span><span style="font-size:12px;color:#9ca3af">${headerLabel}</span></div>
+<div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
+<div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
+${q.o.map((o,i)=>{
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
+${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
+${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
+${qzShow?askClaudeBox('Quiz question: '+q.q):''}
+${qzShow?`<button class="btn btn-primary btn-full" onclick="qzNext()">${qzIdx+1>=qzQs.length?"See Results":"Next Question"}</button>`:''}`;
+}
+function qzSelect(i){if(qzShow)return;qzSel=i;qzShow=true;if(i===qzQs[qzIdx].a)qzScore++;render()}
+function qzNext(){if(qzIdx+1>=qzQs.length){qzDone=true}else{qzIdx++;qzSel=null;qzShow=false}render()}
+// ─── SCENARIOS ───
+function renderScenarios(el){
+const s=SCENARIOS[scIdx];
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Scenarios practiced</span><span>${scPracticed.size}/${SCENARIOS.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${SCENARIOS.length?Math.round(scPracticed.size/SCENARIOS.length*100):0}%"></div></div></div>
+<div class="card-label">Prospect says:</div>
+<div class="scenario-box scenario-q"><div style="color:#fca5a5;font-size:17px;line-height:1.5;font-style:italic">"${s.q}"</div></div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:8px">Think through your answer first, then reveal.</div>
+${!scRevealed?`<div class="scenario-box scenario-reveal" onclick="scReveal()"><div style="color:#9ca3af;font-size:14px">Tap to reveal suggested response</div></div>`
+:`<div class="scenario-box scenario-a"><div class="card-label" style="color:#6ee7b7">Suggested response:</div><div style="color:#d1fae5;font-size:14px;line-height:1.6">${s.a}</div>${s.u?`<div class="source-links">${s.u.map(link=>`<a class="source-link" href="${link}" target="_blank" rel="noopener">📖 ${new URL(link).hostname.replace('www.','')}</a>`).join('')}</div>`:''}</div>`}
+${scRevealed?askClaudeBox('Scenario objection: '+s.q):''}
+<div class="btn-row"><button class="btn btn-secondary" onclick="scPrev()">Prev</button><button class="btn btn-secondary" onclick="scShuf()">Shuffle</button><button class="btn btn-primary" onclick="scNext()">Next</button></div>`;
+}
+function scReveal(){scRevealed=true;stats.scenarios++;scPracticed.add(scIdx);logSession("scenarios","Practiced: "+SCENARIOS[scIdx].q.slice(0,40));render()}
+function scNext(){scRevealed=false;scIdx=(scIdx+1)%SCENARIOS.length;render()}
+function scPrev(){scRevealed=false;scIdx=(scIdx-1+SCENARIOS.length)%SCENARIOS.length;render()}
+function scShuf(){scRevealed=false;scIdx=Math.floor(Math.random()*SCENARIOS.length);render()}
+// ─── RAPID FIRE ───
+function renderRapid(el){
+if(rfState==="ready"){
+el.innerHTML=`<div class="center"><div style="font-size:40px;margin-bottom:16px">⏱</div><div style="font-size:20px;font-weight:600;margin-bottom:8px">Rapid Fire Mode</div><div style="color:#6b7280;max-width:280px;margin-bottom:24px;font-size:14px;line-height:1.5">Question + countdown. Think fast, then rate yourself.</div><button class="btn btn-primary" style="font-size:16px;padding:14px 32px" onclick="rfStart()">Start Round</button></div>`;return}
+if(rfState==="done"){
+const n=rfResults.filter(r=>r.ok).length;const pct=Math.round(n/rfResults.length*100);
+stats.rapid++;if(pct>stats.bestRapid)stats.bestRapid=pct;logSession("rapid","Score: "+pct+"%");
+const c=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+const m=pct>=80?"Fast and confident.":pct>=60?"Decent, drill the weak ones.":"Re-read the material.";
+el.innerHTML=`<div class="center"><div class="grade" style="color:${c}">${n}/${rfResults.length}</div><div style="color:#6b7280;margin-bottom:16px">${m}</div><div style="width:100%;max-width:320px;margin-bottom:24px">${rfResults.map(r=>`<div class="results-item" style="color:${r.ok?'#6ee7b7':'#fca5a5'}">${r.ok?'✔':'✘'} <span style="color:#d1d5db">${r.q}</span></div>`).join("")}</div><button class="btn btn-primary" onclick="rfStart()">Go Again</button></div>`;return}
+const q=rfQs[rfIdx];const tc=rfTimer<=3?"red":rfTimer<=5?"yellow":"green";
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><span style="font-size:12px;color:#6b7280">Q${rfIdx+1}/${rfQs.length}</span><span class="timer ${tc}">${rfState==="revealed"?"—":rfTimer+"s"}</span></div>
+<div class="card question" style="margin-bottom:16px;cursor:default"><div style="font-size:19px;font-weight:500">${q.q}</div></div>
+${rfState==="active"?`<div class="center" style="min-height:30vh"><div style="color:#6b7280;font-size:14px;margin-bottom:16px">Think of your answer...</div><button class="btn btn-secondary" onclick="rfReveal()">I've got my answer</button></div>`
+:`<div class="scenario-box scenario-a" style="margin-bottom:16px"><div class="card-label" style="color:#6ee7b7">Answer:</div><div style="color:#d1fae5;line-height:1.5">${q.a}</div>${q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-top:10px">📖 Read the docs</a>`:''}</div>
+${askClaudeBox('Rapid fire: '+q.q)}
+<div style="text-align:center;font-size:14px;color:#6b7280;margin:12px 0">Did you nail it?</div>
+<div style="display:flex;gap:12px"><button class="btn btn-danger" style="flex:1;padding:14px" onclick="rfRate(false)">Nope</button><button class="btn btn-success" style="flex:1;padding:14px" onclick="rfRate(true)">Nailed it</button></div>`}`;
+}
+function rfStart(){rfQs=[...RAPID].sort(()=>Math.random()-.5);rfIdx=0;rfResults=[];rfState="active";rfTimer=rfQs[0].t;clearInterval(rfInterval);rfInterval=setInterval(rfTick,1000);render()}
+function rfTick(){if(rfState!=="active")return;rfTimer--;if(rfTimer<=0){rfState="revealed";clearInterval(rfInterval)}render()}
+function rfReveal(){clearInterval(rfInterval);rfState="revealed";render()}
+function rfRate(ok){rfResults.push({q:rfQs[rfIdx].q,ok});if(rfIdx+1>=rfQs.length){rfState="done";clearInterval(rfInterval)}else{rfIdx++;rfTimer=rfQs[rfIdx].t;rfState="active";rfInterval=setInterval(rfTick,1000)}render()}
+// ─── LEARN ───
+function renderLearn(el){
+if(learnView==="detail")return renderLessonDetail(el);
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Exercises completed</span><span>${doneEx}/${totalEx}</span></div><div class="progress-track"><div class="progress-fill" style="width:${totalEx?Math.round(doneEx/totalEx*100):0}%"></div></div></div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Week 1 — The Essentials</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===1).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 2 — Going Deeper</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===2).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 3 — Final Prep</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===3).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>`;
+}
+function lessonCard(l,idx){
+const exDone=l.exercises.filter((_,i)=>exercisesDone[l.id+"-"+i]).length;
+const allDone=exDone===l.exercises.length;
+const core=isCoreLesson(l.id);
+return`<div class="lesson-card${allDone?' completed':''}" onclick="openLesson(${idx})"${!core?' style="opacity:.7"':''}>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="lesson-num">${l.icon} Lesson ${idx+1}</div>
+<div style="display:flex;gap:6px;align-items:center">
+${userRole?`<span class="role-badge ${core?'core':'bonus'}">${core?'Core':'Bonus'}</span>`:''}
+${allDone?'<span style="font-size:11px;color:#10b981;font-weight:600">✓</span>':`<span style="font-size:11px;color:#6b7280">${exDone}/${l.exercises.length}</span>`}
+</div>
+</div>
+<div class="lesson-title">${l.title}</div>
+<div class="lesson-meta"><span>${l.time}</span><span>Week ${l.week}</span></div>
+</div>`}
+function openLesson(idx){learnIdx=idx;learnView="detail";render()}
+function backToLessons(){learnView="list";render()}
+function renderLessonDetail(el){
+const l=LESSONS[learnIdx];
+let html=`<button class="back-btn" onclick="backToLessons()">← All Lessons</button>`;
+html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Week ${l.week}</div>`;
+html+=`<div style="font-size:22px;font-weight:700;margin:6px 0 4px">${l.title}</div>`;
+html+=`<div style="font-size:12px;color:#6b7280;margin-bottom:20px">${l.time}</div>`;
+// Body
+html+=`<div class="lesson-section"><div class="lesson-text">${l.body}</div></div>`;
+// Highlights
+if(l.highlights&&l.highlights.length){
+html+=`<div class="lesson-section"><h4>Key Takeaways</h4>`;
+l.highlights.forEach(h=>{html+=`<div class="lesson-highlight">${h}</div>`});
+html+=`</div>`}
+// Comparison table
+if(l.compare){
+html+=`<div class="lesson-section"><h4>${l.compare.left.label} vs ${l.compare.right.label}</h4><div class="lesson-compare">`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#6ee7b7">${l.compare.left.label}</div>${l.compare.left.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">${l.compare.right.label}</div>${l.compare.right.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`</div></div>`}
+// Exercises
+html+=`<div class="lesson-section"><h4>Exercises</h4>`;
+l.exercises.forEach((ex,i)=>{
+const key=l.id+"-"+i;
+const done=!!exercisesDone[key];
+const stepsId='steps-'+l.id+'-'+i;
+html+=`<div class="exercise-box">
+<div class="ex-label">Exercise ${i+1}</div>
+<div class="ex-task">${ex.task}</div>
+${ex.hint?`<div class="ex-hint">💡 ${ex.hint}</div>`:''}
+${ex.url?`<a class="source-link" href="${ex.url}" target="_blank" rel="noopener" style="margin:8px 0 4px">🔗 Open resource</a>`:''}
+${ex.steps&&ex.steps.length?`<button class="ex-steps-toggle" onclick="const s=document.getElementById('${stepsId}');s.classList.toggle('open');this.textContent=s.classList.contains('open')?'Hide steps':'Show steps'">Show steps</button>
+<div class="ex-steps" id="${stepsId}"><ol>${ex.steps.map(s=>'<li>'+s+'</li>').join('')}</ol></div>`:''}
+<div class="exercise-check" onclick="toggleExercise('${key}')">
+<div class="checkbox${done?' checked':''}">${done?'✓':''}</div>
+<div class="ex-text">${done?'Done!':'Mark as done'}</div>
+</div></div>`});
+html+=`</div>`;
+// Sources
+if(l.sources&&l.sources.length){
+html+=`<div class="lesson-section"><h4>Source Material</h4>`;
+l.sources.forEach(s=>{html+=`<a class="res-link" href="${s}" target="_blank" rel="noopener">${s.replace('https://','').split('/').slice(0,2).join('/')}<small>${s}</small></a>`});
+html+=`</div>`}
+// Nav
+html+=askClaudeBox('Lesson: '+l.title);
+html+=`<div class="btn-row" style="margin-top:24px">`;
+if(learnIdx>0)html+=`<button class="btn btn-secondary" onclick="openLesson(${learnIdx-1})">← Prev</button>`;
+if(learnIdx<LESSONS.length-1)html+=`<button class="btn btn-primary" onclick="openLesson(${learnIdx+1})">Next →</button>`;
+html+=`</div>`;
+el.innerHTML=html;
+}
+function toggleExercise(key){
+if(exercisesDone[key])delete exercisesDone[key];
+else exercisesDone[key]=Date.now();
+saveState();render();
+}
+// ─── MANAGEMENT ───
+function renderManage(el){
+if(!schedView)schedView="settings";
+const saved=loadState();
+const lastSaved=saved&&saved.savedAt?new Date(saved.savedAt).toLocaleString():"Never";
+const totalSessions=sessionHistory.length;
+const storageBytes=exportState().length;
+const storageKB=(storageBytes/1024).toFixed(1);
+const tabs=[["settings","Settings"],["schedule","Schedule"],["checkpoints","Checkpoints"],["resources","Resources"]];
+let html=`${showConfirm?`<div class="confirm-overlay" onclick="cancelConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">${confirmMsg}</div><div style="color:#6b7280;font-size:13px;margin-bottom:20px">This can't be undone.</div><div style="display:flex;gap:12px"><button class="btn btn-secondary" style="flex:1" onclick="cancelConfirm()">Cancel</button><button class="btn-danger-solid" style="flex:1" onclick="execConfirm()">Confirm</button></div></div></div>`:''}
+${showForm?renderFormOverlay():''}
+<div class="pills" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="pill ${schedView===k?'active':''}" onclick="schedView='${k}';render()">${l}</button>`).join("")}</div>`;
+if(schedView==="schedule"){html+=renderScheduleTab();el.innerHTML=html;return}
+if(schedView==="checkpoints"){html+=renderCheckpointsTab();el.innerHTML=html;return}
+if(schedView==="resources"){html+=renderResourcesTab();el.innerHTML=html;return}
+html+=`
+<div class="mgmt-section">
+<h3>Font Size</h3>
+<div style="margin-bottom:20px">`
++'<div style="font-size:13px;color:#9ca3af;margin-bottom:8px">Font Size</div>'
++'<div style="display:flex;gap:8px;flex-wrap:wrap">'
++['fs-s','fs-m','fs-l','fs-xl'].map(function(s){
+  var lbl={'fs-s':'S','fs-m':'M','fs-l':'L','fs-xl':'XL'}[s];
+  var active=document.body.className===s;
+  return '<button onclick="setFontSize(\''+s+'\')" style="padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;background:'+(active?'#10b981':'#374151')+';color:'+(active?'#fff':'#9ca3af')+';transition:all .2s">'+lbl+'</button>';
+}).join('')
++'</div></div>'
++`</div>
+<div class="mgmt-section">
+<h3>Focus Level</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Controls which content is highlighted as core vs bonus across the app.</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:2px solid ${userRole===k?'#10b981':'#374151'};background:${userRole===k?'rgba(16,185,129,.06)':'#1f2937'};cursor:pointer;transition:all .2s" onclick="pickRole('${k}')">
+<div style="font-size:24px">${v.icon}</div>
+<div style="flex:1"><div style="font-size:14px;font-weight:600;color:${userRole===k?'#6ee7b7':'#e5e7eb'}">${v.label}</div><div style="font-size:12px;color:#6b7280">${v.desc.split('.')[0]}</div></div>
+${userRole===k?'<div style="color:#10b981;font-size:14px;font-weight:600">✓</div>':''}
+</div>`).join('')}
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Progress Summary</h3>
+<div class="mgmt-row"><span class="label">Quizzes completed</span><span class="value">${stats.quizzes}</span></div>
+<div class="mgmt-row"><span class="label">Best overall score</span><span class="value">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</span></div>
+${QUIZ_CATS.map(cat=>`<div class="mgmt-row"><span class="label" style="padding-left:12px">${getQuizCatIcon(cat)} ${cat}</span><span class="value">${stats.quizScores[cat]?stats.quizScores[cat]+'%':'—'}</span></div>`).join('')}
+<div class="mgmt-row"><span class="label" style="padding-left:12px">🎓 Final Exam</span><span class="value">${stats.quizScores['final']?stats.quizScores['final']+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Cards flipped</span><span class="value">${stats.cards}</span></div>
+<div class="mgmt-row"><span class="label">Scenarios practiced</span><span class="value">${stats.scenarios}</span></div>
+<div class="mgmt-row"><span class="label">Rapid fire rounds</span><span class="value">${stats.rapid}</span></div>
+<div class="mgmt-row"><span class="label">Best rapid score</span><span class="value">${stats.bestRapid?stats.bestRapid+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Exercises completed</span><span class="value">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</span></div>
+<div class="mgmt-row"><span class="label">Total sessions logged</span><span class="value">${totalSessions}</span></div>
+<div class="mgmt-row"><span class="label">Last saved</span><span class="value">${lastSaved}</span></div>
+<div class="mgmt-row"><span class="label">Storage used</span><span class="value">${storageKB} KB</span></div>
+</div>
+<div class="mgmt-section">
+<h3>Reset by Section</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button class="btn-outline" onclick="askResetSection('quiz')">Reset Quizzes</button>
+<button class="btn-outline" onclick="askResetSection('cards')">Reset Cards</button>
+<button class="btn-outline" onclick="askResetSection('scenarios')">Reset Scenarios</button>
+<button class="btn-outline" onclick="askResetSection('rapid')">Reset Rapid Fire</button>
+<button class="btn-outline" onclick="askResetSection('exercises')">Reset Exercises</button>
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Session History (last 20)</h3>
+${sessionHistory.length===0?'<div style="color:#4b5563;font-size:13px;padding:8px 0">No sessions yet. Start studying!</div>'
+:sessionHistory.slice(-20).reverse().map(h=>{
+const d=new Date(h.ts);
+const icon=h.type==="quiz"?"📝":h.type==="cards"?"📃":h.type==="scenarios"?"💬":"⚡";
+return`<div class="history-item"><span>${icon} ${h.detail}</span><span style="color:#4b5563">${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>`}).join("")}
+</div>
+<div class="mgmt-section">
+<h3>☁️ Cloud Sync</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Sync progress across devices via Google Sheets. Paste your Apps Script URL below.</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input id="syncUrlInput" type="text" value="${SYNC_SHEET_URL||''}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;font-family:monospace;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+<input id="syncUserInput" type="text" value="${SYNC_USER_ID||''}" placeholder="Your name (e.g. barry)" style="flex:1;max-width:220px;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+<span style="font-size:11px;color:#6b7280">Optional — keeps your data separate when sharing a sync sheet</span>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncSettings(document.getElementById('syncUrlInput').value,document.getElementById('syncUserInput').value);render()">Save</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncSettings('','');document.getElementById('syncUrlInput').value='';document.getElementById('syncUserInput').value='';render()">Disconnect</button>
+<span style="font-size:12px;color:${syncEnabled()?'#10b981':'#6b7280'}">${syncEnabled()?'✓ Connected'+(lastSyncAt?' — last sync '+new Date(lastSyncAt).toLocaleTimeString():''):'Not connected'}</span>
+</div>
+${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+getSyncKey()+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
+</div>
+<div class="mgmt-section">
+<h3>Export / Import Data</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btn-outline" style="flex:1" onclick="showExportData()">Export</button>
+<button class="btn-outline" style="flex:1" onclick="showImportPrompt()">Import</button>
+</div>
+${showExport?`<div class="export-box" id="exportBox">${exportState()}</div><div style="font-size:11px;color:#4b5563;margin-top:4px">Copy this text to back up or transfer your progress.</div>`:''}
+<div id="importArea"></div>
+</div>
+<div class="mgmt-section" style="border:2px solid rgba(239,68,68,.2)">
+<h3 style="color:#fca5a5">Danger Zone</h3>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div><div style="font-size:13px;font-weight:500;color:#fca5a5">Reset all progress</div><div style="font-size:11px;color:#4b5563">Clears everything and starts fresh</div></div>
+<button class="btn-danger-solid" onclick="askResetAll()">Reset All</button>
+</div>
+</div>`;
+el.innerHTML=html;
+}
+// ─── SCHEDULE TAB ───
+function renderScheduleTab(){
+const today=new Date().toISOString().slice(0,10);
+const sorted=[...schedule].sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const upcoming=sorted.filter(s=>s.date>=today);
+const past=sorted.filter(s=>s.date<today).reverse();
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:14px;font-weight:600">${doneCount}/${schedule.length} sessions completed</div>
+<div style="display:flex;gap:6px">
+<button class="btn-outline" style="padding:6px 10px;font-size:11px" onclick="toggleIcsPanel()">📅 Export</button>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openSessionForm()">+ Add</button>
+</div>
+</div>`;
+h+=renderIcsPanel();
+h+=`<div class="progress-bar"><div class="progress-track"><div class="progress-fill" style="width:${schedule.length?Math.round(doneCount/schedule.length*100):0}%"></div></div></div>`;
+if(upcoming.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Upcoming</div>`;
+upcoming.forEach(s=>{
+const isToday=s.date===today;const done=sessionsDone[s.id];
+h+=`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min${s.phase?' · Phase '+s.phase:''}</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+<div class="si-actions">
+${!done?`<button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button>`:`<button style="background:#374151;color:#6ee7b7" onclick="unmarkSession('${s.id}')">✓ Done</button>`}
+<button style="background:#374151;color:#9ca3af" onclick="openSessionForm('${s.id}')">Edit</button>
+<button style="background:#374151;color:#fca5a5" onclick="deleteSession('${s.id}')">Del</button>
+</div></div>`});
+}
+if(past.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Past</div>`;
+past.slice(0,5).forEach(s=>{
+const done=sessionsDone[s.id];
+h+=`<div class="sched-item past${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Mark Done</button></div>`:
+`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`});
+if(past.length>5)h+=`<div style="text-align:center;color:#4b5563;font-size:12px;padding:8px">+ ${past.length-5} more past sessions</div>`;
+}
+return h;
+}
+function unmarkSession(id){delete sessionsDone[id];saveState();render()}
+function deleteSession(id){schedule=schedule.filter(s=>s.id!==id);delete sessionsDone[id];saveState();render()}
+function openSessionForm(editingId){
+if(editingId){const s=schedule.find(x=>x.id===editingId);if(s)formData={...s};editId=editingId}
+else{formData={id:'s-'+Date.now(),date:new Date().toISOString().slice(0,10),time:'09:00',dur:30,title:'',desc:'',phase:0};editId=null}
+showForm='session';render();
+}
+function closeForm(){showForm=null;editId=null;formData={};render()}
+function saveSessionForm(){
+if(!formData.title){alert('Title required');return}
+if(editId){const idx=schedule.findIndex(s=>s.id===editId);if(idx>=0)schedule[idx]={...formData}}
+else{schedule.push({...formData})}
+saveState();closeForm();
+}
+function renderFormOverlay(){
+if(showForm==='session')return renderSessionFormSheet();
+if(showForm==='checkpoint')return renderCheckpointFormSheet();
+return'';
+}
+function renderSessionFormSheet(){
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Study Session</h3>
+<div class="form-field"><label>Title</label><input type="text" id="sf-title" value="${formData.title||''}" placeholder="e.g., Lesson 5: Competitive Landscape"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Date</label><input type="date" id="sf-date" value="${formData.date||''}"></div>
+<div class="form-field" style="flex:1"><label>Time</label><input type="time" id="sf-time" value="${formData.time||'09:00'}"></div>
+</div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Duration (min)</label><input type="number" id="sf-dur" value="${formData.dur||30}" min="5" step="5"></div>
+<div class="form-field" style="flex:1"><label>Phase</label><select id="sf-phase"><option value="0"${formData.phase==0?' selected':''}>None</option><option value="1"${formData.phase==1?' selected':''}>Phase 1</option><option value="2"${formData.phase==2?' selected':''}>Phase 2</option><option value="3"${formData.phase==3?' selected':''}>Phase 3</option></select></div>
+</div>
+<div class="form-field"><label>Description / Activities</label><textarea id="sf-desc" placeholder="What to do in this session...">${formData.desc||''}</textarea></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabSessionForm();saveSessionForm()">Save</button>
+</div></div></div>`}
+function grabSessionForm(){
+formData.title=document.getElementById('sf-title').value;
+formData.date=document.getElementById('sf-date').value;
+formData.time=document.getElementById('sf-time').value;
+formData.dur=parseInt(document.getElementById('sf-dur').value)||30;
+formData.phase=parseInt(document.getElementById('sf-phase').value)||0;
+formData.desc=document.getElementById('sf-desc').value;
+}
+// ─── CHECKPOINTS TAB ───
+function renderCheckpointsTab(){
+const today=new Date().toISOString().slice(0,10);
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="font-size:14px;font-weight:600">Milestones & Targets</div>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openCheckpointForm()">+ Add Checkpoint</button>
+</div>`;
+const sorted=[...checkpoints].sort((a,b)=>a.by.localeCompare(b.by));
+sorted.forEach(cp=>{
+const val=getMetricVal(cp.metric);
+const hit=val>=cp.threshold;
+const overdue=!hit&&cp.by<today;
+h+=`<div class="cp-item${hit?' hit':''}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="cp-target">${hit?'✓ ':''}${cp.target}</div>
+<div style="display:flex;gap:4px">
+<button style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:12px;padding:4px" onclick="openCheckpointForm('${cp.id}')">Edit</button>
+<button style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:12px;padding:4px" onclick="deleteCheckpoint('${cp.id}')">Del</button>
+</div>
+</div>
+<div class="cp-date">${hit?'Achieved!':'Target by '+fmtDate(cp.by)} · Current: ${val}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''} / ${cp.threshold}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''}</div>
+${!hit?`<div style="margin-top:6px"><div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,Math.round(val/cp.threshold*100))}%;${overdue?'background:#ef4444':''}"></div></div></div>`:''}
+</div>`});
+return h;
+}
+function openCheckpointForm(editingId){
+if(editingId){const c=checkpoints.find(x=>x.id===editingId);if(c)formData={...c};editId=editingId}
+else{formData={id:'cp-'+Date.now(),target:'',by:new Date().toISOString().slice(0,10),metric:'bestQuiz',threshold:80};editId=null}
+showForm='checkpoint';render();
+}
+function renderCheckpointFormSheet(){
+const metrics=[['bestQuiz','Best Quiz Score (%)'],['bestRapid','Best Rapid Score (%)'],['cards','Cards Flipped'],['scenarios','Scenarios Practiced'],['exercises','Exercise Completion (%)']];
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Checkpoint</h3>
+<div class="form-field"><label>Target Description</label><input type="text" id="cf-target" value="${formData.target||''}" placeholder="e.g., Score 80%+ on quiz"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Due By</label><input type="date" id="cf-by" value="${formData.by||''}"></div>
+<div class="form-field" style="flex:1"><label>Threshold</label><input type="number" id="cf-thresh" value="${formData.threshold||80}" min="1"></div>
+</div>
+<div class="form-field"><label>Metric to Track</label><select id="cf-metric">${metrics.map(([v,l])=>`<option value="${v}"${formData.metric===v?' selected':''}>${l}</option>`).join('')}</select></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabCheckpointForm();saveCheckpointForm()">Save</button>
+</div></div></div>`}
+function grabCheckpointForm(){
+formData.target=document.getElementById('cf-target').value;
+formData.by=document.getElementById('cf-by').value;
+formData.threshold=parseInt(document.getElementById('cf-thresh').value)||80;
+formData.metric=document.getElementById('cf-metric').value;
+}
+function saveCheckpointForm(){
+if(!formData.target){alert('Target description required');return}
+if(editId){const idx=checkpoints.findIndex(c=>c.id===editId);if(idx>=0)checkpoints[idx]={...formData}}
+else{checkpoints.push({...formData})}
+saveState();closeForm();
+}
+function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveState();render()}
+// ─── RESOURCES TAB ───
+function renderResourcesTab(){
+return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
+<h3 style="color:#93c5fd">📚 Study Resources</h3>
+${(RELATED_COURSES.length ? '<div class="res-group"><h4>Related Courses</h4>'
+  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span> <strong>'+c.title+'</strong><small>'+c.desc+'</small></a>'}).join('')
+  +'</div>' : '')}
+<div class="res-group">
+<h4>Official API Docs</h4>
+<a class="res-link" href="https://www.dash0.com/documentation/dash0/api" target="_blank" rel="noopener">Dash0 API Reference<small>Full API documentation — all endpoints, request/response formats</small></a>
+<a class="res-link" href="https://www.dash0.com/documentation/dash0/key-concepts/auth-tokens" target="_blank" rel="noopener">Auth Tokens<small>How to create and use Bearer tokens for all API calls</small></a>
+<a class="res-link" href="https://www.dash0.com/documentation/dash0/key-concepts/endpoints" target="_blank" rel="noopener">Region Endpoints<small>Ingestion and API endpoint hostnames by region</small></a>
+</div>
+<div class="res-group">
+<h4>OpenTelemetry</h4>
+<a class="res-link" href="https://opentelemetry.io/docs/specs/otlp/" target="_blank" rel="noopener">OTLP Specification<small>Official OpenTelemetry Protocol specification — HTTP and gRPC formats</small></a>
+<a class="res-link" href="https://opentelemetry.io/docs/collector/" target="_blank" rel="noopener">OTel Collector Docs<small>Configure the otlp exporter to send to Dash0</small></a>
+<a class="res-link" href="https://opentelemetry.io/docs/specs/semconv/resource/" target="_blank" rel="noopener">Resource Semantic Conventions<small>Standard attribute names like service.name, deployment.environment</small></a>
+</div>
+<div class="res-group">
+<h4>Prometheus & Perses</h4>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/api/" target="_blank" rel="noopener">Prometheus HTTP API Reference<small>Full /query, /query_range, /labels, /series endpoint docs</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/querying/basics/" target="_blank" rel="noopener">PromQL Basics<small>Label matchers, operators, and query structure</small></a>
+<a class="res-link" href="https://perses.dev/docs/" target="_blank" rel="noopener">Perses Dashboard Docs<small>Open-source dashboard format used by the Dash0 Management API</small></a>
+</div>
+<div class="res-group">
+<h4>Integrations & IaC</h4>
+<a class="res-link" href="https://registry.terraform.io/providers/dash0hq/dash0" target="_blank" rel="noopener">Dash0 Terraform Provider<small>Manage dashboards and check-rules as Terraform resources</small></a>
+<a class="res-link" href="https://github.com/dash0hq/dash0-cli" target="_blank" rel="noopener">Dash0 CLI on GitHub<small>CLI source — shows how each command maps to a Management API call</small></a>
+<a class="res-link" href="https://prometheus.io/docs/prometheus/latest/storage/#remote-storage-integrations" target="_blank" rel="noopener">Prometheus remote_write<small>How to configure Prometheus to push metrics to Dash0</small></a>
+</div>
+</div>`;}
+function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
+function askResetSection(key){const names={quiz:"Quiz",cards:"Flashcard",scenarios:"Scenario",rapid:"Rapid Fire",exercises:"Exercise"};confirmMsg="Reset "+names[key]+" progress?";confirmAction=key;showConfirm=true;render()}
+function cancelConfirm(){showConfirm=false;confirmAction=null;render()}
+function execConfirm(){if(confirmAction==="all"){resetAll()}else if(confirmAction){resetSection(confirmAction);showConfirm=false;confirmAction=null;render()}}
+function showExportData(){showExport=!showExport;render()}
+function showImportPrompt(){
+const area=document.getElementById("importArea");
+if(area.innerHTML){area.innerHTML="";return}
+area.innerHTML=`<textarea id="importInput" style="width:100%;height:80px;background:#0d1117;color:#6ee7b7;border:1px solid #374151;border-radius:8px;padding:8px;font-family:monospace;font-size:11px;margin-top:8px" placeholder="Paste exported data here..."></textarea><button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px;font-size:13px" onclick="doImport()">Import Data</button>`;
+}
+function doImport(){
+const input=document.getElementById("importInput");
+if(input&&input.value){
+const ok=importState(input.value);
+if(ok){mode="dashboard";render()}
+else{alert("Invalid data format")}
+}
+}
+// ─── ASK CLAUDE ───
+function askClaudeBox(context){
+return`<div class="ask-box">
+<div class="ask-label">🔍 Go deeper — ask Claude</div>
+<div class="ask-row">
+<input type="text" id="askInput" placeholder="e.g., How does Workload Identity actually work?" onkeydown="if(event.key==='Enter')askClaude('${context.replace(/'/g,"\\'")}')">
+<button onclick="askClaude('${context.replace(/'/g,"\\'")}')">Ask</button>
+</div>
+</div>`}
+function askClaude(context){
+const input=document.getElementById('askInput');
+if(!input||!input.value.trim())return;
+const q=input.value.trim();
+const prompt=`I'm studying the Dash0 API (as a Solutions Architect / Engineer at Dash0, an observability company). I'm currently studying: ${context}\n\nMy question: ${q}\n\nPlease give me a clear, practical answer. Include specific details, curl examples, or comparisons where helpful. If this relates to Dash0, OTLP, PromQL, or observability APIs, include relevant technical context.`;
+navigator.clipboard.writeText(prompt).then(()=>{
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+}).catch(()=>{
+const ta=document.createElement('textarea');ta.value=prompt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+});
+input.value='';
+}
+function showToast(msg){
+const existing=document.querySelector('.ask-toast');if(existing)existing.remove();
+const t=document.createElement('div');t.className='ask-toast';t.textContent=msg;document.body.appendChild(t);
+setTimeout(()=>t.remove(),3000);
+}
+// ─── ICS EXPORT ───
+function toggleIcsPanel(){
+icsOpen=!icsOpen;
+if(icsOpen){icsSelected=new Set();icsPhaseFilter='all';schedule.forEach(s=>icsSelected.add(s.id))}
+render();
+}
+function icsFilterPhase(p){
+icsPhaseFilter=p;
+icsSelected=new Set();
+const filtered=p==='all'?schedule:schedule.filter(s=>s.phase==p);
+filtered.forEach(s=>icsSelected.add(s.id));
+render();
+}
+function icsToggle(id){if(icsSelected.has(id))icsSelected.delete(id);else icsSelected.add(id);render()}
+function icsSelectAll(){const visible=icsVisibleSessions();visible.forEach(s=>icsSelected.add(s.id));render()}
+function icsSelectNone(){icsSelected.clear();render()}
+function icsVisibleSessions(){return icsPhaseFilter==='all'?[...schedule]:schedule.filter(s=>s.phase==icsPhaseFilter)}
+function renderIcsPanel(){
+if(!icsOpen)return'';
+const visible=icsVisibleSessions().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const phases=[...new Set(schedule.map(s=>s.phase).filter(Boolean))].sort();
+let h=`<div class="ics-panel">
+<h4>📅 Export to Calendar</h4>
+<div class="ics-filters">
+<button class="${icsPhaseFilter==='all'?'active':''}" onclick="icsFilterPhase('all')">All Sessions</button>
+${phases.map(p=>`<button class="${icsPhaseFilter==p?'active':''}" onclick="icsFilterPhase(${p})">Phase ${p}</button>`).join('')}
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button style="background:none;border:none;color:#3b82f6;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectAll()">Select all</button>
+<span style="color:#374151;font-size:12px">|</span>
+<button style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectNone()">Select none</button>
+</div>
+<div class="ics-count">${icsSelected.size} of ${visible.length} session${visible.length!==1?'s':''} selected</div>
+<div class="ics-list">`;
+visible.forEach(s=>{
+const on=icsSelected.has(s.id);
+h+=`<div class="ics-item" onclick="icsToggle('${s.id}')">
+<div class="ics-check${on?' on':''}">${on?'✓':''}</div>
+<div class="ics-item-info"><div class="ics-item-title">${s.title}</div><div class="ics-item-date">${fmtDate(s.date)} · ${s.time} · ${s.dur} min</div></div>
+</div>`});
+h+=`</div>
+<div class="ics-actions">
+<button class="btn btn-secondary" onclick="toggleIcsPanel()">Cancel</button>
+<button class="ics-dl" ${icsSelected.size===0?'disabled style="opacity:.4;cursor:default" ':''}onclick="${icsSelected.size?'downloadIcs()':''}">Download .ics (${icsSelected.size})</button>
+</div></div>`;
+return h;
+}
+function downloadIcs(){
+const selected=schedule.filter(s=>icsSelected.has(s.id)).sort((a,b)=>a.date.localeCompare(b.date));
+if(!selected.length)return;
+const pad=n=>(n<10?'0':'')+n;
+const toIcsDate=(d,t,dur)=>{
+const[y,m,dy]=d.split('-').map(Number);
+const[h,mi]=(t||'09:00').split(':').map(Number);
+const start=new Date(y,m-1,dy,h,mi);
+const end=new Date(start.getTime()+dur*60000);
+const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+return{start:fmt(start),end:fmt(end)};
+};
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Study Sessions\r\n`;
+selected.forEach(s=>{
+const{start,end}=toIcsDate(s.date,s.time,s.dur);
+const desc=(s.desc||'').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+cal+=`BEGIN:VEVENT\r\nUID:${uid()}@crashcourse\r\nDTSTART:${start}\r\nDTEND:${end}\r\nSUMMARY:${s.title.replace(/,/g,'\\,')}\r\nDESCRIPTION:${desc}\r\n`;
+if(s.phase)cal+=`CATEGORIES:Phase ${s.phase}\r\n`;
+cal+=`STATUS:CONFIRMED\r\nBEGIN:VALARM\r\nTRIGGER:-PT10M\r\nACTION:DISPLAY\r\nDESCRIPTION:Study session starting soon\r\nEND:VALARM\r\nEND:VEVENT\r\n`;
+});
+cal+=`END:VCALENDAR`;
+const blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download='study-sessions.ics';a.click();
+URL.revokeObjectURL(url);
+showToast(`Downloaded ${selected.length} session${selected.length!==1?'s':''} as .ics`);
+icsOpen=false;render();
+}
+// ─── INIT ───
+render();
+</script>
+</body>
+</html>
