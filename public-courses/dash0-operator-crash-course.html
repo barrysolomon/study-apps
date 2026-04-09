@@ -1,0 +1,1349 @@
+<!--
+  CRASH COURSE TEMPLATE — Search for "TODO" (~16 places to customize)
+
+  Built from the full-featured crash course engine. All code is working.
+  Just replace the placeholder content with your topic-specific material.
+
+  FEATURES: Dashboard (drilldown stats), Learn (lessons+exercises), Cards (flashcards),
+  Quiz (per-section + Final Exam), Drills (scenarios), Rapid Fire (timed),
+  More (settings/schedule/checkpoints/resources/ICS export),
+  Google Sheets cloud sync (optional — set SYNC_SHEET_URL to enable)
+
+  Role selector, session history, persistent progress, cross-device sync, responsive dark theme.
+  
+  DATA STRUCTURES:
+  FLASHCARDS: {f, b, c, u}
+  QUIZ: {q, o:[], a, cat, u, e}  — e: field can include "🟢 Dash0 angle: ..." for product positioning
+  SCENARIOS: {q, a, u:[]}
+  RAPID: {q, a, t, u}
+  LESSONS: {id, title, time, week, icon, body, sources:[], exercises:[{task,hint,url}]}
+  SCHEDULE: {id, date, time, dur, title, desc, phase}
+  CHECKPOINTS: {id, target, by, metric, threshold}
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dash0 Operator Crash Course</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:700}.header small{font-size:12px;color:#6b7280}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500}
+.content{padding:16px;padding-bottom:100px;min-height:calc(100vh - 130px)}
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:960px;margin:0 auto;background:rgba(10,10,15,.95);border-top:1px solid #1f2937;padding:8px;display:flex;justify-content:space-around;gap:4px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav button{display:flex;flex-direction:column;align-items:center;padding:6px 6px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;min-width:46px;flex:1}
+.nav button.active{background:#10b981;color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.nav button span{font-size:18px;margin-bottom:2px}
+.card{border-radius:16px;padding:20px;min-height:200px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:all .3s;user-select:none;-webkit-user-select:none}
+.card.question{background:#1f2937;border:2px solid #374151}
+.card.answer{background:rgba(16,185,129,.1);border:2px solid rgba(16,185,129,.3)}
+.card-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.card-text{font-size:17px;line-height:1.5}
+.card-hint{font-size:12px;color:#4b5563;text-align:center;margin-top:16px}
+.fav-btn{position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.4;transition:all .2s;padding:4px;line-height:1}
+.fav-btn:hover{opacity:.7;transform:scale(1.2)}
+.fav-btn.active{opacity:1;filter:none}
+.btn-row{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.btn{padding:12px 20px;border-radius:12px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:#10b981;color:#fff}.btn-primary:hover{background:#059669}
+.btn-secondary{background:#1f2937;color:#d1d5db}.btn-secondary:hover{background:#374151}
+.btn-danger{background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.3);color:#fca5a5}
+.btn-success{background:rgba(16,185,129,.2);border:2px solid rgba(16,185,129,.3);color:#6ee7b7}
+.btn-full{width:100%;padding:14px;font-size:15px}
+.progress-bar{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.progress-track{width:100%;background:#1f2937;border-radius:999px;height:8px}
+.progress-fill{background:#10b981;height:8px;border-radius:999px;transition:width .5s}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{white-space:nowrap;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;border:none;cursor:pointer;transition:all .2s}
+.pill.active{background:#10b981;color:#fff}.pill:not(.active){background:#1f2937;color:#9ca3af}
+.quiz-option{text-align:left;padding:14px 16px;border-radius:12px;border:2px solid #374151;background:#1f2937;color:#d1d5db;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-bottom:10px;transition:all .2s}
+.quiz-option.correct{background:rgba(16,185,129,.15);border-color:#10b981;color:#6ee7b7}
+.quiz-option.wrong{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5}
+.quiz-option.dimmed{background:rgba(31,41,55,.5);border-color:#1f2937;color:#4b5563}
+.scenario-box{border-radius:16px;padding:20px;margin-bottom:16px}
+.scenario-q{background:rgba(239,68,68,.08);border:2px solid rgba(153,27,27,.4)}
+.scenario-a{background:rgba(16,185,129,.08);border:2px solid rgba(16,185,129,.3)}
+.scenario-reveal{background:#1f2937;border:2px solid #374151;text-align:center;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.timer{font-size:28px;font-family:monospace;font-weight:700}
+.timer.green{color:#10b981}.timer.yellow{color:#f59e0b}.timer.red{color:#ef4444}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:#1f2937;border-radius:12px;padding:12px;text-align:center;transition:all .2s;border:2px solid transparent}
+.stat-card:hover{border-color:#374151;background:#263040}
+.stat-icon{font-size:24px;margin-bottom:4px}.stat-val{font-size:20px;font-weight:700}.stat-label{font-size:11px;color:#6b7280}
+.focus-box{background:#1f2937;border-radius:16px;padding:16px}
+.focus-title{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.focus-text{font-size:14px;color:#d1d5db;line-height:1.6}
+.results-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0}
+.grade{font-size:56px;font-weight:700;text-align:center;margin-bottom:8px}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:50vh}
+.mgmt-section{background:#1f2937;border-radius:16px;padding:16px;margin-bottom:16px}
+.mgmt-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#d1d5db}
+.mgmt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151}
+.mgmt-row:last-child{border-bottom:none}
+.mgmt-row .label{font-size:13px;color:#9ca3af}
+.mgmt-row .value{font-size:13px;font-weight:600;color:#fff}
+.btn-outline{background:transparent;border:2px solid #374151;color:#9ca3af;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:#6b7280;color:#d1d5db}
+.btn-danger-solid{background:#dc2626;color:#fff;border:none;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger-solid:hover{background:#b91c1c}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.confirm-box{background:#1f2937;border:2px solid #374151;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #374151;font-size:12px}
+.history-item:last-child{border-bottom:none}
+.export-box{background:#0d1117;border:1px solid #374151;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#6ee7b7;word-break:break-all;max-height:120px;overflow-y:auto;margin-top:8px}
+.source-link{display:inline-flex;align-items:center;gap:4px;margin-top:12px;padding:6px 12px;border-radius:8px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#93c5fd;font-size:12px;font-weight:500;text-decoration:none;transition:all .2s}
+.source-link:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.source-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.res-group{margin-bottom:20px}
+.res-group h4{font-size:13px;font-weight:600;color:#6ee7b7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.res-link{display:block;padding:10px 12px;border-radius:10px;background:#1f2937;margin-bottom:6px;text-decoration:none;color:#93c5fd;font-size:13px;font-weight:500;border:1px solid #374151;transition:all .2s}
+.res-link:hover{background:#374151;border-color:#4b5563}
+.res-link small{display:block;color:#6b7280;font-size:11px;font-weight:400;margin-top:2px}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:4px}
+.lesson-card{background:#1f2937;border-radius:16px;padding:16px;cursor:pointer;border:2px solid #374151;transition:all .2s}
+.lesson-card:hover{border-color:#4b5563}
+.lesson-card.completed{border-color:rgba(16,185,129,.3)}
+.lesson-num{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.lesson-title{font-size:15px;font-weight:600;margin:4px 0}
+.lesson-meta{font-size:12px;color:#6b7280;display:flex;gap:12px}
+.lesson-body{padding:0}
+.lesson-section{margin-bottom:20px}
+.lesson-section h4{font-size:13px;font-weight:600;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.lesson-text{font-size:14px;color:#d1d5db;line-height:1.7}
+.lesson-text p{margin-bottom:10px}
+.lesson-highlight{background:rgba(16,185,129,.08);border-left:3px solid #10b981;padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0;font-size:13px;color:#d1fae5;line-height:1.5}
+.lesson-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.lesson-compare-item{background:#0d1117;border-radius:10px;padding:10px;font-size:12px;line-height:1.5}
+.lesson-compare-item .compare-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.exercise-box{background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.2);border-radius:14px;padding:14px;margin-bottom:10px}
+.exercise-box .ex-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.exercise-box .ex-task{font-size:13px;color:#ddd6fe;line-height:1.5;margin-bottom:8px}
+.exercise-box .ex-hint{font-size:12px;color:#6b7280;font-style:italic}
+.exercise-check{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
+.exercise-check .checkbox{width:22px;height:22px;border-radius:6px;border:2px solid #374151;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0}
+.exercise-check .checkbox.checked{background:#10b981;border-color:#10b981}
+.exercise-check .ex-text{font-size:13px;color:#d1d5db}
+.ex-steps-toggle{background:none;border:1px solid rgba(139,92,246,.25);color:#a78bfa;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;margin-top:6px;font-family:inherit;transition:all .2s}
+.ex-steps-toggle:hover{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4)}
+.ex-steps{display:none;margin-top:8px;padding:10px 12px;background:rgba(139,92,246,.04);border-radius:8px;border:1px solid rgba(139,92,246,.12)}
+.ex-steps.open{display:block}
+.ex-steps ol{margin:0;padding-left:20px;font-size:13px;color:#c4b5fd;line-height:1.7}
+.ex-steps li{margin-bottom:4px}
+.ex-steps code{background:#1f2937;padding:2px 6px;border-radius:4px;font-size:12px;color:#a5f3fc}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:none;background:#1f2937;color:#9ca3af;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px}
+.sched-item{background:#1f2937;border-radius:12px;padding:12px;margin-bottom:8px;border:2px solid #374151;transition:all .2s}
+.sched-item.today{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.sched-item.past{opacity:.5}
+.sched-item.done{border-color:rgba(16,185,129,.3);opacity:.7}
+.sched-item .si-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sched-item .si-date{font-size:11px;color:#6b7280;font-weight:600}
+.sched-item .si-dur{font-size:10px;color:#4b5563;background:#0d1117;padding:2px 8px;border-radius:6px}
+.sched-item .si-title{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:2px}
+.sched-item .si-desc{font-size:12px;color:#9ca3af;line-height:1.4}
+.sched-item .si-actions{display:flex;gap:6px;margin-top:8px}
+.sched-item .si-actions button{padding:6px 10px;border-radius:8px;border:none;font-size:11px;font-weight:500;cursor:pointer}
+.cp-item{background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;margin-bottom:8px}
+.cp-item.hit{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.cp-item .cp-target{font-size:14px;font-weight:600;color:#fde68a}
+.cp-item.hit .cp-target{color:#6ee7b7;text-decoration:line-through}
+.cp-item .cp-date{font-size:11px;color:#6b7280}
+.form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.form-sheet{background:#111827;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.form-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:12px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.form-field input,.form-field textarea,.form-field select{width:100%;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:14px;font-family:inherit}
+.form-field textarea{min-height:60px;resize:vertical}
+.form-field input:focus,.form-field textarea:focus,.form-field select:focus{outline:none;border-color:#10b981}
+.ask-box{background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.15);border-radius:14px;padding:14px;margin-top:16px}
+.ask-box .ask-label{font-size:11px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ask-box .ask-row{display:flex;gap:8px}
+.ask-box input{flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#fff;font-size:13px;font-family:inherit}
+.ask-box input:focus{outline:none;border-color:#a78bfa}
+.ask-box input::placeholder{color:#4b5563}
+.ask-box button{padding:10px 14px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ask-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:200;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ics-panel{background:#111827;border:2px solid #374151;border-radius:16px;padding:16px;margin-bottom:16px}
+.ics-panel h4{font-size:13px;font-weight:600;color:#93c5fd;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.ics-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ics-filters button{padding:5px 10px;border-radius:8px;border:2px solid #374151;background:#1f2937;color:#9ca3af;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.ics-filters button.active{border-color:#3b82f6;background:rgba(59,130,246,.15);color:#93c5fd}
+.ics-list{max-height:320px;overflow-y:auto;margin-bottom:12px}
+.ics-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2937;font-size:13px}
+.ics-item:last-child{border-bottom:none}
+.ics-check{width:20px;height:20px;border-radius:5px;border:2px solid #374151;background:#0d1117;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+.ics-check.on{border-color:#3b82f6;background:rgba(59,130,246,.2);color:#93c5fd}
+.ics-item-info{flex:1;min-width:0}
+.ics-item-title{font-weight:500;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ics-item-date{font-size:11px;color:#6b7280}
+.ics-actions{display:flex;gap:8px;margin-top:4px}
+.ics-actions button{flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.ics-dl{background:#3b82f6;color:#fff}
+.ics-dl:hover{background:#2563eb}
+.ics-count{font-size:12px;color:#6b7280;margin-bottom:8px}
+@media(min-width:600px){
+body{max-width:960px;padding:0 24px}
+.header{padding:20px 0 12px}
+.header h1{font-size:22px}
+.content{padding:20px 0 100px}
+.nav{padding:10px 16px;gap:8px;border-radius:16px 16px 0 0}
+.nav button{min-width:auto;padding:8px 14px;font-size:12px;flex-direction:row;gap:6px;border-radius:10px}
+.nav button span{font-size:16px;margin-bottom:0}
+.stat-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:16px}
+.stat-val{font-size:22px}
+.card{max-width:640px;margin:0 auto;min-height:240px;padding:28px}
+.card-text{font-size:18px}
+.quiz-option{font-size:15px;padding:16px 20px}
+.scenario-box{max-width:700px}
+.lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lesson-card{margin-bottom:0}
+.mgmt-section{max-width:700px}
+.form-sheet{max-width:560px;border-radius:20px;margin:auto}
+.form-overlay{align-items:center}
+.res-group{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.res-group h4{grid-column:1/-1}
+.focus-box{max-width:700px}
+.sched-item{max-width:700px}
+.ics-panel{max-width:700px}
+.cp-item{max-width:700px}
+.pills{flex-wrap:wrap}
+.ask-box{max-width:640px;margin:16px auto 0}
+.confirm-box{max-width:400px}
+.source-links{justify-content:flex-start}
+}
+@media(min-width:800px){
+body{max-width:1100px}
+.nav{max-width:1100px}
+.stat-grid{grid-template-columns:repeat(4,1fr)}
+.lesson-grid{grid-template-columns:repeat(3,1fr)}
+.card{max-width:700px}
+.res-group{grid-template-columns:repeat(3,1fr)}
+}
+.role-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.role-picker{max-width:520px;width:92%;padding:28px 20px;text-align:center}
+.role-picker h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.role-picker .rp-sub{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5}
+.role-cards{display:flex;flex-direction:column;gap:12px}
+.role-card{background:#1f2937;border:2px solid #374151;border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;text-align:left}
+.role-card:hover{border-color:#10b981;background:#263040}
+.role-card .rc-icon{font-size:28px;margin-bottom:8px}
+.role-card .rc-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.role-card .rc-desc{font-size:13px;color:#9ca3af;line-height:1.4}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.role-badge.core{background:rgba(16,185,129,.15);color:#6ee7b7}
+.role-badge.bonus{background:rgba(107,114,128,.15);color:#6b7280}
+.role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
+.role-current:hover{border-color:#10b981;background:#263040}
+.fs-s .card-text,.fs-s .lesson-text,.fs-s .quiz-option,.fs-s .scenario-box,.fs-s .scenario-q,.fs-s .scenario-a,.fs-s .focus-text{font-size:13px}
+.fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-option,.fs-m .scenario-box,.fs-m .scenario-q,.fs-m .scenario-a,.fs-m .focus-text{font-size:15px}
+.fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-option,.fs-l .scenario-box,.fs-l .scenario-q,.fs-l .scenario-a,.fs-l .focus-text{font-size:17px}
+.fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-option,.fs-xl .scenario-box,.fs-xl .scenario-q,.fs-xl .scenario-a,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1><!-- TODO: Course title -->Dash0 Operator Crash Course</h1><small><!-- TODO: Subtitle -->From Helm install to production-grade auto-instrumentation</small></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="header-role"></div>
+<div class="badge">Self-Paced</div>
+<span id="app-version" style="font-size:9px;color:#6b7280;font-weight:400;letter-spacing:.3px"></span><span id="sync-badge" style="font-size:11px;color:#6b7280;margin-left:8px;cursor:help"></span>
+</div>
+</div>
+<div class="content" id="app"></div>
+<div class="nav" id="nav"></div>
+<script>
+// ─── DATA ───
+const FLASHCARDS=[
+// TODO: Add 40-60 flashcards. Each: {f:"front", b:"back", c:"Category", u:"https://source-url"}
+// Categories: Fundamentals, Installation & Helm, Auto-Instrumentation, Export Configuration, Telemetry Pipeline, Prometheus & Perses, Advanced Operations, Pitch & Positioning
+];
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CRASH COURSE CONFIGURATION                                 ║
+// ║  Search for "TODO" to find all customization points          ║
+// ╚══════════════════════════════════════════════════════════════╝
+const APP_VERSION='v1.0'; // Content version — bump when you update questions/content
+const PLATFORM_VERSION='v3.1'; // Engine version — matches the crash-course-builder skill version
+const COURSE_TITLE='Dash0 Operator Crash Course';
+// ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
+// TODO: (Optional) Paste your Google Apps Script Web App URL to enable cross-device sync. See google-sheets-sync-setup.md for instructions.
+let SYNC_SHEET_URL='';
+let SYNC_USER_ID=''; // Optional: identifies this user in shared sync sheets
+// TODO: Define your content categories (first must be "All")
+const CATEGORIES=["All","Fundamentals","Installation & Helm","Auto-Instrumentation","Export Configuration","Telemetry Pipeline","Prometheus & Perses","Advanced Operations","Pitch & Positioning"];
+// TODO: Define 3 learner roles with coreCategories, coreLessons, categoryOrder
+const ROLE_CONFIG={
+role1:{label:'Sales Rep',icon:'💼',desc:'Conversational fluency. Zero-code story, competitive positioning, objection handling.',
+coreCategories:['Fundamentals','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-3','lesson-8'],
+categoryOrder:['All','Fundamentals','Pitch & Positioning','Auto-Instrumentation','Installation & Helm','Export Configuration','Telemetry Pipeline','Prometheus & Perses','Advanced Operations']},
+role2:{label:'Solutions Architect',icon:'🏗️',desc:'Demo-ready working knowledge. CRD hierarchy, export patterns, namespace strategies.',
+coreCategories:['Fundamentals','Installation & Helm','Auto-Instrumentation','Export Configuration','Prometheus & Perses','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-8'],
+categoryOrder:['All','Fundamentals','Installation & Helm','Auto-Instrumentation','Export Configuration','Telemetry Pipeline','Prometheus & Perses','Advanced Operations','Pitch & Positioning']},
+role3:{label:'Engineer / DevOps',icon:'⚡',desc:'Deep technical. Helm values, CRD specs, collector architecture, OTTL filters, troubleshooting.',
+coreCategories:['Fundamentals','Installation & Helm','Auto-Instrumentation','Export Configuration','Telemetry Pipeline','Prometheus & Perses','Advanced Operations','Pitch & Positioning'],
+coreLessons:['lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','lesson-6','lesson-7','lesson-8'],
+categoryOrder:['All','Installation & Helm','Auto-Instrumentation','Export Configuration','Telemetry Pipeline','Prometheus & Perses','Advanced Operations','Fundamentals','Pitch & Positioning']}
+};
+// TODO: Add related courses for cross-linking. Each entry: {title, url, icon, desc}
+const RELATED_COURSES=[
+{title:"Dash0 CLI Crash Course",url:"dash0-cli-crash-course.html",icon:"🖥️",desc:"Manage dashboards and query telemetry via terminal"},
+{title:"Dash0 API Crash Course",url:"dash0-api-crash-course.html",icon:"🌐",desc:"Direct HTTP access — the API the operator talks to"},
+{title:"Dash0 Terraform Crash Course",url:"dash0-terraform-crash-course.html",icon:"🏗️",desc:"Terraform provider for Dash0 resources"}
+];
+const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
+const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
+// TODO: Add 30-50 quiz questions. Each: {q:"question", o:["A","B","C","D"], a:correctIndex, cat:"Category", u:"url", e:"explanation"}
+// Distribute proportionally across categories. The quiz picker auto-generates from cat values.
+// PRODUCT POSITIONING: Where relevant, append " 🟢 Dash0 angle: [1-2 sentences]" to the e: field.
+// This helps learners connect technical facts to product positioning. Skip for questions with no natural connection.
+const QUIZ=[
+// TODO: Add 30-50 quiz questions. Each: {q:"question", o:["A","B","C","D"], a:correctIndex, cat:"Category", u:"url", e:"explanation"}
+// Distribute proportionally across categories. Where relevant, append " 🟢 Dash0 angle: ..." to the e: field.
+];
+// TODO: Add 8-12 scenario drills. Each: {q:"situation", a:"suggested response", u:["url1","url2"]}
+const SCENARIOS=[
+// TODO: Add 8-12 scenario drills. Each: {q:"situation", a:"suggested response", u:["url1","url2"]}
+// Cover: objection handling, technical deep-dives, competitive positioning, troubleshooting scenarios
+];
+// TODO: Add 10-15 rapid fire questions. Each: {q:"question", a:"short answer", t:secondsAllowed, u:"url"}
+const RAPID=[
+// TODO: Add 10-15 rapid fire questions. Each: {q:"question", a:"short answer", t:secondsAllowed, u:"url"}
+// Cover: CRD names, Helm flags, port numbers, CLI commands, key concepts
+];
+// ─── LESSONS ───
+// TODO: Add 6-10 lessons. Each: {id, title, time, week, icon, body (HTML string), sources:[], exercises:[{task,hint,url}]}
+const LESSONS=[
+// TODO: Add 6-10 lessons. Each: {id, title, time, week, icon, body (HTML string), sources:[], exercises:[{task,hint,url}]}
+// Suggested lessons:
+// lesson-1: Operator Overview & CRD Hierarchy (Fundamentals) — week 1
+// lesson-2: Helm Install & Configuration (Installation & Helm) — week 1
+// lesson-3: Auto-Instrumentation Deep Dive (Auto-Instrumentation) — week 1
+// lesson-4: Export Configuration Patterns (Export Configuration) — week 2
+// lesson-5: Telemetry Pipeline & Collector Architecture (Telemetry Pipeline) — week 2
+// lesson-6: Prometheus & Perses Integration (Prometheus & Perses) — week 2
+// lesson-7: Advanced Operations & Troubleshooting (Advanced Operations) — week 3
+// lesson-8: Pitch, Positioning & Competitive (Pitch & Positioning) — week 3
+];
+// ─── DEFAULT SCHEDULE ───
+// TODO: Add 10-20 study sessions. Each: {id, date, time, dur (minutes), title, desc, phase}
+const DEFAULT_SESSIONS=[
+{id:"s1",date:"2026-04-14",time:"09:00",dur:30,title:"Operator Foundations",desc:"Lessons 1-2. CRD hierarchy, Helm install, basic config.",phase:1},
+{id:"s2",date:"2026-04-15",time:"09:00",dur:30,title:"Auto-Instrumentation",desc:"Lesson 3. Runtimes, init containers, opt-in vs opt-out.",phase:1},
+{id:"s3",date:"2026-04-16",time:"09:00",dur:30,title:"Flashcards + Scenarios",desc:"All flashcards by category. Practice first 4 scenarios.",phase:1},
+{id:"s4",date:"2026-04-21",time:"09:00",dur:45,title:"Export + Pipeline",desc:"Lessons 4-5. Dash0/gRPC/HTTP exports, collector architecture.",phase:2},
+{id:"s5",date:"2026-04-22",time:"09:00",dur:45,title:"Prometheus & Perses",desc:"Lesson 6. Annotation scraping, CRD support, dashboard sync.",phase:2},
+{id:"s6",date:"2026-04-23",time:"09:00",dur:30,title:"Advanced Ops + Competitive",desc:"Lessons 7-8. Self-monitoring, profiling, troubleshooting, positioning.",phase:3},
+{id:"s7",date:"2026-04-24",time:"09:00",dur:45,title:"Final Review",desc:"All scenarios, rapid fire 85%+, final exam. Review weak areas.",phase:3},
+];
+// TODO: Add 5-8 checkpoints. Each: {id, target, by (date), metric, threshold}
+// Metrics: 'bestQuiz','bestRapid','cards','scenarios','exercises'
+const DEFAULT_CHECKPOINTS=[
+{id:"cp1",target:"Score 80%+ on Fundamentals quiz",by:"2026-04-16",metric:"bestQuiz",threshold:80},
+{id:"cp2",target:"Complete all Phase 1 exercises",by:"2026-04-17",metric:"exercises",threshold:40},
+{id:"cp3",target:"Rapid fire 85%+",by:"2026-04-23",metric:"bestRapid",threshold:85},
+{id:"cp4",target:"Score 90%+ on Final Exam",by:"2026-04-24",metric:"bestQuiz",threshold:90},
+];
+// ─── PERSISTENCE ───
+// TODO: Change storage key to something unique for your course
+const STORAGE_KEY="dash0-operator-cc";
+function saveState(){
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}catch(e){}
+debouncedCloudSave();
+}
+function loadState(){
+try{
+const raw=localStorage.getItem(STORAGE_KEY);
+if(!raw)return null;
+return JSON.parse(raw);
+}catch(e){return null}
+}
+function exportState(){
+try{return localStorage.getItem(STORAGE_KEY)||"{}"}catch(e){return"{}"}
+}
+function importState(json){
+try{
+const data=JSON.parse(json);
+if(data.stats){stats={...stats,...data.stats}}
+if(data.history){sessionHistory=data.history}
+saveState();render();return true;
+}catch(e){return false}
+}
+// ─── CLOUD SYNC ENGINE (offline-resilient) ───
+let syncStatus='idle',lastSyncAt=null,syncPending=false;
+function syncEnabled(){return typeof SYNC_SHEET_URL==='string'&&SYNC_SHEET_URL.length>10}
+function getSyncKey(){return SYNC_USER_ID?(SYNC_USER_ID+'/'+STORAGE_KEY):STORAGE_KEY}
+function isOnline(){return typeof navigator!=='undefined'?navigator.onLine:true}
+async function cloudSave(){
+if(!syncEnabled()){syncPending=false;return}
+if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
+syncStatus='syncing';updateSyncUI();
+try{
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
+await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
+method:'POST',headers:{'Content-Type':'text/plain'},
+body:JSON.stringify({data,savedAt:data.savedAt})
+});
+syncStatus='synced';lastSyncAt=new Date().toISOString();syncPending=false;
+}catch(e){
+syncStatus=isOnline()?'error':'offline';syncPending=true;
+console.warn('Cloud sync save failed:',e);
+}
+updateSyncUI();
+}
+async function cloudLoad(){
+if(!syncEnabled())return null;
+if(!isOnline()){syncStatus='offline';updateSyncUI();return null}
+syncStatus='syncing';updateSyncUI();
+try{
+const resp=await fetch(SYNC_SHEET_URL+'?action=load&key='+encodeURIComponent(getSyncKey()));
+const json=await resp.json();
+syncStatus='synced';lastSyncAt=new Date().toISOString();updateSyncUI();
+if(json.ok&&json.data)return json;
+return null;
+}catch(e){syncStatus=isOnline()?'error':'offline';updateSyncUI();console.warn('Cloud sync load failed:',e);return null}
+}
+function updateSyncUI(){
+const el=document.getElementById('sync-badge');
+if(!el)return;
+const icons={idle:'☁️',syncing:'⟳',synced:'✓',error:'✕',offline:'⏸'};
+const colors={idle:'#6b7280',syncing:'#f59e0b',synced:'#10b981',error:'#ef4444',offline:'#6b7280'};
+const titles={idle:'Cloud sync ready',syncing:'Syncing...',synced:'Synced'+(lastSyncAt?' '+new Date(lastSyncAt).toLocaleTimeString():''),error:'Sync error — will retry when online',offline:'Offline — will sync when reconnected'};
+el.textContent=icons[syncStatus]||'☁️';el.style.color=colors[syncStatus]||'#6b7280';el.title=titles[syncStatus]||'';
+}
+let syncTimer=null;
+function debouncedCloudSave(){
+if(!syncEnabled())return;
+if(syncTimer)clearTimeout(syncTimer);
+syncTimer=setTimeout(()=>cloudSave(),2000);
+}
+function saveSyncSettings(url,userId){
+SYNC_SHEET_URL=url.trim();
+SYNC_USER_ID=(userId||'').trim();
+try{
+if(SYNC_SHEET_URL)localStorage.setItem(STORAGE_KEY+'-sync-url',SYNC_SHEET_URL);
+else localStorage.removeItem(STORAGE_KEY+'-sync-url');
+if(SYNC_USER_ID)localStorage.setItem(STORAGE_KEY+'-sync-user',SYNC_USER_ID);
+else localStorage.removeItem(STORAGE_KEY+'-sync-user');
+}catch(e){}
+updateSyncUI();
+if(syncEnabled())cloudLoad().then(cloud=>{
+if(cloud&&cloud.data){
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();
+}
+render();
+}
+});
+}
+// Auto-sync when coming back online
+if(typeof window!=='undefined'){
+window.addEventListener('online',()=>{
+if(syncEnabled()&&syncPending){console.log('☁️ Back online — syncing pending changes');cloudSave()}
+else if(syncEnabled()){syncStatus='idle';updateSyncUI()}
+});
+window.addEventListener('offline',()=>{
+if(syncEnabled()){syncStatus='offline';updateSyncUI()}
+});
+}
+function resetAll(){
+stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;cardRatings={};
+try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
+showConfirm=false;mode="dashboard";render();
+}
+function resetSection(key){
+if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
+else if(key==="cards"){stats.cards=0;cardRatings={}}
+else if(key==="scenarios"){stats.scenarios=0}
+else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
+else if(key==="exercises"){exercisesDone={}}
+sessionHistory=sessionHistory.filter(h=>h.type!==key);
+saveState();render();
+}
+// ─── SESSION HISTORY ───
+let sessionHistory=[];
+function logSession(type,detail){
+sessionHistory.push({type,detail,ts:new Date().toISOString()});
+if(sessionHistory.length>50)sessionHistory=sessionHistory.slice(-50);
+saveState();
+}
+// ─── STATE ───
+let mode="dashboard",fcCat="All",fcDiff="All Levels",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
+let qzQs=[],qzIdx=0,qzSel=null,qzShow=false,qzScore=0,qzDone=false,qzMode=null; // qzMode: null=picker, category string, or "final"
+let scIdx=0,scRevealed=false,scPracticed=new Set();
+let rfState="ready",rfQs=[],rfIdx=0,rfTimer=0,rfResults=[],rfInterval=null;
+let stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0,quizScores:{}};
+let showConfirm=false,confirmAction=null,confirmMsg="",showExport=false;
+let learnView="list",learnIdx=0,exercisesDone={};
+let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
+let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
+let userRole=null,showRolePicker=false;
+let cardRatings={};
+// ─── LOAD SAVED STATE ───
+(function(){
+const saved=loadState();
+if(saved){
+if(saved.stats){stats={...stats,...saved.stats};if(!stats.quizScores)stats.quizScores={}}
+if(saved.history)sessionHistory=saved.history;
+if(saved.exercisesDone)exercisesDone=saved.exercisesDone;
+if(saved.schedule)schedule=saved.schedule;
+if(saved.checkpoints)checkpoints=saved.checkpoints;
+if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
+if(saved.userRole)userRole=saved.userRole;
+if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
+if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+if(saved.cardRatings)cardRatings=saved.cardRatings;
+}
+if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
+if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
+try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
+try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');const validFs=['fs-s','fs-m','fs-l','fs-xl'];const applyFs=validFs.includes(fs)?fs:'fs-m';document.body.classList.remove(...validFs);document.body.classList.add(applyFs)}catch(e){document.body.classList.add('fs-m')}
+})();
+// ─── CLOUD SYNC ON LOAD ───
+(async function(){
+if(!syncEnabled())return;
+const cloud=await cloudLoad();
+if(!cloud||!cloud.data)return;
+const local=loadState();
+const localTime=local&&local.savedAt?new Date(local.savedAt).getTime():0;
+const cloudTime=cloud.savedAt?new Date(cloud.savedAt).getTime():0;
+if(cloudTime>localTime){
+const d=cloud.data;
+if(d.stats){stats={...stats,...d.stats};if(!stats.quizScores)stats.quizScores={}}
+if(d.history)sessionHistory=d.history;
+if(d.exercisesDone)exercisesDone=d.exercisesDone;
+if(d.schedule)schedule=d.schedule;
+if(d.checkpoints)checkpoints=d.checkpoints;
+if(d.sessionsDone)sessionsDone=d.sessionsDone;
+if(d.userRole)userRole=d.userRole;
+if(d.fcFavs)fcFavs=new Set(d.fcFavs);
+if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
+saveState();render();
+console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
+}
+})();
+// ─── ROLE PICKER ───
+function renderRolePickerOverlay(){
+return`<div class="role-overlay">
+<div class="role-picker">
+<h2>What's your focus?</h2>
+<div class="rp-sub">This shapes which content surfaces first. You can still access everything — this just sets your starting point.</div>
+<div class="role-cards">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pickRole('${k}')">
+<div class="rc-icon">${v.icon}</div>
+<div class="rc-title">${v.label}</div>
+<div class="rc-desc">${v.desc}</div>
+</div>`).join('')}
+</div>
+</div>
+</div>`;
+}
+function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
+function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
+function fcRate(rating){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var card=cards[fcIdx%cards.length];
+  cardRatings[card.f]=rating;
+  stats.cards=(stats.cards||0)+1;
+  saveState();
+  fcFlipped=false;
+  // advance to next card
+  var next=fcGetCards();
+  if(next.length>0)fcIdx=(fcIdx+1)%next.length;
+  render();
+}
+
+function fcWeightedShuffle(){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var weighted=[];
+  cards.forEach(function(c,i){
+    var r=cardRatings[c.f];
+    var w=r==='missed'?3:r==='unsure'?2:1;
+    for(var j=0;j<w;j++)weighted.push(i);
+  });
+  fcIdx=weighted[Math.floor(Math.random()*weighted.length)];
+  fcFlipped=false;
+  render();
+}
+
+function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
+function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
+function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
+// ─── RENDER ───
+function render(){
+const app=document.getElementById("app");
+const nav=document.getElementById("nav");
+// Show role picker on first launch
+if(!userRole&&!showRolePicker){showRolePicker=true}
+let overlayHtml='';
+if(showRolePicker)overlayHtml=renderRolePickerOverlay();
+const modes=[["dashboard","🏠","Home"],["learn","📖","Learn"],["flashcards","📃","Cards"],["quiz","📝","Quiz"],["scenarios","💬","Drills"],["rapid","⚡","Rapid"],["manage","⚙️","More"]];
+nav.innerHTML=modes.map(([m,i,l])=>`<button class="${mode===m?'active':''}" onclick="setMode('${m}')"><span>${i}</span>${l}</button>`).join("");
+if(mode==="dashboard")renderDashboard(app);
+else if(mode==="flashcards")renderFlashcards(app);
+else if(mode==="quiz")renderQuiz(app);
+else if(mode==="scenarios")renderScenarios(app);
+else if(mode==="rapid")renderRapid(app);
+else if(mode==="learn")renderLearn(app);
+else if(mode==="manage")renderManage(app);
+// Update header role indicator
+const hdr=document.getElementById('header-role');
+if(hdr)hdr.innerHTML=userRole?`<span class="role-current" onclick="showRolePicker=true;render()">${ROLE_CONFIG[userRole].icon} ${ROLE_CONFIG[userRole].label.split(' ')[0]}</span>`:'';
+const verEl=document.getElementById('app-version');if(verEl)verEl.textContent=APP_VERSION;
+// Append role picker overlay if needed
+if(overlayHtml){const d=document.createElement('div');d.id='role-overlay-wrap';d.innerHTML=overlayHtml;const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove();document.body.appendChild(d)}else{const ex=document.getElementById('role-overlay-wrap');if(ex)ex.remove()}
+}
+function setMode(m){mode=m;render()}
+// ─── DASHBOARD ───
+function renderDashboard(el){
+const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
+const focus=(stats.quizzes||0)===0
+?"Start with Learn mode to build your foundation"
+:(stats.quizzes||0)<3
+?"Keep quizzing to reinforce the material"
+:"Great progress! Use Rapid mode to sharpen your speed";
+el.innerHTML=`
+<div style="text-align:center;margin-bottom:24px">
+<div style="font-size:20px;font-weight:700;color:#e5e7eb">${COURSE_TITLE||'TODO: Course Title'}</div>
+<div style="font-size:14px;color:#6b7280;margin-top:6px">Pick a mode to start &rarr; learn &rarr; quiz &rarr; drills</div>
+</div>
+<div class="stat-grid">
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.quizzes||0}</div><div class="stat-label">Quizzes Taken</div></div>
+<div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-num">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</div><div class="stat-label">Best Quiz</div></div>
+<div class="stat-card" onclick="setMode('flashcards')" style="cursor:pointer"><div class="stat-num">${stats.cards||0}</div><div class="stat-label">Cards Flipped</div></div>
+<div class="stat-card" onclick="setMode('scenarios')" style="cursor:pointer"><div class="stat-num">${stats.scenarios||0}</div><div class="stat-label">Scenarios Done</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.rapid||0}</div><div class="stat-label">Rapid Rounds</div></div>
+<div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-num">${stats.bestRapid||'—'}</div><div class="stat-label">Best Rapid</div></div>
+<div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-num">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
+</div>
+<div class="focus-box"><div class="focus-title">Your Focus</div><div class="focus-text">${focus}</div></div>
+${renderDashSchedule()}`;
+}
+function renderDashSchedule(){
+const today=new Date().toISOString().slice(0,10);
+const nextSession=schedule.filter(s=>s.date>=today&&!sessionsDone[s.id]).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))[0];
+const nextCp=checkpoints.filter(cp=>{
+const met=getMetricVal(cp.metric);return met<cp.threshold&&cp.by>=today;
+}).sort((a,b)=>a.by.localeCompare(b.by))[0];
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">`;
+if(nextCp){
+h+=`<div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Next Checkpoint</div><div style="font-size:14px;font-weight:600;color:#fde68a;margin-top:2px">${nextCp.target}</div></div>
+<div style="text-align:right"><div style="font-size:11px;color:#6b7280">by ${fmtDate(nextCp.by)}</div><div style="font-size:13px;font-weight:600;color:#fff">${getMetricVal(nextCp.metric)}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''} / ${nextCp.threshold}${nextCp.metric.includes('uiz')||nextCp.metric.includes('apid')||nextCp.metric==='exercises'?'%':''}</div></div></div>`;
+}
+if(nextSession){
+const isToday=nextSession.date===today;
+h+=`<div style="background:#1f2937;border:1px solid ${isToday?'rgba(16,185,129,.4)':'#374151'};border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">
+<div><div style="font-size:11px;color:${isToday?'#10b981':'#6b7280'};font-weight:600">${isToday?'TODAY':'NEXT UP'} · ${fmtDate(nextSession.date)} · ${nextSession.time}</div><div style="font-size:14px;font-weight:600;color:#e5e7eb;margin-top:2px">${nextSession.title}</div></div>
+<div style="font-size:11px;color:#6b7280;white-space:nowrap">${nextSession.dur} min →</div></div>`;
+}
+h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+<div style="font-size:12px;color:#6b7280">${doneCount}/${schedule.length} sessions done</div>
+<button style="background:none;border:none;color:#10b981;font-size:12px;font-weight:600;cursor:pointer" onclick="setMode('manage');schedView='schedule';render()">Full schedule →</button>
+</div></div>`;
+return h;
+}
+function schedItemHtml(s,isToday){
+const done=sessionsDone[s.id];
+return`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button></div>`:`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`}
+function fmtDate(d){const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+function markSessionDone(id){sessionsDone[id]=Date.now();saveState();render()}
+function getMetricVal(m){
+if(m==="bestQuiz")return stats.bestQuiz||0;
+if(m==="bestRapid")return stats.bestRapid||0;
+if(m==="cards")return stats.cards||0;
+if(m==="scenarios")return stats.scenarios||0;
+if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return t?Math.round(Object.keys(exercisesDone).length/t*100):0}
+return 0;
+}
+// ─── FLASHCARDS ───
+function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):fcCat==='⚠ Weak'?FLASHCARDS.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
+function renderFlashcards(el){
+const allCards=FLASHCARDS.filter(function(c){return fcDiff==='All Levels'||DIFF_LABELS[c.d]===fcDiff});
+const weakCount=allCards.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}).length;
+const cards=fcGetCards();
+if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==='⚠ Weak'){
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill='<button class="pill active" onclick="fcSetCat(\'⚠ Weak\')" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Weak ('+weakCount+')</button>';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="text-align:center;padding:40px;color:#9ca3af">No weak cards! Rate flashcards to see them here.</div>';
+return;
+}
+if(fcIdx>=cards.length)fcIdx=0;
+const card=cards[fcIdx];
+const isFav=fcFavs.has(card.f);
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill=weakCount||fcCat==='⚠ Weak'?'<button class="pill '+(fcCat==='⚠ Weak'?'active':'')+'" onclick="fcSetCat(\'⚠ Weak\')" style="'+(fcCat!=='⚠ Weak'?'background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)':'')+'">⚠ Weak ('+weakCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+['All Levels','Beginner','Intermediate','Advanced'].map(function(d){return '<button class="pill'+(fcDiff===d?' pill-active':'')+'" onclick="fcDiff=\''+d+'\';fcIdx=0;render()">'+d+'</button>';}).join('')+'</div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':fcCat==='⚠ Weak'?'Weak cards':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
++'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
++'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
++'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+(card.d?'<span style="background:'+DIFF_COLORS[card.d]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600">'+DIFF_LABELS[card.d]+'</span>':'')+'</div>'
++'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
++(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
++(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
++(fcFlipped?'<div style="display:flex;gap:8px;justify-content:center;margin-top:14px">'
++'<button onclick="event.stopPropagation();fcRate(\'missed\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#ef4444;color:#fff;font-weight:600">Missed</button>'
++'<button onclick="event.stopPropagation();fcRate(\'unsure\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#f59e0b;color:#fff;font-weight:600">Unsure</button>'
++'<button onclick="event.stopPropagation();fcRate(\'known\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#10b981;color:#fff;font-weight:600">Know it</button>'
++'</div>':'')
++'</div>'
++(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
++'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcWeightedShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
+}
+function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
+function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
+function fcNext(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx+1)%cards.length;saveState();render()}
+function fcPrev(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx-1+cards.length)%cards.length;saveState();render()}
+function fcShuffle(){fcFlipped=false;const cards=fcGetCards();fcIdx=Math.floor(Math.random()*cards.length);saveState();render()}
+function fcToggleFav(idx){const cards=fcGetCards();const card=cards[idx];if(!card)return;if(fcFavs.has(card.f))fcFavs.delete(card.f);else fcFavs.add(card.f);if(fcCat==="★ Favorites"&&!fcFavs.has(card.f)){const nc=fcGetCards();if(fcIdx>=nc.length)fcIdx=Math.max(0,nc.length-1)}saveState();render()}
+// ─── QUIZ ───
+const QUIZ_CATS=[...new Set(QUIZ.map(q=>q.cat))];
+function getQuizCatIcon(cat){return{['Category A']:'📗',['Category B']:'📘',['Category C']:'📙'}[cat]||'📝'}
+function startQuiz(catOrFinal){
+if(catOrFinal==='final'){qzMode='final';qzQs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10)}
+else{qzMode=catOrFinal;qzQs=QUIZ.filter(q=>q.cat===catOrFinal).sort(()=>Math.random()-.5)}
+qzIdx=0;qzSel=null;qzShow=false;qzScore=0;qzDone=false;render()}
+function backToQuizPicker(){qzMode=null;qzQs=[];qzDone=false;render()}
+function renderQuiz(el){
+// Quiz picker screen
+if(qzMode===null){
+const cats=QUIZ_CATS.map(cat=>{const cnt=QUIZ.filter(q=>q.cat===cat).length;const best=stats.quizScores[cat];const bestStr=best!=null?`<span style="color:#10b981;font-size:12px">${best}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+return`<div style="background:#1f2937;border:2px solid #374151;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s" onclick="startQuiz('${cat}')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='#374151'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">${getQuizCatIcon(cat)}</span><div><div style="font-weight:600;font-size:15px">${cat}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${cnt} questions</div>${(function(){var qs=QUIZ.filter(q=>q.cat===cat);var counts=[1,2,3].map(function(d){return{d:d,n:qs.filter(function(q){return q.d===d}).length}}).filter(function(x){return x.n>0});return counts.length?'<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+counts.map(function(x){return'<span style="background:'+DIFF_COLORS[x.d]+';color:#fff;font-size:10px;padding:1px 6px;border-radius:8px">'+DIFF_LABELS[x.d]+' '+x.n+'</span>'}).join('')+"</div>":''})()}</div></div></div><div style="text-align:right">${bestStr}</div></div></div>`}).join('');
+const finalBest=stats.quizScores['final'];const finalStr=finalBest!=null?`<span style="color:#10b981;font-size:12px">${finalBest}%</span>`:'<span style="color:#4b5563;font-size:12px">Not taken</span>';
+el.innerHTML=`<div style="margin-bottom:20px"><div style="font-size:20px;font-weight:700;margin-bottom:4px">Quizzes</div><div style="color:#6b7280;font-size:13px;margin-bottom:16px">Test yourself by section or take the final exam</div></div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${cats}</div>
+<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(59,130,246,.12));border:2px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s" onclick="startQuiz('final')" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16,185,129,.3)'">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">🎓</span><div><div style="font-weight:700;font-size:16px">Final Exam</div><div style="color:#9ca3af;font-size:12px;margin-top:2px">10 random questions across all sections</div></div></div><div style="text-align:right">${finalStr}</div></div></div>`;return}
+// Results screen
+if(qzDone){
+const pct=Math.round(qzScore/qzQs.length*100);
+stats.quizzes++;if(pct>stats.bestQuiz)stats.bestQuiz=pct;
+const scoreKey=qzMode==='final'?'final':qzMode;
+if(!stats.quizScores[scoreKey]||pct>stats.quizScores[scoreKey])stats.quizScores[scoreKey]=pct;
+const label=qzMode==='final'?'Final Exam':qzMode;
+logSession("quiz",label+" — Score: "+pct+"%");
+const g=pct>=90?"A":pct>=80?"B":pct>=70?"C":pct>=60?"D":"F";
+const c=pct>=70?"#10b981":pct>=50?"#f59e0b":"#ef4444";
+const m=pct>=90?"You're ready for Next.":pct>=70?"Getting there. Run it again.":"Keep studying. You've got time.";
+el.innerHTML=`<div class="center"><div style="font-size:13px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode}</div><div class="grade" style="color:${c}">${g}</div><div style="font-size:24px;font-weight:600;margin-bottom:4px">${qzScore}/${qzQs.length}</div><div style="color:#6b7280;margin-bottom:24px">${m}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" onclick="startQuiz('${qzMode==='final'?'final':qzMode}')">Try Again</button><button class="btn btn-secondary" onclick="backToQuizPicker()">All Quizzes</button></div></div>`;return}
+// Question screen
+const q=qzQs[qzIdx];
+const headerLabel=qzMode==='final'?'🎓 Final Exam':getQuizCatIcon(qzMode)+' '+qzMode;
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:12px;color:#6b7280;cursor:pointer" onclick="backToQuizPicker()">← All Quizzes</span><span style="font-size:12px;color:#9ca3af">${headerLabel}</span></div>
+<div class="progress-bar"><div class="progress-label"><span>Score: ${qzScore}/${qzIdx}</span><span>Q${qzIdx+1}/${qzQs.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${qzIdx/qzQs.length*100}%"></div></div></div>
+<div style="font-size:17px;font-weight:500;margin-bottom:20px;line-height:1.4">${q.q}</div>
+${q.o.map((o,i)=>{
+let cls="quiz-option";let prefix=String.fromCharCode(65+i)+'. ';
+if(qzShow){if(i===q.a){cls+=" correct";prefix='✓ '}else if(i===qzSel){cls+=" wrong";prefix='✗ '}else cls+=" dimmed"}
+return`<button class="${cls}" onclick="qzSelect(${i})">${prefix}${o}</button>`}).join("")}
+${qzShow&&q.e?`<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#6ee7b7;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${qzSel===q.a?'Why this is correct':'Explanation'}</div><div style="font-size:13px;color:#d1d5db;line-height:1.6">${q.e}</div></div>`:''}
+${qzShow&&q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-bottom:12px">📖 Learn more</a>`:''}
+${qzShow?askClaudeBox('Quiz question: '+q.q):''}
+${qzShow?`<button class="btn btn-primary btn-full" onclick="qzNext()">${qzIdx+1>=qzQs.length?"See Results":"Next Question"}</button>`:''}`;
+}
+function qzSelect(i){if(qzShow)return;qzSel=i;qzShow=true;if(i===qzQs[qzIdx].a)qzScore++;render()}
+function qzNext(){if(qzIdx+1>=qzQs.length){qzDone=true}else{qzIdx++;qzSel=null;qzShow=false}render()}
+// ─── SCENARIOS ───
+function renderScenarios(el){
+const s=SCENARIOS[scIdx];
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Scenarios practiced</span><span>${scPracticed.size}/${SCENARIOS.length}</span></div><div class="progress-track"><div class="progress-fill" style="width:${SCENARIOS.length?Math.round(scPracticed.size/SCENARIOS.length*100):0}%"></div></div></div>
+<div class="card-label">Prospect says:</div>
+<div class="scenario-box scenario-q"><div style="color:#fca5a5;font-size:17px;line-height:1.5;font-style:italic">"${s.q}"</div></div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:8px">Think through your answer first, then reveal.</div>
+${!scRevealed?`<div class="scenario-box scenario-reveal" onclick="scReveal()"><div style="color:#9ca3af;font-size:14px">Tap to reveal suggested response</div></div>`
+:`<div class="scenario-box scenario-a"><div class="card-label" style="color:#6ee7b7">Suggested response:</div><div style="color:#d1fae5;font-size:14px;line-height:1.6">${s.a}</div>${s.u?`<div class="source-links">${s.u.map(link=>`<a class="source-link" href="${link}" target="_blank" rel="noopener">📖 ${new URL(link).hostname.replace('www.','')}</a>`).join('')}</div>`:''}</div>`}
+${scRevealed?askClaudeBox('Scenario objection: '+s.q):''}
+<div class="btn-row"><button class="btn btn-secondary" onclick="scPrev()">Prev</button><button class="btn btn-secondary" onclick="scShuf()">Shuffle</button><button class="btn btn-primary" onclick="scNext()">Next</button></div>`;
+}
+function scReveal(){scRevealed=true;stats.scenarios++;scPracticed.add(scIdx);logSession("scenarios","Practiced: "+SCENARIOS[scIdx].q.slice(0,40));render()}
+function scNext(){scRevealed=false;scIdx=(scIdx+1)%SCENARIOS.length;render()}
+function scPrev(){scRevealed=false;scIdx=(scIdx-1+SCENARIOS.length)%SCENARIOS.length;render()}
+function scShuf(){scRevealed=false;scIdx=Math.floor(Math.random()*SCENARIOS.length);render()}
+// ─── RAPID FIRE ───
+function renderRapid(el){
+if(rfState==="ready"){
+el.innerHTML=`<div class="center"><div style="font-size:40px;margin-bottom:16px">⏱</div><div style="font-size:20px;font-weight:600;margin-bottom:8px">Rapid Fire Mode</div><div style="color:#6b7280;max-width:280px;margin-bottom:24px;font-size:14px;line-height:1.5">Question + countdown. Think fast, then rate yourself.</div><button class="btn btn-primary" style="font-size:16px;padding:14px 32px" onclick="rfStart()">Start Round</button></div>`;return}
+if(rfState==="done"){
+const n=rfResults.filter(r=>r.ok).length;const pct=Math.round(n/rfResults.length*100);
+stats.rapid++;if(pct>stats.bestRapid)stats.bestRapid=pct;logSession("rapid","Score: "+pct+"%");
+const c=pct>=80?"#10b981":pct>=60?"#f59e0b":"#ef4444";
+const m=pct>=80?"Fast and confident.":pct>=60?"Decent, drill the weak ones.":"Re-read the material.";
+el.innerHTML=`<div class="center"><div class="grade" style="color:${c}">${n}/${rfResults.length}</div><div style="color:#6b7280;margin-bottom:16px">${m}</div><div style="width:100%;max-width:320px;margin-bottom:24px">${rfResults.map(r=>`<div class="results-item" style="color:${r.ok?'#6ee7b7':'#fca5a5'}">${r.ok?'✔':'✘'} <span style="color:#d1d5db">${r.q}</span></div>`).join("")}</div><button class="btn btn-primary" onclick="rfStart()">Go Again</button></div>`;return}
+const q=rfQs[rfIdx];const tc=rfTimer<=3?"red":rfTimer<=5?"yellow":"green";
+el.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><span style="font-size:12px;color:#6b7280">Q${rfIdx+1}/${rfQs.length}</span><span class="timer ${tc}">${rfState==="revealed"?"—":rfTimer+"s"}</span></div>
+<div class="card question" style="margin-bottom:16px;cursor:default"><div style="font-size:19px;font-weight:500">${q.q}</div></div>
+${rfState==="active"?`<div class="center" style="min-height:30vh"><div style="color:#6b7280;font-size:14px;margin-bottom:16px">Think of your answer...</div><button class="btn btn-secondary" onclick="rfReveal()">I've got my answer</button></div>`
+:`<div class="scenario-box scenario-a" style="margin-bottom:16px"><div class="card-label" style="color:#6ee7b7">Answer:</div><div style="color:#d1fae5;line-height:1.5">${q.a}</div>${q.u?`<a class="source-link" href="${q.u}" target="_blank" rel="noopener" style="margin-top:10px">📖 Read the docs</a>`:''}</div>
+${askClaudeBox('Rapid fire: '+q.q)}
+<div style="text-align:center;font-size:14px;color:#6b7280;margin:12px 0">Did you nail it?</div>
+<div style="display:flex;gap:12px"><button class="btn btn-danger" style="flex:1;padding:14px" onclick="rfRate(false)">Nope</button><button class="btn btn-success" style="flex:1;padding:14px" onclick="rfRate(true)">Nailed it</button></div>`}`;
+}
+function rfStart(){rfQs=[...RAPID].sort(()=>Math.random()-.5);rfIdx=0;rfResults=[];rfState="active";rfTimer=rfQs[0].t;clearInterval(rfInterval);rfInterval=setInterval(rfTick,1000);render()}
+function rfTick(){if(rfState!=="active")return;rfTimer--;if(rfTimer<=0){rfState="revealed";clearInterval(rfInterval)}render()}
+function rfReveal(){clearInterval(rfInterval);rfState="revealed";render()}
+function rfRate(ok){rfResults.push({q:rfQs[rfIdx].q,ok});if(rfIdx+1>=rfQs.length){rfState="done";clearInterval(rfInterval)}else{rfIdx++;rfTimer=rfQs[rfIdx].t;rfState="active";rfInterval=setInterval(rfTick,1000)}render()}
+// ─── LEARN ───
+function renderLearn(el){
+if(learnView==="detail")return renderLessonDetail(el);
+const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
+const doneEx=Object.keys(exercisesDone).length;
+el.innerHTML=`
+<div class="progress-bar"><div class="progress-label"><span>Exercises completed</span><span>${doneEx}/${totalEx}</span></div><div class="progress-track"><div class="progress-fill" style="width:${totalEx?Math.round(doneEx/totalEx*100):0}%"></div></div></div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Week 1 — The Essentials</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===1).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 2 — Going Deeper</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===2).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px">Week 3 — Final Prep</div>
+<div class="lesson-grid">${LESSONS.filter(l=>l.week===3).map((l,i)=>lessonCard(l,LESSONS.indexOf(l))).join("")}</div>`;
+}
+function lessonCard(l,idx){
+const exDone=l.exercises.filter((_,i)=>exercisesDone[l.id+"-"+i]).length;
+const allDone=exDone===l.exercises.length;
+const core=isCoreLesson(l.id);
+return`<div class="lesson-card${allDone?' completed':''}" onclick="openLesson(${idx})"${!core?' style="opacity:.7"':''}>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="lesson-num">${l.icon} Lesson ${idx+1}</div>
+<div style="display:flex;gap:6px;align-items:center">
+${userRole?`<span class="role-badge ${core?'core':'bonus'}">${core?'Core':'Bonus'}</span>`:''}
+${allDone?'<span style="font-size:11px;color:#10b981;font-weight:600">✓</span>':`<span style="font-size:11px;color:#6b7280">${exDone}/${l.exercises.length}</span>`}
+</div>
+</div>
+<div class="lesson-title">${l.title}</div>
+<div class="lesson-meta"><span>${l.time}</span><span>Week ${l.week}</span></div>
+</div>`}
+function openLesson(idx){learnIdx=idx;learnView="detail";render()}
+function backToLessons(){learnView="list";render()}
+function renderLessonDetail(el){
+const l=LESSONS[learnIdx];
+let html=`<button class="back-btn" onclick="backToLessons()">← All Lessons</button>`;
+html+=`<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600">${l.icon} Lesson ${learnIdx+1} · Week ${l.week}</div>`;
+html+=`<div style="font-size:22px;font-weight:700;margin:6px 0 4px">${l.title}</div>`;
+html+=`<div style="font-size:12px;color:#6b7280;margin-bottom:20px">${l.time}</div>`;
+// Body
+html+=`<div class="lesson-section"><div class="lesson-text">${l.body}</div></div>`;
+// Highlights
+if(l.highlights&&l.highlights.length){
+html+=`<div class="lesson-section"><h4>Key Takeaways</h4>`;
+l.highlights.forEach(h=>{html+=`<div class="lesson-highlight">${h}</div>`});
+html+=`</div>`}
+// Comparison table
+if(l.compare){
+html+=`<div class="lesson-section"><h4>${l.compare.left.label} vs ${l.compare.right.label}</h4><div class="lesson-compare">`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#6ee7b7">${l.compare.left.label}</div>${l.compare.left.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`<div class="lesson-compare-item"><div class="compare-label" style="color:#f59e0b">${l.compare.right.label}</div>${l.compare.right.items.map(i=>`<div style="color:#d1d5db">• ${i}</div>`).join("")}</div>`;
+html+=`</div></div>`}
+// Exercises
+html+=`<div class="lesson-section"><h4>Exercises</h4>`;
+l.exercises.forEach((ex,i)=>{
+const key=l.id+"-"+i;
+const done=!!exercisesDone[key];
+const stepsId='steps-'+l.id+'-'+i;
+html+=`<div class="exercise-box">
+<div class="ex-label">Exercise ${i+1}</div>
+<div class="ex-task">${ex.task}</div>
+${ex.hint?`<div class="ex-hint">💡 ${ex.hint}</div>`:''}
+${ex.url?`<a class="source-link" href="${ex.url}" target="_blank" rel="noopener" style="margin:8px 0 4px">🔗 Open resource</a>`:''}
+${ex.steps&&ex.steps.length?`<button class="ex-steps-toggle" onclick="const s=document.getElementById('${stepsId}');s.classList.toggle('open');this.textContent=s.classList.contains('open')?'Hide steps':'Show steps'">Show steps</button>
+<div class="ex-steps" id="${stepsId}"><ol>${ex.steps.map(s=>'<li>'+s+'</li>').join('')}</ol></div>`:''}
+<div class="exercise-check" onclick="toggleExercise('${key}')">
+<div class="checkbox${done?' checked':''}">${done?'✓':''}</div>
+<div class="ex-text">${done?'Done!':'Mark as done'}</div>
+</div></div>`});
+html+=`</div>`;
+// Sources
+if(l.sources&&l.sources.length){
+html+=`<div class="lesson-section"><h4>Source Material</h4>`;
+l.sources.forEach(s=>{html+=`<a class="res-link" href="${s}" target="_blank" rel="noopener">${s.replace('https://','').split('/').slice(0,2).join('/')}<small>${s}</small></a>`});
+html+=`</div>`}
+// Nav
+html+=askClaudeBox('Lesson: '+l.title);
+html+=`<div class="btn-row" style="margin-top:24px">`;
+if(learnIdx>0)html+=`<button class="btn btn-secondary" onclick="openLesson(${learnIdx-1})">← Prev</button>`;
+if(learnIdx<LESSONS.length-1)html+=`<button class="btn btn-primary" onclick="openLesson(${learnIdx+1})">Next →</button>`;
+html+=`</div>`;
+el.innerHTML=html;
+}
+function toggleExercise(key){
+if(exercisesDone[key])delete exercisesDone[key];
+else exercisesDone[key]=Date.now();
+saveState();render();
+}
+// ─── MANAGEMENT ───
+function renderManage(el){
+if(!schedView)schedView="settings";
+const saved=loadState();
+const lastSaved=saved&&saved.savedAt?new Date(saved.savedAt).toLocaleString():"Never";
+const totalSessions=sessionHistory.length;
+const storageBytes=exportState().length;
+const storageKB=(storageBytes/1024).toFixed(1);
+const tabs=[["settings","Settings"],["schedule","Schedule"],["checkpoints","Checkpoints"],["resources","Resources"]];
+let html=`${showConfirm?`<div class="confirm-overlay" onclick="cancelConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">${confirmMsg}</div><div style="color:#6b7280;font-size:13px;margin-bottom:20px">This can't be undone.</div><div style="display:flex;gap:12px"><button class="btn btn-secondary" style="flex:1" onclick="cancelConfirm()">Cancel</button><button class="btn-danger-solid" style="flex:1" onclick="execConfirm()">Confirm</button></div></div></div>`:''}
+${showForm?renderFormOverlay():''}
+<div class="pills" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="pill ${schedView===k?'active':''}" onclick="schedView='${k}';render()">${l}</button>`).join("")}</div>`;
+if(schedView==="schedule"){html+=renderScheduleTab();el.innerHTML=html;return}
+if(schedView==="checkpoints"){html+=renderCheckpointsTab();el.innerHTML=html;return}
+if(schedView==="resources"){html+=renderResourcesTab();el.innerHTML=html;return}
+html+=`
+<div class="mgmt-section">
+<h3>Font Size</h3>
+<div style="margin-bottom:20px">`
++'<div style="font-size:13px;color:#9ca3af;margin-bottom:8px">Font Size</div>'
++'<div style="display:flex;gap:8px;flex-wrap:wrap">'
++['fs-s','fs-m','fs-l','fs-xl'].map(function(s){
+  var lbl={'fs-s':'S','fs-m':'M','fs-l':'L','fs-xl':'XL'}[s];
+  var active=document.body.className===s;
+  return '<button onclick="setFontSize(\''+s+'\')" style="padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;background:'+(active?'#10b981':'#374151')+';color:'+(active?'#fff':'#9ca3af')+';transition:all .2s">'+lbl+'</button>';
+}).join('')
++'</div></div>'
++`</div>
+<div class="mgmt-section">
+<h3>Focus Level</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Controls which content is highlighted as core vs bonus across the app.</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:2px solid ${userRole===k?'#10b981':'#374151'};background:${userRole===k?'rgba(16,185,129,.06)':'#1f2937'};cursor:pointer;transition:all .2s" onclick="pickRole('${k}')">
+<div style="font-size:24px">${v.icon}</div>
+<div style="flex:1"><div style="font-size:14px;font-weight:600;color:${userRole===k?'#6ee7b7':'#e5e7eb'}">${v.label}</div><div style="font-size:12px;color:#6b7280">${v.desc.split('.')[0]}</div></div>
+${userRole===k?'<div style="color:#10b981;font-size:14px;font-weight:600">✓</div>':''}
+</div>`).join('')}
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Progress Summary</h3>
+<div class="mgmt-row"><span class="label">Quizzes completed</span><span class="value">${stats.quizzes}</span></div>
+<div class="mgmt-row"><span class="label">Best overall score</span><span class="value">${stats.bestQuiz?stats.bestQuiz+'%':'—'}</span></div>
+${QUIZ_CATS.map(cat=>`<div class="mgmt-row"><span class="label" style="padding-left:12px">${getQuizCatIcon(cat)} ${cat}</span><span class="value">${stats.quizScores[cat]?stats.quizScores[cat]+'%':'—'}</span></div>`).join('')}
+<div class="mgmt-row"><span class="label" style="padding-left:12px">🎓 Final Exam</span><span class="value">${stats.quizScores['final']?stats.quizScores['final']+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Cards flipped</span><span class="value">${stats.cards}</span></div>
+<div class="mgmt-row"><span class="label">Scenarios practiced</span><span class="value">${stats.scenarios}</span></div>
+<div class="mgmt-row"><span class="label">Rapid fire rounds</span><span class="value">${stats.rapid}</span></div>
+<div class="mgmt-row"><span class="label">Best rapid score</span><span class="value">${stats.bestRapid?stats.bestRapid+'%':'—'}</span></div>
+<div class="mgmt-row"><span class="label">Exercises completed</span><span class="value">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</span></div>
+<div class="mgmt-row"><span class="label">Total sessions logged</span><span class="value">${totalSessions}</span></div>
+<div class="mgmt-row"><span class="label">Last saved</span><span class="value">${lastSaved}</span></div>
+<div class="mgmt-row"><span class="label">Storage used</span><span class="value">${storageKB} KB</span></div>
+</div>
+<div class="mgmt-section">
+<h3>Reset by Section</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button class="btn-outline" onclick="askResetSection('quiz')">Reset Quizzes</button>
+<button class="btn-outline" onclick="askResetSection('cards')">Reset Cards</button>
+<button class="btn-outline" onclick="askResetSection('scenarios')">Reset Scenarios</button>
+<button class="btn-outline" onclick="askResetSection('rapid')">Reset Rapid Fire</button>
+<button class="btn-outline" onclick="askResetSection('exercises')">Reset Exercises</button>
+</div>
+</div>
+<div class="mgmt-section">
+<h3>Session History (last 20)</h3>
+${sessionHistory.length===0?'<div style="color:#4b5563;font-size:13px;padding:8px 0">No sessions yet. Start studying!</div>'
+:sessionHistory.slice(-20).reverse().map(h=>{
+const d=new Date(h.ts);
+const icon=h.type==="quiz"?"📝":h.type==="cards"?"📃":h.type==="scenarios"?"💬":"⚡";
+return`<div class="history-item"><span>${icon} ${h.detail}</span><span style="color:#4b5563">${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>`}).join("")}
+</div>
+<div class="mgmt-section">
+<h3>☁️ Cloud Sync</h3>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Sync progress across devices via Google Sheets. Paste your Apps Script URL below.</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input id="syncUrlInput" type="text" value="${SYNC_SHEET_URL||''}" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;font-family:monospace;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+<input id="syncUserInput" type="text" value="${SYNC_USER_ID||''}" placeholder="Your name (e.g. barry)" style="flex:1;max-width:220px;padding:10px 12px;border-radius:10px;border:2px solid #374151;background:#1f2937;color:#e5e7eb;font-size:13px;outline:none" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#374151'">
+<span style="font-size:11px;color:#6b7280">Optional — keeps your data separate when sharing a sync sheet</span>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px" onclick="saveSyncSettings(document.getElementById('syncUrlInput').value,document.getElementById('syncUserInput').value);render()">Save</button>
+<button class="btn-outline" style="flex:0 0 auto;padding:8px 16px;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="saveSyncSettings('','');document.getElementById('syncUrlInput').value='';document.getElementById('syncUserInput').value='';render()">Disconnect</button>
+<span style="font-size:12px;color:${syncEnabled()?'#10b981':'#6b7280'}">${syncEnabled()?'✓ Connected'+(lastSyncAt?' — last sync '+new Date(lastSyncAt).toLocaleTimeString():''):'Not connected'}</span>
+</div>
+${syncEnabled()?'<div style="font-size:11px;color:#4b5563;margin-top:8px">Syncing to key: <code style="background:#374151;padding:2px 6px;border-radius:4px;font-size:11px">'+getSyncKey()+'</code></div>':'<div style="font-size:11px;color:#4b5563;margin-top:8px">See the <a href="https://docs.google.com" target="_blank" style="color:#93c5fd">setup guide</a> for instructions on creating your sync sheet.</div>'}
+</div>
+<div class="mgmt-section">
+<h3>Export / Import Data</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btn-outline" style="flex:1" onclick="showExportData()">Export</button>
+<button class="btn-outline" style="flex:1" onclick="showImportPrompt()">Import</button>
+</div>
+${showExport?`<div class="export-box" id="exportBox">${exportState()}</div><div style="font-size:11px;color:#4b5563;margin-top:4px">Copy this text to back up or transfer your progress.</div>`:''}
+<div id="importArea"></div>
+</div>
+<div class="mgmt-section" style="border:2px solid rgba(239,68,68,.2)">
+<h3 style="color:#fca5a5">Danger Zone</h3>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div><div style="font-size:13px;font-weight:500;color:#fca5a5">Reset all progress</div><div style="font-size:11px;color:#4b5563">Clears everything and starts fresh</div></div>
+<button class="btn-danger-solid" onclick="askResetAll()">Reset All</button>
+</div>
+</div>`;
+el.innerHTML=html;
+}
+// ─── SCHEDULE TAB ───
+function renderScheduleTab(){
+const today=new Date().toISOString().slice(0,10);
+const sorted=[...schedule].sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const upcoming=sorted.filter(s=>s.date>=today);
+const past=sorted.filter(s=>s.date<today).reverse();
+const doneCount=Object.keys(sessionsDone).length;
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:14px;font-weight:600">${doneCount}/${schedule.length} sessions completed</div>
+<div style="display:flex;gap:6px">
+<button class="btn-outline" style="padding:6px 10px;font-size:11px" onclick="toggleIcsPanel()">📅 Export</button>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openSessionForm()">+ Add</button>
+</div>
+</div>`;
+h+=renderIcsPanel();
+h+=`<div class="progress-bar"><div class="progress-track"><div class="progress-fill" style="width:${schedule.length?Math.round(doneCount/schedule.length*100):0}%"></div></div></div>`;
+if(upcoming.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Upcoming</div>`;
+upcoming.forEach(s=>{
+const isToday=s.date===today;const done=sessionsDone[s.id];
+h+=`<div class="sched-item${isToday?' today':''}${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min${s.phase?' · Phase '+s.phase:''}</div></div>
+<div class="si-title">${s.title}</div>
+<div class="si-desc">${s.desc}</div>
+<div class="si-actions">
+${!done?`<button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Done</button>`:`<button style="background:#374151;color:#6ee7b7" onclick="unmarkSession('${s.id}')">✓ Done</button>`}
+<button style="background:#374151;color:#9ca3af" onclick="openSessionForm('${s.id}')">Edit</button>
+<button style="background:#374151;color:#fca5a5" onclick="deleteSession('${s.id}')">Del</button>
+</div></div>`});
+}
+if(past.length){
+h+=`<div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Past</div>`;
+past.slice(0,5).forEach(s=>{
+const done=sessionsDone[s.id];
+h+=`<div class="sched-item past${done?' done':''}">
+<div class="si-top"><div class="si-date">${fmtDate(s.date)} · ${s.time}</div><div class="si-dur">${s.dur} min</div></div>
+<div class="si-title">${s.title}</div>
+${!done?`<div class="si-actions"><button style="background:#10b981;color:#fff" onclick="markSessionDone('${s.id}')">Mark Done</button></div>`:
+`<div style="font-size:11px;color:#6ee7b7;margin-top:4px">✓ Completed</div>`}
+</div>`});
+if(past.length>5)h+=`<div style="text-align:center;color:#4b5563;font-size:12px;padding:8px">+ ${past.length-5} more past sessions</div>`;
+}
+return h;
+}
+function unmarkSession(id){delete sessionsDone[id];saveState();render()}
+function deleteSession(id){schedule=schedule.filter(s=>s.id!==id);delete sessionsDone[id];saveState();render()}
+function openSessionForm(editingId){
+if(editingId){const s=schedule.find(x=>x.id===editingId);if(s)formData={...s};editId=editingId}
+else{formData={id:'s-'+Date.now(),date:new Date().toISOString().slice(0,10),time:'09:00',dur:30,title:'',desc:'',phase:0};editId=null}
+showForm='session';render();
+}
+function closeForm(){showForm=null;editId=null;formData={};render()}
+function saveSessionForm(){
+if(!formData.title){alert('Title required');return}
+if(editId){const idx=schedule.findIndex(s=>s.id===editId);if(idx>=0)schedule[idx]={...formData}}
+else{schedule.push({...formData})}
+saveState();closeForm();
+}
+function renderFormOverlay(){
+if(showForm==='session')return renderSessionFormSheet();
+if(showForm==='checkpoint')return renderCheckpointFormSheet();
+return'';
+}
+function renderSessionFormSheet(){
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Study Session</h3>
+<div class="form-field"><label>Title</label><input type="text" id="sf-title" value="${formData.title||''}" placeholder="e.g., Lesson 5: Competitive Landscape"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Date</label><input type="date" id="sf-date" value="${formData.date||''}"></div>
+<div class="form-field" style="flex:1"><label>Time</label><input type="time" id="sf-time" value="${formData.time||'09:00'}"></div>
+</div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Duration (min)</label><input type="number" id="sf-dur" value="${formData.dur||30}" min="5" step="5"></div>
+<div class="form-field" style="flex:1"><label>Phase</label><select id="sf-phase"><option value="0"${formData.phase==0?' selected':''}>None</option><option value="1"${formData.phase==1?' selected':''}>Phase 1</option><option value="2"${formData.phase==2?' selected':''}>Phase 2</option><option value="3"${formData.phase==3?' selected':''}>Phase 3</option></select></div>
+</div>
+<div class="form-field"><label>Description / Activities</label><textarea id="sf-desc" placeholder="What to do in this session...">${formData.desc||''}</textarea></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabSessionForm();saveSessionForm()">Save</button>
+</div></div></div>`}
+function grabSessionForm(){
+formData.title=document.getElementById('sf-title').value;
+formData.date=document.getElementById('sf-date').value;
+formData.time=document.getElementById('sf-time').value;
+formData.dur=parseInt(document.getElementById('sf-dur').value)||30;
+formData.phase=parseInt(document.getElementById('sf-phase').value)||0;
+formData.desc=document.getElementById('sf-desc').value;
+}
+// ─── CHECKPOINTS TAB ───
+function renderCheckpointsTab(){
+const today=new Date().toISOString().slice(0,10);
+let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="font-size:14px;font-weight:600">Milestones & Targets</div>
+<button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openCheckpointForm()">+ Add Checkpoint</button>
+</div>`;
+const sorted=[...checkpoints].sort((a,b)=>a.by.localeCompare(b.by));
+sorted.forEach(cp=>{
+const val=getMetricVal(cp.metric);
+const hit=val>=cp.threshold;
+const overdue=!hit&&cp.by<today;
+h+=`<div class="cp-item${hit?' hit':''}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="cp-target">${hit?'✓ ':''}${cp.target}</div>
+<div style="display:flex;gap:4px">
+<button style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:12px;padding:4px" onclick="openCheckpointForm('${cp.id}')">Edit</button>
+<button style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:12px;padding:4px" onclick="deleteCheckpoint('${cp.id}')">Del</button>
+</div>
+</div>
+<div class="cp-date">${hit?'Achieved!':'Target by '+fmtDate(cp.by)} · Current: ${val}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''} / ${cp.threshold}${cp.metric.includes('uiz')||cp.metric.includes('apid')||cp.metric==='exercises'?'%':''}</div>
+${!hit?`<div style="margin-top:6px"><div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,Math.round(val/cp.threshold*100))}%;${overdue?'background:#ef4444':''}"></div></div></div>`:''}
+</div>`});
+return h;
+}
+function openCheckpointForm(editingId){
+if(editingId){const c=checkpoints.find(x=>x.id===editingId);if(c)formData={...c};editId=editingId}
+else{formData={id:'cp-'+Date.now(),target:'',by:new Date().toISOString().slice(0,10),metric:'bestQuiz',threshold:80};editId=null}
+showForm='checkpoint';render();
+}
+function renderCheckpointFormSheet(){
+const metrics=[['bestQuiz','Best Quiz Score (%)'],['bestRapid','Best Rapid Score (%)'],['cards','Cards Flipped'],['scenarios','Scenarios Practiced'],['exercises','Exercise Completion (%)']];
+return`<div class="form-overlay" onclick="closeForm()"><div class="form-sheet" onclick="event.stopPropagation()">
+<h3>${editId?'Edit':'Add'} Checkpoint</h3>
+<div class="form-field"><label>Target Description</label><input type="text" id="cf-target" value="${formData.target||''}" placeholder="e.g., Score 80%+ on quiz"></div>
+<div style="display:flex;gap:8px">
+<div class="form-field" style="flex:1"><label>Due By</label><input type="date" id="cf-by" value="${formData.by||''}"></div>
+<div class="form-field" style="flex:1"><label>Threshold</label><input type="number" id="cf-thresh" value="${formData.threshold||80}" min="1"></div>
+</div>
+<div class="form-field"><label>Metric to Track</label><select id="cf-metric">${metrics.map(([v,l])=>`<option value="${v}"${formData.metric===v?' selected':''}>${l}</option>`).join('')}</select></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-secondary" style="flex:1" onclick="closeForm()">Cancel</button>
+<button class="btn btn-primary" style="flex:1" onclick="grabCheckpointForm();saveCheckpointForm()">Save</button>
+</div></div></div>`}
+function grabCheckpointForm(){
+formData.target=document.getElementById('cf-target').value;
+formData.by=document.getElementById('cf-by').value;
+formData.threshold=parseInt(document.getElementById('cf-thresh').value)||80;
+formData.metric=document.getElementById('cf-metric').value;
+}
+function saveCheckpointForm(){
+if(!formData.target){alert('Target description required');return}
+if(editId){const idx=checkpoints.findIndex(c=>c.id===editId);if(idx>=0)checkpoints[idx]={...formData}}
+else{checkpoints.push({...formData})}
+saveState();closeForm();
+}
+function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveState();render()}
+// ─── RESOURCES TAB ───
+function renderResourcesTab(){
+return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
+<h3 style="color:#93c5fd">📚 Study Resources</h3>
+${(RELATED_COURSES.length ? '<div class="res-group"><div class="res-group-title">Related Courses</div>'
+  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span><div><strong>'+c.title+'</strong><div class="res-desc">'+c.desc+'</div></div></a>'}).join('')
+  +'</div>' : '')}
+<div class="res-group">
+<h4><!-- TODO: Resource Category 1 --></h4>
+<a class="res-link" href="https://example.com/docs" target="_blank" rel="noopener">Resource Title 1<small>Description of this resource</small></a>
+<a class="res-link" href="https://example.com/docs/topic" target="_blank" rel="noopener">Resource Title 2<small>Another resource description</small></a>
+</div>
+<div class="res-group">
+<h4><!-- TODO: Resource Category 2 --></h4>
+<a class="res-link" href="https://example.com/guide" target="_blank" rel="noopener">Guide Name<small>What this guide covers</small></a>
+<a class="res-link" href="https://example.com/api" target="_blank" rel="noopener">API Reference<small>Link to API docs</small></a>
+</div>
+</div>`;}
+function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
+function askResetSection(key){const names={quiz:"Quiz",cards:"Flashcard",scenarios:"Scenario",rapid:"Rapid Fire",exercises:"Exercise"};confirmMsg="Reset "+names[key]+" progress?";confirmAction=key;showConfirm=true;render()}
+function cancelConfirm(){showConfirm=false;confirmAction=null;render()}
+function execConfirm(){if(confirmAction==="all"){resetAll()}else if(confirmAction){resetSection(confirmAction);showConfirm=false;confirmAction=null;render()}}
+function showExportData(){showExport=!showExport;render()}
+function showImportPrompt(){
+const area=document.getElementById("importArea");
+if(area.innerHTML){area.innerHTML="";return}
+area.innerHTML=`<textarea id="importInput" style="width:100%;height:80px;background:#0d1117;color:#6ee7b7;border:1px solid #374151;border-radius:8px;padding:8px;font-family:monospace;font-size:11px;margin-top:8px" placeholder="Paste exported data here..."></textarea><button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px;font-size:13px" onclick="doImport()">Import Data</button>`;
+}
+function doImport(){
+const input=document.getElementById("importInput");
+if(input&&input.value){
+const ok=importState(input.value);
+if(ok){mode="dashboard";render()}
+else{alert("Invalid data format")}
+}
+}
+// ─── ASK CLAUDE ───
+function askClaudeBox(context){
+return`<div class="ask-box">
+<div class="ask-label">🔍 Go deeper — ask Claude</div>
+<div class="ask-row">
+<input type="text" id="askInput" placeholder="e.g., How does Workload Identity actually work?" onkeydown="if(event.key==='Enter')askClaude('${context.replace(/'/g,"\\'")}')">
+<button onclick="askClaude('${context.replace(/'/g,"\\'")}')">Ask</button>
+</div>
+</div>`}
+function askClaude(context){
+const input=document.getElementById('askInput');
+if(!input||!input.value.trim())return;
+const q=input.value.trim();
+const prompt=`I'm studying for Google Cloud Next 2026 (preparing as a Solutions Architect at Dash0, an observability company). I'm currently studying: ${context}\n\nMy question: ${q}\n\nPlease give me a clear, practical answer. Include specific details, examples, or comparisons where helpful. If this relates to GKE, Dash0, or observability, include relevant context for my role.`;
+navigator.clipboard.writeText(prompt).then(()=>{
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+}).catch(()=>{
+const ta=document.createElement('textarea');ta.value=prompt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+showToast('Copied to clipboard — opening Claude...');
+setTimeout(()=>{window.open('https://claude.ai/new','_blank')},800);
+});
+input.value='';
+}
+function showToast(msg){
+const existing=document.querySelector('.ask-toast');if(existing)existing.remove();
+const t=document.createElement('div');t.className='ask-toast';t.textContent=msg;document.body.appendChild(t);
+setTimeout(()=>t.remove(),3000);
+}
+// ─── ICS EXPORT ───
+function toggleIcsPanel(){
+icsOpen=!icsOpen;
+if(icsOpen){icsSelected=new Set();icsPhaseFilter='all';schedule.forEach(s=>icsSelected.add(s.id))}
+render();
+}
+function icsFilterPhase(p){
+icsPhaseFilter=p;
+icsSelected=new Set();
+const filtered=p==='all'?schedule:schedule.filter(s=>s.phase==p);
+filtered.forEach(s=>icsSelected.add(s.id));
+render();
+}
+function icsToggle(id){if(icsSelected.has(id))icsSelected.delete(id);else icsSelected.add(id);render()}
+function icsSelectAll(){const visible=icsVisibleSessions();visible.forEach(s=>icsSelected.add(s.id));render()}
+function icsSelectNone(){icsSelected.clear();render()}
+function icsVisibleSessions(){return icsPhaseFilter==='all'?[...schedule]:schedule.filter(s=>s.phase==icsPhaseFilter)}
+function renderIcsPanel(){
+if(!icsOpen)return'';
+const visible=icsVisibleSessions().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+const phases=[...new Set(schedule.map(s=>s.phase).filter(Boolean))].sort();
+let h=`<div class="ics-panel">
+<h4>📅 Export to Calendar</h4>
+<div class="ics-filters">
+<button class="${icsPhaseFilter==='all'?'active':''}" onclick="icsFilterPhase('all')">All Sessions</button>
+${phases.map(p=>`<button class="${icsPhaseFilter==p?'active':''}" onclick="icsFilterPhase(${p})">Phase ${p}</button>`).join('')}
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button style="background:none;border:none;color:#3b82f6;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectAll()">Select all</button>
+<span style="color:#374151;font-size:12px">|</span>
+<button style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:0" onclick="icsSelectNone()">Select none</button>
+</div>
+<div class="ics-count">${icsSelected.size} of ${visible.length} session${visible.length!==1?'s':''} selected</div>
+<div class="ics-list">`;
+visible.forEach(s=>{
+const on=icsSelected.has(s.id);
+h+=`<div class="ics-item" onclick="icsToggle('${s.id}')">
+<div class="ics-check${on?' on':''}">${on?'✓':''}</div>
+<div class="ics-item-info"><div class="ics-item-title">${s.title}</div><div class="ics-item-date">${fmtDate(s.date)} · ${s.time} · ${s.dur} min</div></div>
+</div>`});
+h+=`</div>
+<div class="ics-actions">
+<button class="btn btn-secondary" onclick="toggleIcsPanel()">Cancel</button>
+<button class="ics-dl" ${icsSelected.size===0?'disabled style="opacity:.4;cursor:default" ':''}onclick="${icsSelected.size?'downloadIcs()':''}">Download .ics (${icsSelected.size})</button>
+</div></div>`;
+return h;
+}
+function downloadIcs(){
+const selected=schedule.filter(s=>icsSelected.has(s.id)).sort((a,b)=>a.date.localeCompare(b.date));
+if(!selected.length)return;
+const pad=n=>(n<10?'0':'')+n;
+const toIcsDate=(d,t,dur)=>{
+const[y,m,dy]=d.split('-').map(Number);
+const[h,mi]=(t||'09:00').split(':').map(Number);
+const start=new Date(y,m-1,dy,h,mi);
+const end=new Date(start.getTime()+dur*60000);
+const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+return{start:fmt(start),end:fmt(end)};
+};
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+let cal=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CrashCourse//StudyApp//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Study Sessions\r\n`;
+selected.forEach(s=>{
+const{start,end}=toIcsDate(s.date,s.time,s.dur);
+const desc=(s.desc||'').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+cal+=`BEGIN:VEVENT\r\nUID:${uid()}@crashcourse\r\nDTSTART:${start}\r\nDTEND:${end}\r\nSUMMARY:${s.title.replace(/,/g,'\\,')}\r\nDESCRIPTION:${desc}\r\n`;
+if(s.phase)cal+=`CATEGORIES:Phase ${s.phase}\r\n`;
+cal+=`STATUS:CONFIRMED\r\nBEGIN:VALARM\r\nTRIGGER:-PT10M\r\nACTION:DISPLAY\r\nDESCRIPTION:Study session starting soon\r\nEND:VALARM\r\nEND:VEVENT\r\n`;
+});
+cal+=`END:VCALENDAR`;
+const blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download='study-sessions.ics';a.click();
+URL.revokeObjectURL(url);
+showToast(`Downloaded ${selected.length} session${selected.length!==1?'s':''} as .ics`);
+icsOpen=false;render();
+}
+// ─── INIT ───
+render();
+</script>
+</body>
+</html>
