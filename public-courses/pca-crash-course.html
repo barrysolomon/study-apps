@@ -242,6 +242,15 @@ body{max-width:1100px}
 .role-badge.bonus{background:rgba(107,114,128,.15);color:#6b7280}
 .role-current{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#1f2937;border:1px solid #374151;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#d1d5db}
 .role-current:hover{border-color:#10b981;background:#263040}
+.fs-s .card-text,.fs-s .lesson-text,.fs-s .quiz-option,.fs-s .scenario-box,.fs-s .scenario-q,.fs-s .scenario-a,.fs-s .focus-text{font-size:13px}
+.fs-m .card-text,.fs-m .lesson-text,.fs-m .quiz-option,.fs-m .scenario-box,.fs-m .scenario-q,.fs-m .scenario-a,.fs-m .focus-text{font-size:15px}
+.fs-l .card-text,.fs-l .lesson-text,.fs-l .quiz-option,.fs-l .scenario-box,.fs-l .scenario-q,.fs-l .scenario-a,.fs-l .focus-text{font-size:17px}
+.fs-xl .card-text,.fs-xl .lesson-text,.fs-xl .quiz-option,.fs-xl .scenario-box,.fs-xl .scenario-q,.fs-xl .scenario-a,.fs-xl .focus-text{font-size:20px}
+.code-block{position:relative;background:#0d1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin:10px 0;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.6;color:#e6edf3;overflow-x:auto;white-space:pre;-webkit-overflow-scrolling:touch}
+.code-block:hover .code-copy{opacity:1}
+.code-copy{position:absolute;top:8px;right:8px;background:#374151;border:none;border-radius:6px;color:#9ca3af;font-size:11px;padding:4px 8px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:inherit}
+.code-copy:hover{background:#4b5563;color:#e5e7eb}
+.code-inline{background:#1f2937;padding:2px 6px;border-radius:4px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.9em;color:#a5f3fc}
 </style>
 </head>
 <body>
@@ -313,7 +322,7 @@ const FLASHCARDS=[
 // ║  Search for "TODO" to find all customization points          ║
 // ╚══════════════════════════════════════════════════════════════╝
 const APP_VERSION='v1.0'; // Content version — bump when you update questions/content
-const PLATFORM_VERSION='v3.0'; // Engine version — matches the crash-course-builder skill version
+const PLATFORM_VERSION='v3.1'; // Engine version — matches the crash-course-builder skill version
 // ─── GOOGLE SHEETS SYNC (optional — set URL to enable) ───
 // TODO: (Optional) Paste your Google Apps Script Web App URL to enable cross-device sync. See google-sheets-sync-setup.md for instructions.
 let SYNC_SHEET_URL='';
@@ -335,6 +344,9 @@ coreCategories:['Fundamentals','Alerting','Instrumentation'],
 coreLessons:['lesson-2','lesson-6','lesson-7','lesson-8'],
 categoryOrder:['All','Fundamentals','Alerting','Instrumentation','Observability','PromQL']}
 };
+const RELATED_COURSES=[{title:"OpenTelemetry (OTCA) Crash Course",url:"otca-study-app.html",icon:"🔭",desc:"OpenTelemetry Certified Associate exam prep"}];
+const DIFF_LABELS={1:'Beginner',2:'Intermediate',3:'Advanced'};
+const DIFF_COLORS={1:'#10b981',2:'#f59e0b',3:'#ef4444'};
 // TODO: Add 30-50 quiz questions. Each: {q:"question", o:["A","B","C","D"], a:correctIndex, cat:"Category", u:"url", e:"explanation"}
 // Distribute proportionally across categories. The quiz picker auto-generates from cat values.
 // PRODUCT POSITIONING: Where relevant, append " 🟢 Dash0 angle: [1-2 sentences]" to the e: field.
@@ -502,7 +514,7 @@ const DEFAULT_CHECKPOINTS=[
 const STORAGE_KEY="pca-crash-course-v1";
 function saveState(){
 try{
-const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
 localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
 }catch(e){}
 debouncedCloudSave();
@@ -535,7 +547,7 @@ if(!syncEnabled()){syncPending=false;return}
 if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
 syncStatus='syncing';updateSyncUI();
 try{
-const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
 await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
 method:'POST',headers:{'Content-Type':'text/plain'},
 body:JSON.stringify({data,savedAt:data.savedAt})
@@ -617,13 +629,13 @@ if(syncEnabled()){syncStatus='offline';updateSyncUI()}
 }
 function resetAll(){
 stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
-sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;cardRatings={};
 try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
 showConfirm=false;mode="dashboard";render();
 }
 function resetSection(key){
 if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
-else if(key==="cards"){stats.cards=0}
+else if(key==="cards"){stats.cards=0;cardRatings={}}
 else if(key==="scenarios"){stats.scenarios=0}
 else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
 else if(key==="exercises"){exercisesDone={}}
@@ -638,7 +650,7 @@ if(sessionHistory.length>50)sessionHistory=sessionHistory.slice(-50);
 saveState();
 }
 // ─── STATE ───
-let mode="dashboard",fcCat="All",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
+let mode="dashboard",fcCat="All",fcDiff="All Levels",fcIdx=0,fcFlipped=false,fcSeen=new Set(),fcFavs=new Set();
 let qzQs=[],qzIdx=0,qzSel=null,qzShow=false,qzScore=0,qzDone=false,qzMode=null; // qzMode: null=picker, category string, or "final"
 let scIdx=0,scRevealed=false,scPracticed=new Set();
 let rfState="ready",rfQs=[],rfIdx=0,rfTimer=0,rfResults=[],rfInterval=null;
@@ -648,6 +660,7 @@ let learnView="list",learnIdx=0,exercisesDone={};
 let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
 let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
 let userRole=null,showRolePicker=false;
+let cardRatings={};
 // ─── LOAD SAVED STATE ───
 (function(){
 const saved=loadState();
@@ -661,10 +674,12 @@ if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
 if(saved.userRole)userRole=saved.userRole;
 if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
 if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+if(saved.cardRatings)cardRatings=saved.cardRatings;
 }
 if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
 if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
 try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
+try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');const validFs=['fs-s','fs-m','fs-l','fs-xl'];const applyFs=validFs.includes(fs)?fs:'fs-m';document.body.classList.remove(...validFs);document.body.classList.add(applyFs)}catch(e){document.body.classList.add('fs-m')}
 })();
 // ─── CLOUD SYNC ON LOAD ───
 (async function(){
@@ -685,6 +700,7 @@ if(d.sessionsDone)sessionsDone=d.sessionsDone;
 if(d.userRole)userRole=d.userRole;
 if(d.fcFavs)fcFavs=new Set(d.fcFavs);
 if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
 saveState();render();
 console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
 }
@@ -706,6 +722,64 @@ ${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pick
 </div>`;
 }
 function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
+function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function copyCode(btn){
+  var block=btn.parentElement;
+  var text=block.textContent.replace(/^Copy/,'').replace(/^Copied!/,'').trim();
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(function(){btn.textContent='Copy'},1500);
+  });
+}
+function highlightCode(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(#.*$)/gm,'<span style="color:#6b7280">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')/g,'<span style="color:#a5f3fc">$1</span>')
+    .replace(/\b(const|let|var|function|return|if|else|for|while|true|false|null|import|from|export|class|extends|new|this|async|await)\b/g,'<span style="color:#f97316">$1</span>');
+}
+function codeBlock(code){
+  return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
+}
+function fcRate(rating){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var card=cards[fcIdx%cards.length];
+  cardRatings[card.f]=rating;
+  stats.cards=(stats.cards||0)+1;
+  saveState();
+  fcFlipped=false;
+  // advance to next card
+  var next=fcGetCards();
+  if(next.length>0)fcIdx=(fcIdx+1)%next.length;
+  render();
+}
+
+function fcWeightedShuffle(){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var weighted=[];
+  cards.forEach(function(c,i){
+    var r=cardRatings[c.f];
+    var w=r==='missed'?3:r==='unsure'?2:1;
+    for(var j=0;j<w;j++)weighted.push(i);
+  });
+  fcIdx=weighted[Math.floor(Math.random()*weighted.length)];
+  fcFlipped=false;
+  render();
+}
+
 function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
 function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
 function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
@@ -738,6 +812,7 @@ function setMode(m){mode=m;render()}
 function renderDashboard(el){
 const totalEx=LESSONS.reduce((s,l)=>s+l.exercises.length,0);
 const doneEx=Object.keys(exercisesDone).length;
+const weakCount=Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length;
 el.innerHTML=`
 <div class="stat-grid">
 <div class="stat-card" onclick="setMode('quiz')" style="cursor:pointer"><div class="stat-icon">📝</div><div class="stat-val">${stats.quizzes}</div><div class="stat-label">Quizzes</div></div>
@@ -747,6 +822,7 @@ el.innerHTML=`
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">⚡</div><div class="stat-val">${stats.rapid}</div><div class="stat-label">Rapid Rounds</div></div>
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">🌟</div><div class="stat-val">${stats.bestRapid?stats.bestRapid+'%':'—'}</div><div class="stat-label">Best Rapid</div></div>
 <div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${doneEx}/${totalEx}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-icon">⚠️</div><div class="stat-val" style="color:#f59e0b">${weakCount}</div><div class="stat-label">Weak Cards</div></div>
 </div>
 <div class="focus-box"><div class="focus-title">Exam Breakdown</div><div class="focus-text">PromQL <strong>28%</strong> &middot; Fundamentals <strong>20%</strong> &middot; Observability <strong>18%</strong> &middot; Alerting <strong>18%</strong> &middot; Instrumentation <strong>16%</strong> &nbsp;&middot;&nbsp; 90 min, multiple choice, 1 retake included</div></div>
 ${renderDashSchedule()}`;
@@ -795,29 +871,42 @@ if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return
 return 0;
 }
 // ─── FLASHCARDS ───
-function fcGetCards(){return fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat))}
+function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):fcCat==='⚠ Weak'?FLASHCARDS.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
 function renderFlashcards(el){
+const allCards=FLASHCARDS.filter(function(c){return fcDiff==='All Levels'||DIFF_LABELS[c.d]===fcDiff});
+const weakCount=allCards.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}).length;
 const cards=fcGetCards();
-if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')'>Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==='⚠ Weak'){
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'\u2605 Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">\u2605 Favorites ('+favCount+')</button>':'';
+const weakPill='<button class="pill active" onclick="fcSetCat(\'\u26a0 Weak\')" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">\u26a0 Weak ('+weakCount+')</button>';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+ c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' \u2605':''):'')+'</button>').join("")+'</div>'
++'<div style="text-align:center;padding:40px;color:#9ca3af">No weak cards! Rate flashcards to see them here.</div>';
+return;
+}
 if(fcIdx>=cards.length)fcIdx=0;
 const card=cards[fcIdx];
 const isFav=fcFavs.has(card.f);
 const roleCats=getRoleCategories();
 const favCount=fcFavs.size;
-const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
-el.innerHTML='<div class="pills">'+favPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
-+'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'\u2605 Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">\u2605 Favorites ('+favCount+')</button>':'';
+const weakPill=weakCount||fcCat==='⚠ Weak'?'<button class="pill '+(fcCat==='⚠ Weak'?'active':'')+'" onclick="fcSetCat(\'\u26a0 Weak\')" style="'+(fcCat!=='⚠ Weak'?'background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)':'')+'">\u26a0 Weak ('+weakCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+ c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' \u2605':''):'')+'</button>').join("")+'</div>'
++'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+['All Levels','Beginner','Intermediate','Advanced'].map(function(d){return '<button class="pill'+(fcDiff===d?' pill-active':'')+'" onclick="fcDiff=\''+ d+'\';fcIdx=0;render()">'+ d+'</button>';}).join('')+'</div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':fcCat==='⚠ Weak'?'Weak cards':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
 +'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
-+'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
-+'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+'</div>'
++'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'\u2605':'\u2606')+'</button>'
++'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' \u2014 '+card.c+(card.d?'<span style="background:'+DIFF_COLORS[card.d]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600">'+ DIFF_LABELS[card.d]+'</span>':'')+'</div>'
 +'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
-+(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
-+(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
-+'</div>'
-+(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
-+'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
++(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')+(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">\U0001f4d6 Read the docs</a>':'')+(fcFlipped?'<div style="display:flex;gap:8px;justify-content:center;margin-top:14px">'
++'<button onclick="event.stopPropagation();fcRate(\'missed\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#ef4444;color:#fff;font-weight:600">Missed</button>'
++'<button onclick="event.stopPropagation();fcRate(\'unsure\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#f59e0b;color:#fff;font-weight:600">Unsure</button>'
++'<button onclick="event.stopPropagation();fcRate(\'known\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#10b981;color:#fff;font-weight:600">Know it</button>'
++'</div>':'')+'</div>'
++(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')+'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcWeightedShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
 }
-function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
 function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
 function fcNext(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx+1)%cards.length;saveState();render()}
 function fcPrev(){fcFlipped=false;const cards=fcGetCards();fcIdx=(fcIdx-1+cards.length)%cards.length;saveState();render()}
@@ -1015,6 +1104,19 @@ if(schedView==="schedule"){html+=renderScheduleTab();el.innerHTML=html;return}
 if(schedView==="checkpoints"){html+=renderCheckpointsTab();el.innerHTML=html;return}
 if(schedView==="resources"){html+=renderResourcesTab();el.innerHTML=html;return}
 html+=`
+<div class="mgmt-section">
+<h3>Font Size</h3>
+<div style="margin-bottom:20px">` 
++'<div style="font-size:13px;color:#9ca3af;margin-bottom:8px">Font Size</div>'
++'<div style="display:flex;gap:8px;flex-wrap:wrap">'
++['fs-s','fs-m','fs-l','fs-xl'].map(function(s){
+  var lbl={'fs-s':'S','fs-m':'M','fs-l':'L','fs-xl':'XL'}[s];
+  var active=document.body.className===s;
+  return '<button onclick="setFontSize(\''+ s+'\')" style="padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;background:'+(active?'#10b981':'#374151')+';color:'+(active?'#fff':'#9ca3af')+';transition:all .2s">'+lbl+'</button>';
+}).join('')
++'</div></div>'
++`
+</div>
 <div class="mgmt-section">
 <h3>Focus Level</h3>
 <div style="font-size:13px;color:#9ca3af;margin-bottom:12px">Controls which content is highlighted as core vs bonus across the app.</div>
@@ -1243,6 +1345,9 @@ function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveS
 function renderResourcesTab(){
 return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
 <h3 style="color:#93c5fd">📚 Study Resources</h3>
+${(RELATED_COURSES.length ? '<div class="res-group"><div class="res-group-title">Related Courses</div>'
+  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span><div><strong>'+c.title+'</strong><div class="res-desc">'+c.desc+'</div></div></a>'}).join('')
+  +'</div>' : '')}
 <div class="res-group">
 <h4>Exam Info</h4>
 <a class="res-link" href="https://training.linuxfoundation.org/certification/prometheus-certified-associate/" target="_blank" rel="noopener">PCA Exam Page<small>Linux Foundation — registration, domains, pricing</small></a>
