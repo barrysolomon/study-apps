@@ -445,18 +445,321 @@ const QUIZ=[
 {q:"How does Dash0's Prometheus import support reduce migration friction for new customers?",o:["It automatically rewrites PromQL queries to Dash0's native query language","It imports Prometheus scrape configurations and creates data connectors automatically","It accepts PrometheusRule CRD files and converts alerting rules to Dash0 check rules automatically","It imports Prometheus metrics as dashboards via the Grafana API"],a:2,cat:"Pitch & Positioning",u:"https://www.dash0.com/changelog/cli-manage-assets",e:"Teams switching from Prometheus alerting don't have to rewrite their rules — the Dash0 CLI accepts the same PrometheusRule CRD files and converts them automatically. This dramatically lowers the switching cost for Prometheus-heavy environments.",d:2},
 {q:"Which one-sentence description best captures the 'observability as code' value proposition of the Dash0 CLI?",o:["The Dash0 CLI lets you run CLI commands instead of clicking in a UI, saving a few seconds per action","With the Dash0 CLI, observability config lives in source control alongside app code — changes go through code review, get tested in staging, and deploy automatically","The Dash0 CLI provides a backup mechanism for dashboards in case the UI becomes unavailable","The Dash0 CLI replaces the need for a dedicated observability team by automating dashboard creation"],a:1,cat:"Pitch & Positioning",u:"https://www.dash0.com/changelog/dash0-cli-ga",e:"'Observability as code' means treating dashboards, alerts, and synthetic checks with the same engineering rigor as application code — peer review, staging environments, automated deployment, and full change history. The CLI is the tool that makes this practical. 🟢 Dash0 angle: This positions Dash0 as a platform for engineering teams who take reliability seriously, not just a metrics dashboard.",d:1},
 ];
-// Scenario content coming in a later task — add 8-12 drills here
-// Each: {q:"situation", a:"suggested response", u:["url1","url2"]}
-const SCENARIOS=[];
-// Rapid fire content coming in a later task — add 10-15 questions here
-// Each: {q:"question", a:"short answer", t:secondsAllowed, u:"url"}
-const RAPID=[];
-// ─── LESSONS ───
-// Lesson content coming in a later task — add 8 lessons here (lesson-1 through lesson-8)
-// Each: {id, title, time, week, icon, body (HTML string), sources:[], exercises:[{task,hint,url}]}
-// Lesson topics: 1=Fundamentals, 2=Installation & Setup, 3=Asset Management, 4=GitOps & Apply,
-//                5=Querying, 6=Sending Telemetry, 7=Agent Mode & CI/CD, 8=Pitch & Positioning
-const LESSONS=[];
+const SCENARIOS=[
+// ── Sales Scenarios (4) ──
+{q:"A prospect says: 'We already manage everything through the Datadog UI. Why would we need a CLI?'",
+a:"Great question — and it's worth exploring what 'managing through the UI' actually means long-term. When everything lives in a UI, dashboards become snowflakes: they drift between environments, changes aren't reviewed, and rollbacks require manual recreation. The Dash0 CLI solves this by treating observability config as code. You export dashboards as YAML, commit to Git, and deploy with `dash0 apply` in your CI/CD pipeline — the same workflow your team already uses for infrastructure.\n\nDatadog does have a limited CLI (dogwrap, ddtrace), but it's focused on process wrapping and trace injection — not managing the observability layer itself. There's no `datadog apply -f dashboards/` equivalent. With Dash0 CLI, every dashboard change goes through code review, gets tested in staging, and deploys automatically. That's a qualitatively different capability.\n\nFinally, ask where their team spends time when an alert fires at 2am. If they're clicking through the Datadog UI to find the right dashboard, that's friction. Dash0 CLI lets engineers query logs, spans, and metrics directly from the terminal without a browser — and it integrates natively with AI coding agents like Claude Code and Cursor for the next generation of on-call workflows.",
+u:["https://www.dash0.com/changelog/dash0-cli-ga","https://www.dash0.com/changelog/cli-manage-assets"]},
+
+{q:"A prospect asks: 'How is Dash0 CLI different from Terraform or Pulumi for managing dashboards?'",
+a:"Terraform and Pulumi are excellent for infrastructure — compute, networking, databases. Dash0 CLI is purpose-built for the observability layer, and the distinction matters in practice. With Terraform, you write HCL to describe dashboards, but you're working with a provider that abstracts the actual YAML structure. With Dash0 CLI, you work directly with the dashboard definition format — export, edit, re-apply — no translation layer, no state file to manage, no `terraform plan` overhead.\n\nDash0 CLI is also much more than a deployment tool. You can query logs, run PromQL expressions, send test telemetry, and retrieve traces — all from the same binary. Terraform can't tell you why your service is erroring at 3am. Dash0 CLI can.\n\nThe positioning is complementary, not competing. Teams use Terraform to provision Dash0 environments (datasets, integrations), and Dash0 CLI to manage the observability assets within those environments. If a prospect is already a Terraform shop, the Dash0 Terraform provider + Dash0 CLI is a natural combination: Terraform for environment setup, CLI for day-2 asset management and live telemetry access.",
+u:["https://www.dash0.com/changelog/dash0-cli-ga","https://github.com/dash0hq/dash0-cli"]},
+
+{q:"A customer says: 'Our team doesn't use command-line tools — UI only. This isn't relevant to us.'",
+a:"That's actually the most common starting point, and it's worth asking which parts of their workflow they'd want to keep in the UI. The UI is great for exploration, visualization, and building dashboards interactively. The CLI isn't a replacement — it's for the workflow that comes after: once a dashboard is built and validated, you want to version-control it, replicate it to staging and prod, and ensure it doesn't drift.\n\nFor a UI-only team, the immediate value of the CLI is actually simpler: backup and recovery. If someone accidentally deletes a dashboard or makes a breaking change, `dash0 dashboards get <id> -o yaml` before any change gives you an instant snapshot. That's a safety net that requires zero CLI adoption day-to-day.\n\nThe more compelling conversation is about what happens when they grow. As teams scale, manual UI management breaks down — multiple environments, multiple contributors, no audit trail. The CLI is how modern engineering teams address that. It also has first-class support for AI coding agents: Claude Code, Cursor, and other AI tools can use the Dash0 CLI natively, which becomes relevant as those workflows mature. Starting the conversation now ensures they're not re-platforming their observability workflow in 18 months.",
+u:["https://www.dash0.com/changelog/cli-manage-assets","https://www.dash0.com/changelog/dash0-cli-ga"]},
+
+{q:"A prospect says: 'We already have kubectl and Helm for our Kubernetes deployments. Why do we need another CLI?'",
+a:"kubectl and Helm are the right tools for Kubernetes workloads — Dash0 CLI doesn't compete with them, it completes the picture. When kubectl deploys a service, the observability layer (dashboards, alerting rules, synthetic checks) for that service often lags behind or is never created at all. Dash0 CLI is how you deploy the observability config alongside the application config, in the same pipeline.\n\nThe mental model is the same one your team already knows: `kubectl apply -f deployment.yaml` for the application, `dash0 apply -f observability/` for the monitoring layer. Engineers already understand declarative apply semantics, idempotent operations, and YAML-in-Git. The CLI uses exactly that model.\n\nAdditionally, the Dash0 CLI covers capabilities kubectl doesn't touch: querying live telemetry (`dash0 -X logs query`), sending test spans from local dev (`dash0 -X spans send`), and native AI agent integration. For a Kubernetes-heavy team, the Dash0 Kubernetes operator handles auto-instrumentation, and the CLI handles the asset management and telemetry access layer. They work together.",
+u:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"]},
+
+// ── SA/Demo Scenarios (4) ──
+{q:"A customer wants to see a live dashboard-as-code workflow demo. Walk them through it.",
+a:"Start by showing the 'before' state: a dashboard exists in the Dash0 UI, and it was created manually with no version history. Then demonstrate the full GitOps loop in three steps.\n\nFirst, export: `dash0 dashboards list` to find the ID, then `dash0 dashboards get <id> -o yaml > my-service-dashboard.yaml`. Open the file — show them it's readable YAML they could commit to a repo. Make a small change: add a new panel or update a threshold.\n\nSecond, apply: `dash0 apply -f my-service-dashboard.yaml`. Show the dashboard updated in the Dash0 UI in real time. Then demonstrate idempotency: run the same command again — no duplicate, no error.\n\nThird, show the CI/CD integration angle: here's a GitHub Actions workflow that runs `dash0 apply --dry-run` on pull requests (validation without changes) and `dash0 apply` on merge to main (deployment). The dashboard change goes through the same review process as the application code. Ask them: when was the last time a dashboard change caused an alert to miss a real incident? This workflow makes that auditable and reversible.",
+u:["https://www.dash0.com/changelog/cli-manage-assets","https://www.dash0.com/changelog/dash0-cli-ga","https://github.com/dash0hq/dash0-cli"]},
+
+{q:"A customer asks: 'Can you show me how to migrate our existing Prometheus alert rules to Dash0?'",
+a:"This is one of the lowest-friction migration paths in the Dash0 ecosystem. If they have PrometheusRule CRD files (the standard Kubernetes alerting format), the Dash0 CLI can accept them directly — no translation needed.\n\nThe demo flow: take an existing PrometheusRule YAML file from their repo. Run `dash0 check-rules create -f prometheus-rules.yaml`. The CLI automatically detects the PrometheusRule format and converts the alerting rules to Dash0 check rules. Show the resulting check rules in the Dash0 UI.\n\nFor teams using plain Prometheus (not Kubernetes), the workflow is similar: their existing rule files can be applied directly. For teams using Alertmanager, walk through how Dash0 check rules map to notification channels.\n\nThe key message is: you don't have to rewrite anything. Your existing investment in alert rule authoring carries over. From there, you can manage those rules as code — `dash0 check-rules list`, export to YAML, commit to Git, and deploy changes through CI/CD. That's a better workflow than most teams have with Prometheus today.",
+u:["https://www.dash0.com/changelog/cli-manage-assets","https://github.com/dash0hq/dash0-cli"]},
+
+{q:"A customer wants to understand how `dash0 apply` fits into their GitOps pipeline. They use ArgoCD for application deployments.",
+a:"The Dash0 CLI integrates at the CI/CD layer, not the GitOps operator layer — so it works alongside ArgoCD rather than replacing it. Here's the typical pattern: ArgoCD manages application manifests from Git. Dash0 CLI manages observability assets from the same (or a parallel) Git repository.\n\nThe practical setup: create an `observability/` directory in the application repo alongside `k8s/`. When a developer adds a new service, they add both `k8s/deployment.yaml` (picked up by ArgoCD) and `observability/dashboard.yaml` (picked up by a Dash0 CI/CD step). On merge to main, ArgoCD syncs the workload and a GitHub Actions step runs `dash0 apply -f observability/` to sync the observability config.\n\nFor preview environments, use `--dry-run` in PR pipelines to validate the observability config without applying it. This catches YAML schema errors before they reach production. Use profile switching (`dash0 config profiles select staging`) to deploy to the right environment.\n\nThe key advantage over ArgoCD-managed Dash0 configs: the CLI handles create-vs-update automatically (idempotent), understands multi-document YAML (one file can contain dashboards + check rules + synthetic checks), and has native agent mode for AI-assisted pipeline workflows.",
+u:["https://www.dash0.com/changelog/dash0-cli-ga","https://github.com/dash0hq/dash0-cli"]},
+
+{q:"A customer asks: 'How does the CLI handle multiple environments — dev, staging, and production?'",
+a:"The Dash0 CLI uses named profiles to handle multiple environments. Each profile stores the API URL, OTLP ingress URL, and auth token for a specific Dash0 dataset or organization. You create profiles with `dash0 config profiles create` and switch with `dash0 config profiles select`.\n\nFor a demo: `dash0 config profiles list` shows all configured environments. `dash0 config profiles select production` switches context — all subsequent commands target production. `dash0 dashboards list` now shows production dashboards. This is exactly how you'd promote a dashboard change: apply to dev, validate, `profiles select staging`, apply again, validate, `profiles select production`, apply to prod.\n\nIn CI/CD pipelines, you don't use `profiles select` — instead, set `DASH0_CONFIG_DIR` to a temp directory and create the profile from environment secrets each run. This ensures the pipeline always uses the correct credentials for the target environment without relying on a persistent profile file.\n\nFor multi-environment YAML management, many teams use a directory structure: `observability/dev/`, `observability/staging/`, `observability/prod/` with environment-specific overrides, then `dash0 apply -f observability/prod/` with the production profile active. This gives full auditability: which config, which environment, which pipeline run.",
+u:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"]},
+
+// ── Deep Technical Scenarios (4) ──
+{q:"An engineer needs to query the last 1 hour of error logs filtered by service name 'checkout-service'. What is the exact command sequence?",
+a:"This requires the experimental logs query feature. The full command is: `dash0 -X logs query --from now-1h --to now --filter \"service.name is checkout-service\" --filter \"severity.text is ERROR\"`\n\nBreaking it down: `-X` enables experimental mode (required for logs and spans). `--from now-1h` sets the start of the time window using a relative timestamp. `--to now` is optional since it defaults to the current time. `--filter` accepts OTel attribute path expressions — you can chain multiple filters and they are ANDed together. `severity.text is ERROR` matches log records with ERROR severity.\n\nTo limit the result set: add `--limit 500` to cap at 500 records. To export for analysis: add `-o csv --column time --column service.name --column severity.text --column body` for a spreadsheet-friendly format. To output as JSON for scripting: `-o json`.\n\nIf the service name contains a space or special character: quote it — `--filter \"service.name is 'my checkout service'\"`.\n\nFor debugging: if no results come back, verify the active profile points to the right dataset with `dash0 config show`, and widen the time window with `--from now-6h` in case logs are delayed.",
+u:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"]},
+
+{q:"An engineer is setting up a CI/CD pipeline to automatically deploy observability config when changes merge to main. Walk through the complete setup.",
+a:"The recommended pipeline pattern has four stages: validate on PR, deploy on merge, verify post-deploy, and annotate the deployment.\n\nFor GitHub Actions, set up three secrets: DASH0_AUTH_TOKEN, DASH0_API_URL, and DASH0_OTLP_URL. On pull request events, run the validation job: set DASH0_CONFIG_DIR to `/tmp/dash0-ci`, run `dash0 config profiles create ci --api-url $DASH0_API_URL --otlp-url $DASH0_OTLP_URL --auth-token $DASH0_AUTH_TOKEN`, then `dash0 apply -f observability/ --dry-run`. This validates YAML schema and API connectivity without making changes.\n\nOn merge to main, run the deployment job: same profile setup, then `DASH0_AGENT_MODE=true dash0 apply -f observability/` (agent mode gives clean JSON output for the pipeline log). For multi-environment pipelines, parameterize by environment using separate secret groups and profile names.\n\nPost-deploy annotation: `dash0 logs send \"Observability config deployed\" --resource-attribute service.name=ci-pipeline --log-attribute deployment.sha=$GITHUB_SHA --log-attribute deployment.env=production --severity-text INFO`. This creates a searchable deployment marker in Dash0 logs — when investigating incidents, you can filter to see what changed and when.\n\nFor Docker-based pipelines, use `docker run ghcr.io/dash0hq/cli:latest` instead of the binary, passing the same environment variables.",
+u:["https://www.dash0.com/changelog/dash0-cli-ga","https://www.dash0.com/changelog/cli-agent-mode","https://github.com/dash0hq/dash0-cli"]},
+
+{q:"An engineer wants to send test telemetry from their local dev environment to validate their OpenTelemetry pipeline. What commands should they use?",
+a:"The Dash0 CLI can send both logs and spans directly via OTLP to the active profile's ingress URL — no instrumentation library or SDK required.\n\nFor validating log ingestion: `dash0 logs send \"Test log from dev\" --resource-attribute service.name=my-service --resource-attribute service.version=1.2.3 --resource-attribute deployment.environment=dev --log-attribute http.method=GET --log-attribute http.status_code=200 --severity-text INFO --severity-number 9`. Check the Dash0 UI — the log should appear with all attributes correctly mapped.\n\nFor validating trace ingestion: `dash0 -X spans send --name \"GET /api/users\" --kind SERVER --status-code OK --duration 150ms --resource-attribute service.name=my-service --resource-attribute deployment.environment=dev --span-attribute http.method=GET --span-attribute http.status_code=200`. Look for the span in the Dash0 traces view.\n\nFor end-to-end pipeline validation in CI: write a test script that sends a log with a unique trace ID, queries for it with `dash0 -X logs query --filter \"trace.id is <id>\" --from now-2m`, and asserts the result is non-empty. This gives you a synthetic test that validates the full ingestion pipeline.\n\nCommon issues: if telemetry doesn't appear, run `dash0 config show` to confirm the OTLP URL is set. The OTLP URL is separate from the API URL — it's the ingress endpoint, not the management API.",
+u:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"]},
+
+{q:"An engineer is debugging why `dash0 apply` isn't updating an existing dashboard — the command succeeds but the dashboard in the UI looks unchanged. What are the debugging steps?",
+a:"This is a common debugging scenario. Work through these steps in order.\n\nFirst, verify you're targeting the right environment: `dash0 config show` — confirm the API URL matches where you expect the dashboard to live. A common mistake is running apply against the dev profile while looking at the production UI.\n\nSecond, verify the resource ID: the `kind` and `id` fields in your YAML must match the existing resource. Run `dash0 dashboards list -o json` and check the `id` field. If the YAML has a wrong or missing ID, `apply` will create a new resource rather than updating the existing one — you may have a duplicate dashboard you haven't found yet.\n\nThird, check what the apply actually sent: run with `-o json` to see the full response. If the API returned a 200 with the updated resource, the issue is a UI caching problem — refresh the browser.\n\nFourth, use the explicit update command to isolate the issue: `dash0 dashboards update <id> -f dashboard.yaml`. If this also fails silently, add `--verbose` if available, or pipe to `jq` to inspect the response.\n\nFifth, validate the YAML schema: try `dash0 apply -f dashboard.yaml --dry-run` and look carefully at the output. A malformed panel definition may be silently dropped by the API.\n\nIf all else fails, export the current state with `dash0 dashboards get <id> -o yaml`, diff it against your file to see what actually differs, and apply incrementally.",
+u:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/cli-manage-assets"]}
+];
+const RAPID=[
+{q:"Command to list all dashboards?",a:"dash0 dashboards list",t:6,u:"https://www.dash0.com/changelog/cli-manage-assets"},
+{q:"How to install CLI on macOS?",a:"brew tap dash0hq/dash0-cli https://github.com/dash0hq/dash0-cli && brew install dash0",t:10,u:"https://github.com/dash0hq/dash0-cli#installation"},
+{q:"Flag to output as JSON?",a:"-o json",t:5,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"What flag enables experimental commands?",a:"-X (e.g., dash0 -X logs query)",t:6,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"How to apply all YAML files in a directory?",a:"dash0 apply -f <directory>/",t:7,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"Command to switch to the production profile?",a:"dash0 config profiles select production",t:7,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"How to send a log line to Dash0?",a:"dash0 logs send \"message\" --resource-attribute service.name=my-service",t:9,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"What env var enables agent mode in CI?",a:"DASH0_AGENT_MODE=true",t:7,u:"https://www.dash0.com/changelog/cli-agent-mode"},
+{q:"Where does the CLI store config profiles?",a:"~/.dash0/ (override with DASH0_CONFIG_DIR)",t:8,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"Command to validate YAML without applying?",a:"dash0 apply -f <path> --dry-run",t:7,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"How to export a dashboard as YAML?",a:"dash0 dashboards get <id> -o yaml",t:7,u:"https://www.dash0.com/changelog/cli-manage-assets"},
+{q:"OTel severity number for ERROR?",a:"17 (--severity-number 17)",t:8,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"Run CLI without installing — how?",a:"docker run ghcr.io/dash0hq/cli:latest [command]",t:8,u:"https://github.com/dash0hq/dash0-cli#installation"},
+{q:"How to query metrics with PromQL?",a:"dash0 metrics instant --query 'promql-expr'",t:8,u:"https://github.com/dash0hq/dash0-cli"},
+{q:"Four asset types managed by the CLI?",a:"dashboards, check-rules, views, synthetic-checks",t:9,u:"https://www.dash0.com/changelog/cli-manage-assets"}
+];
+const LESSONS=[
+{id:"lesson-1",title:"What is the Dash0 CLI?",time:"15m",week:1,icon:"🛠️",
+sources:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga","https://www.dash0.com/changelog/cli-agent-mode"],
+body:`<div class="lesson-section"><h4>The Three Interfaces</h4><div class="lesson-text"><p>Dash0 exposes three interfaces to its platform: the <strong>UI</strong> (browser-based, human-visual), the <strong>API</strong> (HTTP REST, machine-to-machine), and the <strong>CLI</strong> (terminal-based, human-native). Each interface targets a different context and user.</p><p>The CLI is the "human-native" interface — it is designed for engineers and operators who live in the terminal. It wraps the same API used by the UI and exposes it as ergonomic shell commands with tab completion, human-readable table output, and interactive prompts where appropriate.</p></div></div><div class="lesson-section"><h4>What the CLI Does</h4><div class="lesson-text"><p>The Dash0 CLI has four capability areas:</p></div><div class="lesson-highlight"><strong>Asset Management:</strong> CRUD operations on dashboards, check rules, views, and synthetic checks. Export as YAML, import from YAML, accept PrometheusRule CRDs.<br><br><strong>GitOps Apply:</strong> <code class="code-inline">dash0 apply -f</code> — idempotent apply of YAML files, like <code class="code-inline">kubectl apply</code> for observability.<br><br><strong>Telemetry Querying:</strong> Query logs, spans, and metrics from the terminal. Filter by attributes, time ranges, output as CSV or JSON.<br><br><strong>Sending Telemetry:</strong> Send log lines and spans directly via OTLP. Test pipelines, annotate deployments, validate instrumentation from local dev.</div></div><div class="lesson-section"><h4>CLI vs API vs MCP</h4><div class="lesson-text"><p>Use the <strong>CLI</strong> when you are a human in a terminal: installing locally, running queries, demoing workflows, scripting one-off operations. Use the <strong>API</strong> when you are building an integration or automation: service-to-service calls, custom tooling, webhook handlers. Use the <strong>MCP server</strong> when you are in an AI coding environment: Claude Code, Cursor, or Windsurf connecting to Dash0 via the Model Context Protocol.</p><p>The CLI bridges all three worlds — it has native AI agent mode that makes it usable by AI coding agents without any configuration, and it wraps the same HTTP API that programmatic integrations use.</p></div></div><div class="lesson-section"><h4>Value Proposition</h4><div class="lesson-highlight">The Dash0 CLI lets developers manage observability infrastructure as code, query live telemetry from the terminal, and integrate Dash0 natively into any AI coding agent — with zero friction.</div></div>`,
+exercises:[
+{task:"Identify the three Dash0 interfaces and when to use each.",hint:"CLI = human terminal, API = machine-to-machine, MCP = AI agent environments",steps:["Write down: CLI for terminal workflows, API for programmatic integrations, MCP for AI coding agents","Note: CLI auto-detects AI agent environments and switches to agent mode — bridging CLI and MCP use cases","Review: what interface would you use to build a custom Slack alert bot? (API)"]},
+{task:"Understand the four CLI capability areas from memory.",hint:"Asset management, GitOps apply, querying, sending telemetry",steps:["Cover this page and recite the four capability areas","For each capability area, name one concrete command or workflow","Check: `dash0 dashboards list` (asset mgmt), `dash0 apply -f` (GitOps), `dash0 -X logs query` (query), `dash0 logs send` (send)"]}
+]},
+
+{id:"lesson-2",title:"Installation & Profiles",time:"20m",week:1,icon:"⚙️",
+sources:["https://github.com/dash0hq/dash0-cli#installation","https://github.com/dash0hq/dash0-cli"],
+body:`<div class="lesson-section"><h4>Installation Methods</h4><div class="lesson-text"><p>The Dash0 CLI supports three installation methods. Choose based on your environment and workflow.</p></div><div class="lesson-highlight"><strong>Homebrew (macOS/Linux — recommended for local use):</strong><br><div class="code-block">brew tap dash0hq/dash0-cli https://github.com/dash0hq/dash0-cli
+brew install dash0</div><strong>Docker (CI/CD and containerized environments):</strong><br><div class="code-block">docker run ghcr.io/dash0hq/cli:latest [command]</div>Multi-arch: supports linux/amd64 and linux/arm64.<br><br><strong>Build from source (Go 1.22+ required):</strong><br><div class="code-block">git clone https://github.com/dash0hq/dash0-cli.git
+cd dash0-cli && make install</div></div></div><div class="lesson-section"><h4>Profiles and Authentication</h4><div class="lesson-text"><p>Profiles are named configurations stored in <code class="code-inline">~/.dash0/</code>. Each profile holds an API URL, OTLP ingress URL, and auth token. Override the config directory with <code class="code-inline">DASH0_CONFIG_DIR</code>.</p></div><div class="code-block"># Create a profile
+dash0 config profiles create dev \
+  --api-url https://api.us-west-2.aws.dash0.com \
+  --otlp-url https://ingress.us-west-2.aws.dash0.com \
+  --auth-token auth_xxx
+
+# List all profiles
+dash0 config profiles list
+
+# Switch profiles
+dash0 config profiles select staging
+
+# Show active config (partially masked token)
+dash0 config show
+
+# Delete a profile
+dash0 config profiles delete old-profile</div></div><div class="lesson-section"><h4>Environment Variables</h4><div class="lesson-text"><p>All profile settings can be overridden at runtime via environment variables — useful for CI/CD where you can't rely on a persistent profile file:</p></div><div class="code-block">DASH0_CONFIG_DIR=/tmp/dash0-ci   # Override config directory
+DASH0_AGENT_MODE=true             # Enable machine-readable output
+DASH0_AUTH_TOKEN=auth_xxx         # Override auth token</div></div>`,
+exercises:[
+{task:"Install the Dash0 CLI and create your first profile.",hint:"Use Homebrew on macOS. You need an API URL, OTLP URL, and auth token from your Dash0 environment.",steps:["Run: brew tap dash0hq/dash0-cli https://github.com/dash0hq/dash0-cli && brew install dash0","Create a profile: dash0 config profiles create dev --api-url <your-api-url> --otlp-url <your-otlp-url> --auth-token <token>","Verify: dash0 config show — confirm all three values are set","Test connectivity: dash0 dashboards list — should return a table (empty is fine)"]},
+{task:"Create two profiles and practice switching between them.",hint:"Create a dev and staging profile. Even with the same credentials, practice the workflow.",steps:["Create: dash0 config profiles create staging --api-url ... --otlp-url ... --auth-token ...","List: dash0 config profiles list — confirm both profiles appear","Switch: dash0 config profiles select staging","Confirm: dash0 config show — active profile should be staging","Switch back: dash0 config profiles select dev"]}
+]},
+
+{id:"lesson-3",title:"Asset Management CRUD",time:"25m",week:1,icon:"📋",
+sources:["https://www.dash0.com/changelog/cli-manage-assets","https://github.com/dash0hq/dash0-cli"],
+body:`<div class="lesson-section"><h4>Four Asset Types, One Pattern</h4><div class="lesson-text"><p>The Dash0 CLI manages four asset types: <code class="code-inline">dashboards</code>, <code class="code-inline">check-rules</code>, <code class="code-inline">views</code>, and <code class="code-inline">synthetic-checks</code>. Every asset type uses the same five subcommands: <strong>list, get, create, update, delete</strong>. Learn the pattern once, apply it to all four.</p></div></div><div class="lesson-section"><h4>Core Commands</h4><div class="code-block"># List all assets of a type
+dash0 dashboards list
+dash0 check-rules list
+dash0 views list
+dash0 synthetic-checks list
+
+# Get a single asset (output as YAML for version control)
+dash0 dashboards get <id> -o yaml
+dash0 check-rules get <id> -o json
+
+# Create from a YAML file
+dash0 dashboards create -f dashboard.yaml
+dash0 check-rules create -f rule.yaml
+
+# Update in place (ID from YAML file if omitted on CLI)
+dash0 views update <id> -f view.yaml
+dash0 dashboards update -f dashboard.yaml   # ID read from YAML
+
+# Delete (use --force to skip confirmation in scripts)
+dash0 synthetic-checks delete <id>
+dash0 check-rules delete <id> --force</div></div><div class="lesson-section"><h4>Output Formats</h4><div class="lesson-text"><p>Use <code class="code-inline">-o</code> to control output format. <code class="code-inline">table</code> is the default for human reading. <code class="code-inline">yaml</code> and <code class="code-inline">json</code> are for version control and scripting. <code class="code-inline">wide</code> shows additional columns. <code class="code-inline">csv</code> is for exports.</p></div></div><div class="lesson-section"><h4>Prometheus CRD Import</h4><div class="lesson-highlight"><strong>Key differentiator:</strong> The CLI accepts PrometheusRule CRD files directly. No manual translation needed — it converts alerting rules to Dash0 check rules automatically.<br><div class="code-block">dash0 check-rules create -f prometheus-rules.yaml  # PrometheusRule CRD</div>This is a major migration accelerator for teams coming from Prometheus/Alertmanager.</div></div><div class="lesson-section"><h4>Edit Workflow Pattern</h4><div class="code-block"># Export current state
+dash0 dashboards get <id> -o yaml > my-dashboard.yaml
+
+# Edit locally (add panels, change thresholds, etc.)
+vim my-dashboard.yaml
+
+# Apply changes
+dash0 dashboards update <id> -f my-dashboard.yaml
+# OR use apply for idempotent create-or-update:
+dash0 apply -f my-dashboard.yaml</div></div>`,
+exercises:[
+{task:"Export a dashboard as YAML and re-apply it to verify round-trip.",hint:"Get a dashboard ID from `list`, export as YAML, apply it back with `apply`.",steps:["Run: dash0 dashboards list — note an ID","Export: dash0 dashboards get <id> -o yaml > test-dashboard.yaml","Inspect the file — note the kind, id, and structure fields","Apply: dash0 apply -f test-dashboard.yaml","Confirm: the command should report 'updated' (not created), UI should be unchanged"]},
+{task:"List all check rules and export one as JSON.",hint:"check-rules list, then get with -o json",steps:["Run: dash0 check-rules list","Pick an ID and run: dash0 check-rules get <id> -o json","Pipe to jq for pretty-printing: dash0 check-rules get <id> -o json | jq .",
+"Note the structure — this is what you'd version-control and deploy via CI/CD"]},
+{task:"Practice the --force flag for scripted deletes.",hint:"Create a test synthetic check from YAML, then delete it without confirmation.",steps:["Create a minimal synthetic-check YAML with a test URL","Run: dash0 synthetic-checks create -f test-check.yaml","Delete with force: dash0 synthetic-checks delete <id> --force","Verify: dash0 synthetic-checks list — the test check should be gone"]}
+]},
+
+{id:"lesson-4",title:"GitOps with dash0 apply",time:"25m",week:2,icon:"🔄",
+sources:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"],
+body:`<div class="lesson-section"><h4>Why dash0 apply?</h4><div class="lesson-text"><p><code class="code-inline">dash0 apply</code> is the GitOps command — the observability equivalent of <code class="code-inline">kubectl apply</code>. It takes YAML files as input and creates or updates resources as needed. It is <strong>idempotent</strong>: run it ten times with the same input and the result is the same as running it once.</p><p>This idempotency is what makes it safe to use in CI/CD pipelines. You don't need separate "create" and "update" stages — apply handles both automatically based on whether the resource exists.</p></div></div><div class="lesson-section"><h4>Core Apply Patterns</h4><div class="code-block"># Apply a single file
+dash0 apply -f dashboard.yaml
+
+# Apply all YAML files in a directory (recursive)
+dash0 apply -f observability/
+
+# Apply from stdin (pipe from template engine or generator)
+cat generated-dashboard.yaml | dash0 apply -f -
+
+# Dry run — validate without applying
+dash0 apply -f observability/ --dry-run
+
+# Multi-doc YAML (multiple resources in one file, separated by ---)
+dash0 apply -f all-resources.yaml</div></div><div class="lesson-section"><h4>Create vs Update Detection</h4><div class="lesson-text"><p>Apply checks the <code class="code-inline">id</code> field in each YAML document against the Dash0 API. If a resource with that ID exists, it updates. If not, it creates. No flags needed — this is automatic.</p></div><div class="lesson-highlight"><strong>Contrast with explicit create/update:</strong><br><code class="code-inline">dash0 dashboards create -f</code> — fails if ID already exists<br><code class="code-inline">dash0 dashboards update -f</code> — fails if ID does not exist<br><code class="code-inline">dash0 apply -f</code> — always succeeds (creates or updates)</div></div><div class="lesson-section"><h4>GitOps Pipeline Integration</h4><div class="lesson-text"><p>The recommended GitOps pattern: store all Dash0 assets as YAML in a Git repository under <code class="code-inline">observability/</code>. Add two CI/CD steps:</p></div><div class="code-block"># On pull request — validate only
+dash0 apply -f observability/ --dry-run
+
+# On merge to main — deploy
+DASH0_AGENT_MODE=true dash0 apply -f observability/</div><div class="lesson-text"><p>Use <code class="code-inline">DASH0_CONFIG_DIR</code> in CI to avoid relying on persistent profile files. Create the profile from secrets in each pipeline run. Use profile names to separate environments (dev/staging/prod).</p></div></div>`,
+exercises:[
+{task:"Set up a local observability/ directory and apply multiple assets.",hint:"Create at least two YAML files with different kinds and apply the directory.",steps:["Create: mkdir observability/","Export a dashboard: dash0 dashboards get <id> -o yaml > observability/dashboard.yaml","Export a check rule: dash0 check-rules get <id> -o yaml > observability/check-rule.yaml","Apply: dash0 apply -f observability/","Review output — should show 'updated' for each resource"]},
+{task:"Use --dry-run to validate YAML before applying.",hint:"Introduce a deliberate YAML error and verify dry-run catches it.",steps:["Open observability/dashboard.yaml and remove the 'kind' field","Run: dash0 apply -f observability/ --dry-run","Observe the error — dry-run should report the schema problem","Fix the YAML and run dry-run again to confirm it passes","Then run apply (without --dry-run) to deploy the valid config"]},
+{task:"Test multi-document YAML with dash0 apply.",hint:"Combine multiple resource definitions in one file with --- separators.",steps:["Create: combined.yaml with two resources separated by ---","Add a dashboard definition, then --- then a view definition","Run: dash0 apply -f combined.yaml","Verify both resources were created or updated in the Dash0 UI"]}
+]},
+
+{id:"lesson-5",title:"Querying Telemetry",time:"25m",week:2,icon:"🔍",
+sources:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"],
+body:`<div class="lesson-section"><h4>Three Query Commands</h4><div class="lesson-text"><p>The Dash0 CLI provides three experimental querying commands — all require the <code class="code-inline">-X</code> flag. Metrics querying uses <code class="code-inline">dash0 metrics instant</code> (no <code class="code-inline">-X</code> required).</p></div><div class="lesson-highlight"><strong>Logs:</strong> <code class="code-inline">dash0 -X logs query</code><br><strong>Spans:</strong> <code class="code-inline">dash0 -X spans query</code><br><strong>Traces:</strong> <code class="code-inline">dash0 -X traces get &lt;trace-id&gt;</code><br><strong>Metrics (GA):</strong> <code class="code-inline">dash0 metrics instant --query 'promql'</code></div></div><div class="lesson-section"><h4>Log and Span Query Flags</h4><div class="code-block"># Filter by time range (relative timestamps)
+dash0 -X logs query --from now-1h --to now
+dash0 -X logs query --from now-30m
+
+# Filter by OTel attributes
+dash0 -X logs query --filter "service.name is payment-service"
+dash0 -X logs query --filter "severity.text is ERROR"
+
+# Multiple filters (ANDed together)
+dash0 -X logs query \
+  --from now-1h \
+  --filter "service.name is checkout-service" \
+  --filter "severity.text is ERROR"
+
+# Limit results
+dash0 -X logs query --limit 100
+
+# Output formats
+dash0 -X logs query -o json
+dash0 -X logs query -o csv --column time --column service.name --column body
+
+# Span queries use the same flags
+dash0 -X spans query --from now-2h --filter "service.name is api-gateway"</div></div><div class="lesson-section"><h4>Trace Retrieval</h4><div class="code-block"># Get all spans for a trace
+dash0 -X traces get <trace-id>
+
+# Widen time window for older traces
+dash0 -X traces get <trace-id> --from now-6h
+
+# Follow span links across service boundaries
+dash0 -X traces get <trace-id> --follow-span-links</div></div><div class="lesson-section"><h4>Metrics: PromQL via CLI</h4><div class="code-block"># Instant query (current value)
+dash0 metrics instant --query 'sum(rate(http_requests_total[5m]))'
+
+# Range query (time series)
+dash0 metrics range \
+  --query 'avg(cpu_usage_seconds_total)' \
+  --from now-1h --to now --step 5m</div></div>`,
+exercises:[
+{task:"Query the last 30 minutes of logs for a specific service.",hint:"Use `dash0 -X logs query` with --from and --filter flags.",steps:["Run: dash0 -X logs query --from now-30m --limit 20","Add a service filter: --filter \"service.name is <your-service>\"","Try ERROR severity: add --filter \"severity.text is ERROR\"","Export to JSON: add -o json and pipe to jq for inspection"]},
+{task:"Run a PromQL instant query against Dash0 metrics.",hint:"Use `dash0 metrics instant` — no -X flag needed.",steps:["Run: dash0 metrics instant --query 'up'","Try a more specific query: dash0 metrics instant --query 'sum by (service) (rate(http_requests_total[5m]))'","Compare to the Dash0 UI metrics explorer — results should match"]},
+{task:"Retrieve a full trace by trace ID.",hint:"Find a trace ID from the Dash0 UI and use `dash0 -X traces get`.",steps:["Open Dash0 UI, find a trace with multiple spans, copy the trace ID","Run: dash0 -X traces get <trace-id>","If no results, widen: --from now-2h","Try: --follow-span-links to see if any linked traces are retrieved"]}
+]},
+
+{id:"lesson-6",title:"Sending Telemetry",time:"20m",week:2,icon:"📤",
+sources:["https://github.com/dash0hq/dash0-cli","https://www.dash0.com/changelog/dash0-cli-ga"],
+body:`<div class="lesson-section"><h4>Why Send Telemetry from the CLI?</h4><div class="lesson-text"><p>The CLI can send logs and spans directly via OTLP — no application instrumentation required. This is useful for three scenarios: <strong>testing your ingestion pipeline</strong> (validate that data arrives correctly), <strong>annotating deployments</strong> (create searchable deployment markers in logs), and <strong>local dev validation</strong> (confirm OTel attributes are routed correctly before instrumenting production).</p></div></div><div class="lesson-section"><h4>Sending Logs</h4><div class="code-block"># Basic log send
+dash0 logs send "Application started"
+
+# With resource attributes (describe the entity)
+dash0 logs send "Payment processed" \
+  --resource-attribute service.name=payment-service \
+  --resource-attribute service.version=2.1.0 \
+  --resource-attribute deployment.environment=production
+
+# With log attributes (describe the event)
+dash0 logs send "Order created" \
+  --resource-attribute service.name=order-service \
+  --log-attribute order.id=12345 \
+  --log-attribute customer.tier=premium
+
+# With OTel severity
+dash0 logs send "DB connection failed" \
+  --resource-attribute service.name=api-gateway \
+  --severity-text ERROR \
+  --severity-number 17</div></div><div class="lesson-section"><h4>OTel Severity Reference</h4><div class="lesson-highlight">TRACE=1 | DEBUG=5 | INFO=9 | WARN=13 | ERROR=17 | FATAL=21<br>Always set both --severity-text and --severity-number for maximum compatibility.</div></div><div class="lesson-section"><h4>Sending Spans</h4><div class="code-block"># Basic span (requires -X experimental flag)
+dash0 -X spans send \
+  --name "GET /api/users" \
+  --kind SERVER \
+  --status-code OK \
+  --duration 150ms \
+  --resource-attribute service.name=api-gateway
+
+# With span attributes
+dash0 -X spans send \
+  --name "process-payment" \
+  --kind INTERNAL \
+  --status-code OK \
+  --duration 80ms \
+  --resource-attribute service.name=payment-service \
+  --span-attribute payment.method=credit_card \
+  --span-attribute payment.amount=99.99</div></div><div class="lesson-section"><h4>Span Kinds</h4><div class="lesson-text"><p>Supported span kinds match the OTel SpanKind enum: <code class="code-inline">CLIENT</code> (outgoing requests), <code class="code-inline">SERVER</code> (incoming requests), <code class="code-inline">PRODUCER</code> (message sending), <code class="code-inline">CONSUMER</code> (message receiving), <code class="code-inline">INTERNAL</code> (internal operations).</p></div></div>`,
+exercises:[
+{task:"Send a test log with resource and log attributes to Dash0.",hint:"Use `dash0 logs send` with --resource-attribute and --log-attribute flags.",steps:["Run: dash0 logs send \"Test from CLI\" --resource-attribute service.name=test-service --severity-text INFO --severity-number 9","Open Dash0 UI, go to Logs — find the log with service.name=test-service","Add a log attribute: --log-attribute test.run=lesson-6","Verify the attribute appears in the log record detail view"]},
+{task:"Send a CI/CD deployment annotation as a log event.",hint:"Simulate what a pipeline would do: send a log marking a deployment.",steps:["Run: dash0 logs send \"Deployment complete\" --resource-attribute service.name=my-app --resource-attribute service.version=v2.0.0 --log-attribute deployment.sha=abc123 --log-attribute deployment.env=staging --severity-text INFO --severity-number 9","Search Dash0 logs for service.name=my-app","Verify deployment.sha and deployment.env appear as filterable attributes"]},
+{task:"Send a test span and verify it appears in Dash0 traces.",hint:"Use `dash0 -X spans send` with SERVER kind.",steps:["Run: dash0 -X spans send --name \"GET /test\" --kind SERVER --status-code OK --duration 200ms --resource-attribute service.name=test-service","Open Dash0 UI, go to Traces — find the span from test-service","Note: it will appear as a standalone span (no parent trace) — this is expected"]}
+]},
+
+{id:"lesson-7",title:"Agent Mode & CI/CD",time:"25m",week:3,icon:"🤖",
+sources:["https://www.dash0.com/changelog/cli-agent-mode","https://www.dash0.com/changelog/dash0-cli-ga","https://github.com/dash0hq/dash0-cli"],
+body:`<div class="lesson-section"><h4>What is Agent Mode?</h4><div class="lesson-text"><p>Agent mode makes the Dash0 CLI machine-readable. When active, it changes five behaviors to make the CLI suitable for consumption by programs — AI coding agents, CI/CD systems, and scripts — rather than humans.</p></div><div class="lesson-highlight"><strong>5 behavior changes in agent mode:</strong><br>1. JSON output by default (no --o flag needed)<br>2. --help returns structured JSON (not human text)<br>3. Errors emit as JSON on stderr: {"error":"...","hint":"..."}<br>4. No confirmation prompts (auto-confirm all operations)<br>5. No ANSI color codes (clean for log parsing)</div></div><div class="lesson-section"><h4>Enabling Agent Mode</h4><div class="code-block"># Explicit flag on any command
+dash0 --agent-mode dashboards list
+
+# Environment variable (recommended for CI/CD)
+DASH0_AGENT_MODE=true dash0 apply -f observability/
+
+# Disable explicitly (if auto-detected incorrectly)
+DASH0_AGENT_MODE=false dash0 dashboards list</div></div><div class="lesson-section"><h4>Auto-Detection: Zero Config for AI Agents</h4><div class="lesson-text"><p>The CLI automatically activates agent mode when it detects these environments:</p></div><div class="lesson-highlight">Claude Code, Cursor, Windsurf, Cline, Aider, GitHub Copilot, OpenAI Codex, and any MCP server session (detected via MCP_SESSION_ID).<br><br>No user configuration needed — if you're in any of these tools, the CLI is already machine-readable.</div></div><div class="lesson-section"><h4>CI/CD Integration Pattern</h4><div class="code-block"># GitHub Actions: .github/workflows/dash0.yml
+name: Deploy Observability Config
+on:
+  push:
+    branches: [main]
+    paths: ['observability/**']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Dash0 CLI
+        run: |
+          docker pull ghcr.io/dash0hq/cli:latest
+      - name: Create profile
+        env:
+          DASH0_AUTH_TOKEN: ${{ secrets.DASH0_AUTH_TOKEN }}
+          DASH0_API_URL: ${{ secrets.DASH0_API_URL }}
+          DASH0_OTLP_URL: ${{ secrets.DASH0_OTLP_URL }}
+        run: |
+          export DASH0_CONFIG_DIR=/tmp/dash0-ci
+          docker run -e DASH0_CONFIG_DIR -v /tmp/dash0-ci:/tmp/dash0-ci \
+            ghcr.io/dash0hq/cli:latest config profiles create ci \
+            --api-url $DASH0_API_URL --otlp-url $DASH0_OTLP_URL \
+            --auth-token $DASH0_AUTH_TOKEN
+      - name: Deploy
+        run: |
+          export DASH0_AGENT_MODE=true DASH0_CONFIG_DIR=/tmp/dash0-ci
+          docker run -e DASH0_AGENT_MODE -e DASH0_CONFIG_DIR \
+            -v /tmp/dash0-ci:/tmp/dash0-ci \
+            -v $(pwd)/observability:/observability \
+            ghcr.io/dash0hq/cli:latest apply -f /observability/</div></div>`,
+exercises:[
+{task:"Test agent mode JSON output locally.",hint:"Run a command with DASH0_AGENT_MODE=true and compare to normal output.",steps:["Normal output: dash0 dashboards list","Agent mode: DASH0_AGENT_MODE=true dash0 dashboards list","Observe: agent mode outputs JSON instead of a table","Try: DASH0_AGENT_MODE=true dash0 dashboards list | jq '.[0]' to inspect one record"]},
+{task:"Test structured error output in agent mode.",hint:"Trigger an error (wrong profile or missing ID) and observe the JSON error format.",steps:["Run: DASH0_AGENT_MODE=true dash0 dashboards get nonexistent-id 2>&1","Observe the stderr JSON: should have 'error' and 'hint' fields","Compare: run the same command without agent mode to see the human-readable error","Note how the hint field gives actionable recovery steps"]},
+{task:"Write a CI/CD validation step for a GitHub Actions workflow.",hint:"Create a .yml file that runs `dash0 apply --dry-run` on pull requests.",steps:["Create .github/workflows/validate-observability.yml","Add a trigger: on pull_request with paths: ['observability/**']","Add a step that installs the CLI and runs: DASH0_AGENT_MODE=true dash0 apply -f observability/ --dry-run","The step should fail the PR if --dry-run returns a non-zero exit code"]}
+]},
+
+{id:"lesson-8",title:"Competitive Positioning",time:"20m",week:3,icon:"🏆",
+sources:["https://www.dash0.com/changelog/dash0-cli-ga","https://www.dash0.com/changelog/cli-agent-mode","https://www.dash0.com/changelog/cli-manage-assets"],
+body:`<div class="lesson-section"><h4>The Competitive Landscape</h4><div class="lesson-text"><p>Several observability platforms have CLIs. Understanding the differences helps you position Dash0 CLI accurately in sales and SA conversations.</p></div></div><div class="lesson-section"><h4>Dash0 vs Competitors</h4><table class="lesson-compare"><tr><td class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Datadog CLI</div>ddtrace, dogwrap — focused on process wrapping and trace injection. Limited asset management (no dashboard-as-code CLI). No native AI agent mode. UI-first design philosophy.</td><td class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Dash0 CLI</div>Full asset management (dashboards, rules, views, synthetics). GitOps apply. Live telemetry queries. Telemetry injection. Native AI agent mode with zero-config auto-detection.</td></tr><tr><td class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Grafana (grizzly)</div>Dashboard-as-code tool for Grafana. Limited to Grafana dashboards — no alerting rules, no synthetic checks. No telemetry querying or injection. Community-maintained, not first-party.</td><td class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Dash0 CLI</div>First-party, maintained by Dash0. Covers the full observability asset lifecycle. Unified tool — one CLI for all operations. Agent mode purpose-built for AI workflows.</td></tr><tr><td class="lesson-compare-item"><div class="compare-label" style="color:#ef4444">Dynatrace Monaco</div>YAML-based configuration-as-code tool. Requires separate Monaco binary and config format learning. Complex configuration model. No live telemetry querying or injection from same tool.</td><td class="lesson-compare-item"><div class="compare-label" style="color:#10b981">Dash0 CLI</div>Single binary, familiar `kubectl apply` semantics. Direct YAML export from live resources. Apply, query, and send from the same tool. Prometheus CRD compatibility reduces migration friction.</td></tr></table></div><div class="lesson-section"><h4>Dash0 CLI Differentiators</h4><div class="lesson-highlight"><strong>1. Unified tool:</strong> Asset management + telemetry querying + telemetry injection in one binary. No competitors cover all three.<br><br><strong>2. GitOps-native:</strong> `dash0 apply` was designed for CI/CD from day one. Dry-run, multi-doc YAML, idempotent operations.<br><br><strong>3. AI agent mode:</strong> Auto-detects 8+ AI coding environments. JSON help schemas. Structured error hints. First-mover in AI-native observability.<br><br><strong>4. Prometheus compatibility:</strong> Accepts PrometheusRule CRDs directly — no rewrite needed when migrating alerting rules.</div></div><div class="lesson-section"><h4>Sales Objection Handling</h4><div class="lesson-text"><p><strong>"We're UI-only."</strong> — Start with backup and audit trail value. `dash0 dashboards get -o yaml` as a safety net requires zero CLI adoption day-to-day.<br><br><strong>"We use Terraform."</strong> — Complementary: Terraform for environment provisioning, CLI for asset management and live telemetry access.<br><br><strong>"We already have kubectl."</strong> — Same mental model (`apply` semantics), different layer. kubectl for workloads, Dash0 CLI for the observability layer alongside those workloads.</p></div></div>`,
+exercises:[
+{task:"Practice the three core competitive differentiators from memory.",hint:"Unified tool, GitOps-native, AI agent mode, Prometheus compatibility",steps:["Cover this page and recite the four differentiators","For each, name one concrete CLI command that demonstrates it","Unified: dash0 -X logs query (query) + dash0 apply (asset mgmt) + dash0 logs send (inject) — all one binary","GitOps: dash0 apply --dry-run on PR, apply on merge","AI: DASH0_AGENT_MODE auto-detected in Claude Code/Cursor/Windsurf","Prometheus: dash0 check-rules create -f prometheus-rules.yaml"]},
+{task:"Prepare responses to the three main CLI objections.",hint:"UI-only, Terraform users, kubectl users",steps:["'UI-only': backup/audit trail first, then GitOps value for growing teams","'Terraform': complementary — Terraform provisions environments, CLI manages assets and queries telemetry day-to-day","'Already have kubectl': same apply semantics, different layer — workloads vs observability config","Practice delivering each response in under 60 seconds"]}
+]}
+];
 // ─── DEFAULT SCHEDULE ───
 // TODO: Add 10-20 study sessions. Each: {id, date, time, dur (minutes), title, desc, phase}
 const DEFAULT_SESSIONS=[
@@ -1323,18 +1626,26 @@ function deleteCheckpoint(id){checkpoints=checkpoints.filter(c=>c.id!==id);saveS
 function renderResourcesTab(){
 return`<div class="mgmt-section" style="border:2px solid rgba(59,130,246,.2)">
 <h3 style="color:#93c5fd">📚 Study Resources</h3>
-${(RELATED_COURSES.length ? '<div class="res-group"><div class="res-group-title">Related Courses</div>'
-  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span><div><strong>'+c.title+'</strong><div class="res-desc">'+c.desc+'</div></div></a>'}).join('')
+${(RELATED_COURSES.length ? '<div class="res-group"><h4>Related Courses</h4>'
+  +RELATED_COURSES.map(function(c){return '<a href="'+c.url+'" class="res-link" target="_blank"><span>'+c.icon+'</span> <strong>'+c.title+'</strong><small>'+c.desc+'</small></a>'}).join('')
   +'</div>' : '')}
+<div class="res-group">
+<h4>GitHub & Source</h4>
+<a class="res-link" href="https://github.com/dash0hq/dash0-cli" target="_blank" rel="noopener">dash0hq/dash0-cli on GitHub<small>Source code, installation instructions, full README</small></a>
+<a class="res-link" href="https://github.com/dash0hq/dash0-cli#installation" target="_blank" rel="noopener">Installation Guide<small>Homebrew, Docker, and build-from-source instructions</small></a>
+</div>
+<div class="res-group">
+<h4>Changelogs & Announcements</h4>
+<a class="res-link" href="https://www.dash0.com/changelog/dash0-cli-ga" target="_blank" rel="noopener">CLI GA Announcement<small>General availability release: GitOps apply, asset management, telemetry querying</small></a>
+<a class="res-link" href="https://www.dash0.com/changelog/cli-manage-assets" target="_blank" rel="noopener">Asset Management Changelog<small>CRUD for dashboards, check rules, views, synthetic checks + Prometheus CRD import</small></a>
+<a class="res-link" href="https://www.dash0.com/changelog/cli-agent-mode" target="_blank" rel="noopener">Agent Mode Changelog<small>AI coding agent auto-detection, JSON help, structured errors</small></a>
+</div>
 <div class="res-group">
 <h4>Official Docs</h4>
 <a class="res-link" href="https://www.dash0.com/documentation/dash0/cli" target="_blank" rel="noopener">Dash0 CLI Reference<small>Full command reference and flag documentation</small></a>
 <a class="res-link" href="https://www.dash0.com/documentation/dash0/getting-started" target="_blank" rel="noopener">Getting Started Guide<small>Install, authenticate, and run your first command</small></a>
-</div>
-<div class="res-group">
-<h4>GitOps & Integration</h4>
 <a class="res-link" href="https://www.dash0.com/documentation/dash0/gitops" target="_blank" rel="noopener">GitOps with Dash0<small>Version-control dashboards, rules, and views via dash0 apply</small></a>
-<a class="res-link" href="https://www.dash0.com/documentation/dash0/api" target="_blank" rel="noopener">Dash0 API Reference<small>Underlying HTTP API for programmatic access</small></a>
+<a class="res-link" href="https://www.dash0.com/documentation/dash0/api" target="_blank" rel="noopener">Dash0 API Reference<small>Underlying HTTP API — the same endpoints the CLI wraps</small></a>
 </div>
 </div>`;}
 function askResetAll(){confirmMsg="Reset ALL progress?";confirmAction="all";showConfirm=true;render()}
