@@ -514,7 +514,7 @@ if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
 if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
 if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
 try{const syncUrl=localStorage.getItem(STORAGE_KEY+'-sync-url');if(syncUrl)SYNC_SHEET_URL=syncUrl;const syncUser=localStorage.getItem(STORAGE_KEY+'-sync-user');if(syncUser)SYNC_USER_ID=syncUser}catch(e){}
-try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');if(fs)document.body.className=fs;else document.body.className='fs-m'}catch(e){document.body.className='fs-m'}
+try{const fs=localStorage.getItem(STORAGE_KEY+'-fontsize');const validFs=['fs-s','fs-m','fs-l','fs-xl'];const applyFs=validFs.includes(fs)?fs:'fs-m';document.body.classList.remove(...validFs);document.body.classList.add(applyFs)}catch(e){document.body.classList.add('fs-m')}
 })();
 // ─── CLOUD SYNC ON LOAD ───
 (async function(){
@@ -556,7 +556,7 @@ ${Object.entries(ROLE_CONFIG).map(([k,v])=>`<div class="role-card" onclick="pick
 </div>`;
 }
 function pickRole(r){userRole=r;showRolePicker=false;saveState();render()}
-function setFontSize(size){document.body.className=size;try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
+function setFontSize(size){document.body.classList.remove('fs-s','fs-m','fs-l','fs-xl');document.body.classList.add(size);try{localStorage.setItem(STORAGE_KEY+'-fontsize',size)}catch(e){};render()}
 function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
 function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
 function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
