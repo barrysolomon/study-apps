@@ -360,7 +360,7 @@ const DEFAULT_CHECKPOINTS=[
 const STORAGE_KEY="my-crash-course";
 function saveState(){
 try{
-const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
 localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
 }catch(e){}
 debouncedCloudSave();
@@ -393,7 +393,7 @@ if(!syncEnabled()){syncPending=false;return}
 if(!isOnline()){syncStatus='offline';syncPending=true;updateSyncUI();return}
 syncStatus='syncing';updateSyncUI();
 try{
-const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},savedAt:new Date().toISOString(),version:7};
+const data={stats,history:sessionHistory,exercisesDone,schedule,checkpoints,sessionsDone,userRole,fcFavs:[...fcFavs],lastCard:{cat:fcCat,idx:fcIdx},cardRatings:cardRatings,savedAt:new Date().toISOString(),version:8};
 await fetch(SYNC_SHEET_URL+'?action=save&key='+encodeURIComponent(getSyncKey()),{
 method:'POST',headers:{'Content-Type':'text/plain'},
 body:JSON.stringify({data,savedAt:data.savedAt})
@@ -457,6 +457,7 @@ if(d.sessionsDone)sessionsDone=d.sessionsDone;
 if(d.userRole)userRole=d.userRole;
 if(d.fcFavs)fcFavs=new Set(d.fcFavs);
 if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
 saveState();
 }
 render();
@@ -475,13 +476,13 @@ if(syncEnabled()){syncStatus='offline';updateSyncUI()}
 }
 function resetAll(){
 stats={quizzes:0,bestQuiz:0,cards:0,scenarios:0,rapid:0,bestRapid:0};
-sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;
+sessionHistory=[];exercisesDone={};schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));sessionsDone={};userRole=null;cardRatings={};
 try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
 showConfirm=false;mode="dashboard";render();
 }
 function resetSection(key){
 if(key==="quiz"){stats.quizzes=0;stats.bestQuiz=0;stats.quizScores={}}
-else if(key==="cards"){stats.cards=0}
+else if(key==="cards"){stats.cards=0;cardRatings={}}
 else if(key==="scenarios"){stats.scenarios=0}
 else if(key==="rapid"){stats.rapid=0;stats.bestRapid=0}
 else if(key==="exercises"){exercisesDone={}}
@@ -506,6 +507,7 @@ let learnView="list",learnIdx=0,exercisesDone={};
 let schedule=[],checkpoints=[],sessionsDone={},showForm=null,editId=null,formData={};
 let schedView="upcoming",icsOpen=false,icsSelected=new Set(),icsPhaseFilter='all';
 let userRole=null,showRolePicker=false;
+let cardRatings={};
 // ─── LOAD SAVED STATE ───
 (function(){
 const saved=loadState();
@@ -519,6 +521,7 @@ if(saved.sessionsDone)sessionsDone=saved.sessionsDone;
 if(saved.userRole)userRole=saved.userRole;
 if(saved.fcFavs)fcFavs=new Set(saved.fcFavs);
 if(saved.lastCard){fcCat=saved.lastCard.cat||"All";fcIdx=saved.lastCard.idx||0}
+if(saved.cardRatings)cardRatings=saved.cardRatings;
 }
 if(!schedule.length)schedule=JSON.parse(JSON.stringify(DEFAULT_SESSIONS));
 if(!checkpoints.length)checkpoints=JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
@@ -544,6 +547,7 @@ if(d.sessionsDone)sessionsDone=d.sessionsDone;
 if(d.userRole)userRole=d.userRole;
 if(d.fcFavs)fcFavs=new Set(d.fcFavs);
 if(d.lastCard){fcCat=d.lastCard.cat||"All";fcIdx=d.lastCard.idx||0}
+if(d.cardRatings)cardRatings=d.cardRatings;
 saveState();render();
 console.log('☁️ Loaded newer state from cloud ('+cloud.savedAt+')');
 }
@@ -595,6 +599,34 @@ function highlightCode(text){
 function codeBlock(code){
   return '<div class="code-block"><button class="code-copy" onclick="copyCode(this)">Copy</button>'+highlightCode(code)+'</div>';
 }
+function fcRate(rating){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var card=cards[fcIdx%cards.length];
+  cardRatings[card.f]=rating;
+  stats.cards=(stats.cards||0)+1;
+  saveState();
+  fcFlipped=false;
+  // advance to next card
+  var next=fcGetCards();
+  if(next.length>0)fcIdx=(fcIdx+1)%next.length;
+  render();
+}
+
+function fcWeightedShuffle(){
+  var cards=fcGetCards();
+  if(!cards.length)return;
+  var weighted=[];
+  cards.forEach(function(c,i){
+    var r=cardRatings[c.f];
+    var w=r==='missed'?3:r==='unsure'?2:1;
+    for(var j=0;j<w;j++)weighted.push(i);
+  });
+  fcIdx=weighted[Math.floor(Math.random()*weighted.length)];
+  fcFlipped=false;
+  render();
+}
+
 function isCoreCat(cat){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreCategories.includes(cat)}
 function isCoreLesson(lessonId){if(!userRole||!ROLE_CONFIG[userRole])return true;return ROLE_CONFIG[userRole].coreLessons.includes(lessonId)}
 function getRoleCategories(){if(!userRole||!ROLE_CONFIG[userRole])return CATEGORIES;return ROLE_CONFIG[userRole].categoryOrder}
@@ -648,6 +680,7 @@ el.innerHTML=`
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">⚡</div><div class="stat-val">${stats.rapid}</div><div class="stat-label">Rapid Rounds</div></div>
 <div class="stat-card" onclick="setMode('rapid')" style="cursor:pointer"><div class="stat-icon">🌟</div><div class="stat-val">${stats.bestRapid?stats.bestRapid+'%':'—'}</div><div class="stat-label">Best Rapid</div></div>
 <div class="stat-card" onclick="setMode('learn')" style="cursor:pointer"><div class="stat-icon">📖</div><div class="stat-val">${Object.keys(exercisesDone).length}/${LESSONS.reduce((s,l)=>s+l.exercises.length,0)}</div><div class="stat-label">Exercises</div></div>
+<div class="stat-card" onclick="mode='flashcards';fcCat='⚠ Weak';render()" style="cursor:pointer"><div class="stat-num" style="color:#f59e0b">${Object.values(cardRatings).filter(function(r){return r==='missed'||r==='unsure'}).length}</div><div class="stat-label">Weak Cards</div></div>
 </div>
 <div class="focus-box"><div class="focus-title">Today's Focus</div><div class="focus-text">${focus}</div></div>
 ${renderDashSchedule()}`;
@@ -696,28 +729,45 @@ if(m==="exercises"){const t=LESSONS.reduce((s,l)=>s+l.exercises.length,0);return
 return 0;
 }
 // ─── FLASHCARDS ───
-function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
+function fcGetCards(){let cards=fcCat==="★ Favorites"?FLASHCARDS.filter(c=>fcFavs.has(c.f)):fcCat==='⚠ Weak'?FLASHCARDS.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}):(fcCat==="All"?FLASHCARDS:FLASHCARDS.filter(c=>c.c===fcCat));if(fcDiff!=='All Levels')cards=cards.filter(function(c){return DIFF_LABELS[c.d]===fcDiff});return cards}
 function renderFlashcards(el){
+const allCards=FLASHCARDS.filter(function(c){return fcDiff==='All Levels'||DIFF_LABELS[c.d]===fcDiff});
+const weakCount=allCards.filter(function(c){return cardRatings[c.f]==='missed'||cardRatings[c.f]==='unsure'}).length;
 const cards=fcGetCards();
 if(!cards.length&&fcCat==="★ Favorites"){el.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:16px">&#11088;</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No favorites yet</div><div style="font-size:14px;color:#6b7280;line-height:1.5">Tap the &#9733; on any flashcard to save it here for focused review.</div><button class="btn btn-primary" style="margin-top:20px" onclick="fcSetCat(\'All\')">Browse All Cards</button></div>';return}
+if(!cards.length&&fcCat==='⚠ Weak'){
+const roleCats=getRoleCategories();
+const favCount=fcFavs.size;
+const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
+const weakPill='<button class="pill active" onclick="fcSetCat(\'⚠ Weak\')" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Weak ('+weakCount+')</button>';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
++'<div style="text-align:center;padding:40px;color:#9ca3af">No weak cards! Rate flashcards to see them here.</div>';
+return;
+}
 if(fcIdx>=cards.length)fcIdx=0;
 const card=cards[fcIdx];
 const isFav=fcFavs.has(card.f);
 const roleCats=getRoleCategories();
 const favCount=fcFavs.size;
 const favPill=favCount?'<button class="pill '+(fcCat==="★ Favorites"?'active':'')+'" onclick="fcSetCat(\'★ Favorites\')" style="'+(fcCat!=="★ Favorites"?'background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25)':'')+'">★ Favorites ('+favCount+')</button>':'';
-el.innerHTML='<div class="pills">'+favPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
+const weakPill=weakCount||fcCat==='⚠ Weak'?'<button class="pill '+(fcCat==='⚠ Weak'?'active':'')+'" onclick="fcSetCat(\'⚠ Weak\')" style="'+(fcCat!=='⚠ Weak'?'background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)':'')+'">⚠ Weak ('+weakCount+')</button>':'';
+el.innerHTML='<div class="pills">'+favPill+weakPill+roleCats.map(c=>'<button class="pill '+(fcCat===c?'active':'')+'" onclick="fcSetCat(\''+c+'\')">'+c+(c!=='All'&&userRole?(isCoreCat(c)?' ★':''):'')+'</button>').join("")+'</div>'
 +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+['All Levels','Beginner','Intermediate','Advanced'].map(function(d){return '<button class="pill'+(fcDiff===d?' pill-active':'')+'" onclick="fcDiff=\''+d+'\';fcIdx=0;render()">'+d+'</button>';}).join('')+'</div>'
-+'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
++'<div class="progress-bar"><div class="progress-label"><span>'+(fcCat==="★ Favorites"?'Favorites':fcCat==='⚠ Weak'?'Weak cards':'Cards seen')+'</span><span>'+(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1)+'/'+cards.length:fcSeen.size+'/'+cards.length)+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+Math.round(cards.length?(fcCat==="★ Favorites"||(fcCat==='⚠ Weak')?(fcIdx+1):fcSeen.size)/cards.length*100:0)+'%"></div></div></div>'
 +'<div class="card '+(fcFlipped?'answer':'question')+'" onclick="fcFlip()" style="position:relative">'
 +'<button class="fav-btn '+(isFav?'active':'')+'" onclick="event.stopPropagation();fcToggleFav('+fcIdx+')" title="'+(isFav?'Remove from favorites':'Add to favorites')+'">'+(isFav?'★':'☆')+'</button>'
 +'<div class="card-label">'+(fcFlipped?'Answer':'Question')+' — '+card.c+(card.d?'<span style="background:'+DIFF_COLORS[card.d]+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600">'+DIFF_LABELS[card.d]+'</span>':'')+'</div>'
 +'<div class="card-text">'+(fcFlipped?card.b:card.f)+'</div>'
 +(!fcFlipped?'<div class="card-hint">tap to flip</div>':'')
 +(fcFlipped&&card.u?'<a class="source-link" href="'+card.u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📖 Read the docs</a>':'')
++(fcFlipped?'<div style="display:flex;gap:8px;justify-content:center;margin-top:14px">'
++'<button onclick="event.stopPropagation();fcRate(\'missed\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#ef4444;color:#fff;font-weight:600">Missed</button>'
++'<button onclick="event.stopPropagation();fcRate(\'unsure\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#f59e0b;color:#fff;font-weight:600">Unsure</button>'
++'<button onclick="event.stopPropagation();fcRate(\'known\')" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:#10b981;color:#fff;font-weight:600">Know it</button>'
++'</div>':'')
 +'</div>'
 +(fcFlipped?askClaudeBox('Flashcard: '+card.f):'')
-+'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
++'<div class="btn-row"><button class="btn btn-secondary" onclick="fcPrev()">Prev</button><button class="btn btn-secondary" onclick="fcWeightedShuffle()">Shuffle</button><button class="btn btn-primary" onclick="fcNext()">Next</button></div>';
 }
 function fcSetCat(c){fcCat=c;fcIdx=0;fcFlipped=false;if(c!=="★ Favorites")fcSeen=new Set();saveState();render()}
 function fcFlip(){fcFlipped=!fcFlipped;if(fcFlipped){stats.cards++;fcSeen.add(fcIdx);saveState()}render()}
